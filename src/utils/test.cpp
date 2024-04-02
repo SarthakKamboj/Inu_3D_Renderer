@@ -2,7 +2,7 @@
 #inlcude "inu_math.h"
 
 using namespace std;
-
+//
 void testDot2() {
 	vec2 a = {1,2};
 	vec2 b = {3,4};

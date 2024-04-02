@@ -1,134 +1,70 @@
+#include <cmath> 
+
 #include "inu_math.h"
-#include <cmath>
-#include "vectors.h"
-#include <iostream>
-#include <cassert>
 
-
-Vector2D::Vector2D():x(0),y(0){}
-Vector2D::Vector2D(float x, float y) : x(x), y(y) {}
-Vector2D::~Vector2D(){}
-
-
-Vector3D::Vector3D() : x(0), y(0), z(0) {}
-Vector3D::Vector3D(float x, float y, float z) : x(x), y(y), z(z) {}
-Vector3D::~Vector3D() {}
-
-
-
-Vector2D Vector2D::addition(const Vector2D& vect) const { //add 2 vectors
-	return Vector2D(x + vect.x, y + vect.y);
+float dot_product(const vec2& vect1, const vec2& vect2) {
+    return vect1.x * vect2.x + vect1.y * vect2.y;
 }
 
-Vector3D Vector3D::addition(const Vector3D& vect) const { //add 2 vectors
-	return Vector3D(x + vect.x, y + vect.y, z+vect.x);
+float dot_product(const vec3& vect1, const vec3& vect2) {
+    return vect1.x * vect2.x + vect1.y * vect2.y + vect1.z * vect2.z;
 }
 
-Vector2D Vector2D::subtraction(const Vector2D& vect) const {	//subtract 2 vectors
-	return Vector2D(x - vect.x, y - vect.y);
+vec3 cross_product(const vec3& vect1, const vec3& vect2) {
+    return {
+        vect1.y * vect2.z - vect1.z * vect2.y,
+        vect1.z * vect2.x - vect1.x * vect2.z,
+        vect1.x * vect2.y - vect1.y * vect2.x
+    };
 }
 
-Vector3D Vector3D::subtraction(const Vector3D& vect) const {	//subtract 2 vectors
-	return Vector3D(x - vect.x, y - vect.y, z-vect.z);
+float magnitude(const vec2& vect) {
+    return std::sqrt(vect.x * vect.x + vect.y * vect.y);
 }
 
-Vector2D Vector2D::multiplication(float scalar) const {	//multiply vector by a scalar
-	return Vector2D(x*scalar, y*scalar);
+float magnitude(const vec3& vect) {
+    return std::sqrt(vect.x * vect.x + vect.y * vect.y + vect.z * vect.z);
 }
 
-//multiple 2D vectors
-Vector3D Vector3D::multiplication(float scalar) const { //add 2 vectors
-	return Vector3D(x * scalar, y * scalar, z*scalar);
+vec2 addition(const vec2& vect1, const vec2& vect2) {
+    return { vect1.x + vect2.x, vect1.y + vect2.y };
 }
 
-Vector2D Vector2D::multiplication(const Vector2D& vect) const {
-	return Vector2D(x * vect.x, y * vect.y);
-
-}Vector3D Vector3D::multiplication(const Vector3D& vect) const {
-	return Vector3D(x * vect.x, y * vect.y, z*vect.z);
+vec2 subtraction(const vec2& vect1, const vec2& vect2) {
+    return { vect1.x - vect2.x, vect1.y - vect2.y };
 }
 
-Vector2D Vector2D::division(float scalar) const {	//multiply vector by a scalar
-	if (scalar != 0) {
-		return Vector2D(x / scalar, y / scalar);
-	}
-	else {
-		return Vector2D();
-	}
-}
+vec2 division(const vec2& vect, float scalar) {
+    if (scalar != 0)
+        return { vect.x / scalar, vect.y / scalar };
+    else
+        return { 0, 0 };
 
+    vec3 addition(const vec3 & vect1, const vec3 & vect2) {
+        return { vect1.x + vect2.x, vect1.y + vect2.y, vect1.z + vect2.z };
+    }
 
-Vector3D Vector3D::division(float scalar) const {	//multiply vector by a scalar
-	if (scalar != 0) {
-		return Vector3D(x / scalar, y / scalar, z / scalar);
-	}
-	else {
-		return Vector3D();
-	}
-}
+    vec3 subtraction(const vec3 & vect1, const vec3 & vect2) {
+        return { vect1.x - vect2.x, vect1.y - vect2.y, vect1.z - vect2.z };
+    }
 
+    vec3 division(const vec3 & vect, float scalar) {
+        if (scalar != 0)
+            return { vect.x / scalar, vect.y / scalar, vect.z / scalar };
+        else
+            return { 0, 0, 0 };
+    }
 
+    vec2 normalize(const vec2 & vect) {
+        float mag = magnitude(vect);
+        if (mag != 0)
+            return { vect.x / mag, vect.y / mag };
+        else
+            return { 0, 0 };
 
-Vector2D Vector2D::division(const Vector2D& vect) const {	
-	if (vect.x!=0 && vect.y !=0) {
-		return Vector2D(x / vect.x, y/vect.y);
-	}
-	else {
-		return Vector2D();
-	}
-}
-
-Vector3D Vector3D::division(const Vector3D& vect) const {	//multiply vector by a scalar
-	if (vect.x != 0 && vect.y != 0 && vect.z !=0) {
-		return Vector3D(x / vect.x, y / vect.y, z / vect.z);
-	}
-	else {
-		return Vector3D();
-	}
-}
-
-float Vector2D::magnitude() const {
-	return std::sqrt(x * x + y * y);
-}
-
-float Vector3D::magnitude() const {
-	return std::sqrt(x * x + y * y +z * z);
-}
-
-
-Vector2D Vector2D::normalize() const {
-	float m = magnitude();
-	if (m <= 0) return Vector2D();
-	else {
-		return Vector2D(x / m, y / m);
-	}
-}
-
-
-Vector3D Vector3D::normalize() const {
-	float m = magnitude();
-	if (m <= 0) return Vector3D();
-	else {
-		return Vector3D(x / m, y / m, z / m);
-	}
-}
-
-
-float Vector2D::dotproduct(const Vector2D& vect) const {
-	return x * vect.x + y*vect.y;
-}
-
-float Vector3D::dotproduct(const Vector3D& vect) const {
-	return x * vect.x + y * vect.y + z * vect.z;
-}
-
-float Vector2D::crossproduct(const Vector2D& vect) const {
-	return x * vect.x - y * vect.y;
-}
-
-float Vector3D::crossproduct(const Vector3D& vect) const {
-	return x * vect.x - y * vect.y - z * vect.z;
-}
-
-
-
+        vec3 normalize(const vec3 & vect) {
+            float mag = magnitude(vect);
+            if (mag != 0)
+                return { vect.x / mag, vect.y / mag, vect.z / mag };
+            else
+                return { 0, 0, 0 };

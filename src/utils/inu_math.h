@@ -2,88 +2,38 @@
 
 #include "vectors.h"
 
-// instead of creating the vector2d class here...use the vec2/ivec2/vec3 structs from vectors.h
-// for right now...don't do anything for vec4 from that file
+// LIST OF FUNCTIONS YOU WILL NEED TO CREATE/IMPLEMENT
+// DO THESE FOR VECTOR2 AND VECTOR3s
+// dot product
+// cross product
+// vector multiplication
+//    - vector + vector
+//    - vector + float
+// vector magnitude
+// addition
+// subtraction
+// division (make sure not divide by 0)
+// normalize
 
-// The idea behind this is that vectors.h just contains the vector data structures
-// but inu_math.h will contain the actual math functionality with these data structures
-// b/c they are more so math helper functions
 
-/*
-	EXAMPLE
+struct vec2;
+struct vec3;
+
+float dot_product(const vec2& vect1, const vec2& vect2);
+float dot_product(const vec3& vect1, const vec3& vect2);
+
+vec3 cross_product(const vec3& vect1, const vec3& vect2);
+
+float magnitude(const vec2& vect);
+float magnitude(const vec3& vect);
 
 vec2 addition(const vec2& vect1, const vec2& vect2);
 vec2 subtraction(const vec2& vect1, const vec2& vect2);
-vec2 multiplication(const vec2& vect, float scalar);
-vec2 multiplication(const vec2& vect1, const vec2& vect1);
-etc...
-
-ivec2 addition(const ivec2& vect1, const ivec2& vect2);
-ivec2 subtraction(const ivec2& vect1, const ivec2& vect2);
-ivec2 multiplication(const ivec2& vect, float scalar);
-ivec2 multiplication(const ivec2& vect1, const ivec2& vect1);
-etc...
+vec2 division(const vec2& vect, float scalar);
 
 vec3 addition(const vec3& vect1, const vec3& vect2);
 vec3 subtraction(const vec3& vect1, const vec3& vect2);
-vec3 multiplication(const vec3& vect, float scalar);
-vec3 multiplication(const vec3& vect1, const vec3& vect1);
-etc...
+vec3 division(const vec3& vect, float scalar);
 
- */
-
-class Vector2D {
-public: 
-	float x;
-	float y;
-
-
-	//constructors
-	Vector2D();
-	Vector2D(float x, float y);
-
-	//destructors
-	~Vector2D(); 
-
-	Vector2D addition(const Vector2D& vect) const;
-	Vector2D subtraction(const Vector2D& vect) const;
-	Vector2D multiplication(float scalar) const;
-	Vector2D multiplication(const Vector2D& vect) const;
-	Vector2D division(float scalar) const;
-	Vector2D division(const Vector2D& vect) const;
-
-	float magnitude() const;
-	Vector2D normalize() const;
-	float dotproduct(const Vector2D& vect) const;
-	float crossproduct(const Vector2D& vect) const;
-};
-
-class Vector3D {
-public:
-	float x;
-	float y;
-	float z;
-
-
-	//constructors
-	Vector3D();
-	Vector3D(float x, float y, float z);
-
-	//destructors
-	~Vector3D();
-
-	Vector3D addition(const Vector3D& vect) const;
-	Vector3D subtraction(const Vector3D& vect) const;
-	Vector3D multiplication(float scalar) const;
-	Vector3D multiplication(const Vector3D& vect) const;
-	Vector3D division(float scalar) const;
-	Vector3D division(const Vector3D& vect) const;
-
-	float magnitude() const;
-	Vector3D normalize() const;
-	float dotproduct(const Vector3D& vect) const;
-	float crossproduct(const Vector3D& vect) const;
-
-
-};
-
+vec2 normalize(const vec2& vect);
+vec3 normalize(const vec3& vect);
