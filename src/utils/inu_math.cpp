@@ -129,6 +129,3 @@ float Vector2D::crossproduct(const Vector2D& vect) const {
 float Vector3D::crossproduct(const Vector3D& vect) const {
 	return x * vect.x - y * vect.y - z * vect.z;
 }
-
-
-
