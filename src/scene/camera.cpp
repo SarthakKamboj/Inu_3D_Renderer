@@ -281,6 +281,9 @@ void cam_rotate(float lat_amount, float vert_amount) {
   to_fp.x = cam.focal_pt.x - cam.transform.pos.x;
   to_fp.y = cam.focal_pt.y - cam.transform.pos.y;
   to_fp.z = cam.focal_pt.z - cam.transform.pos.z;
+
+  vec3 n_to_fp = {-to_fp.x, -to_fp.y, -to_fp.z};
+
   to_fp = norm_vec3(to_fp);
 
   vec3 focal_pt_up = {0,1,0};
@@ -289,7 +292,10 @@ void cam_rotate(float lat_amount, float vert_amount) {
   quaternion_t q_up = create_quaternion_w_rot(focal_pt_up, lat_amount);
   quaternion_t q = quat_multiply_quat(q_right, q_up);
 
-  cam.transform.pos = get_rotated_position(cam.transform.pos, q);
+  vec3 new_n_to_fp = get_rotated_position(n_to_fp, q);
+  cam.transform.pos.x = new_n_to_fp.x + cam.focal_pt.x;
+  cam.transform.pos.y = new_n_to_fp.y + cam.focal_pt.y;
+  cam.transform.pos.z = new_n_to_fp.z + cam.focal_pt.z;
 }
 
 camera_t* get_cam() {
