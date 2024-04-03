@@ -18,7 +18,7 @@
 #define VIEW_DIR_LIGHT_DEPTH 0
 #define VIEW_DIR_LIGHT_AMOUNT_IN_LIGHT 0
 #define VIEW_CASCADE 0
-#define ENABLE_QUANTIZING 1
+#define ENABLE_QUANTIZING 0
 
 struct shader_tex {
   sampler2D samp; 
