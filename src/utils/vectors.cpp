@@ -5,6 +5,14 @@
 #include <math.h>
 #include <stdio.h>
 
+vec2 norm_vec2(vec2& v) {
+  float length = sqrt(v.x*v.x + v.y*v.y); 
+  vec2 res;
+  res.x = v.x / length;
+  res.y = v.y / length;
+  return res;
+}
+
 float length(ivec2& v) {
   return sqrt(v.x*v.x + v.y*v.y);
 }

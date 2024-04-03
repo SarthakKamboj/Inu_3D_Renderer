@@ -4,6 +4,7 @@ struct vec2 {
   float x = 0;
   float y = 0;
 };
+vec2 norm_vec2(vec2& v);
 
 struct ivec2 {
   int x = 0;

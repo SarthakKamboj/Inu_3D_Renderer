@@ -29,8 +29,10 @@ const float light_t::FAR_PLANE = 50.f;
 const float light_t::SHADOW_MAP_WIDTH = fb_width / 4.f;
 const float light_t::SHADOW_MAP_HEIGHT = fb_height / 4.f;
 
-const float dir_light_t::SHADOW_MAP_WIDTH = 4096.f;
-const float dir_light_t::SHADOW_MAP_HEIGHT = 4096.f;
+// const float dir_light_t::SHADOW_MAP_WIDTH = 4096.f;
+// const float dir_light_t::SHADOW_MAP_HEIGHT = 4096.f;
+const float dir_light_t::SHADOW_MAP_WIDTH = 1024.f;
+const float dir_light_t::SHADOW_MAP_HEIGHT = 1024.f;
 shader_t dir_light_t::light_shader;
 shader_t dir_light_t::debug_shader;
 

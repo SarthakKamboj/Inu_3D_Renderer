@@ -21,15 +21,24 @@ void update_cam() {
     diff.y = cam.transform.pos.y - cam.focal_pt.y;
     diff.z = cam.transform.pos.z - cam.focal_pt.z;
     float l = length(diff);
-    cam_move_forward(window.input.scroll_wheel_delta * l / 20.f);
+    cam_zoom(window.input.scroll_wheel_delta * l / 20.f);
   }
 
-  if (length(window.input.mouse_pos_diff) != 0 && window.input.middle_mouse_down) {
+  bool rotate_enabled = length(window.input.mouse_pos_diff) != 0 && window.input.middle_mouse_down;
+  bool translate_enabled = rotate_enabled && window.input.shift_clicked;
+
+  if (rotate_enabled) {
     float sensitivity = 0.3f;
     float lat = window.input.mouse_pos_diff.x * -2.f * sensitivity;
     float vert = window.input.mouse_pos_diff.y * 1.f * sensitivity;
-    cam_move_rotate(lat, vert);
+    cam_rotate(lat, vert);
+  } else if (translate_enabled) {
+    float sensitivity = 0.3f;
+    float lat = window.input.mouse_pos_diff.x * -2.f * sensitivity;
+    float vert = window.input.mouse_pos_diff.y * 1.f * sensitivity;
+    cam_translate(lat, vert); 
   }
+  
 
   if (update_dir_light_frustums) {
     cam.far_plane = 100.f;
@@ -168,7 +177,44 @@ mat4 get_cam_view_mat(vec3& diff) {
 }
 #endif
 
-void cam_move_forward(float amount) {
+
+
+void cam_translate(float lat, float vert) {
+  vec2 offset_dir = {lat, vert};
+  offset_dir = norm_vec2(offset_dir);
+
+  vec3 to_fp;
+  to_fp.x = cam.focal_pt.x - cam.transform.pos.x;
+  to_fp.y = cam.focal_pt.y - cam.transform.pos.y;
+  to_fp.z = cam.focal_pt.z - cam.transform.pos.z;
+  to_fp = norm_vec3(to_fp);
+
+  vec3 world_up = {0,1,0};
+  vec3 right;
+  if (to_fp.x == 0 && to_fp.y == -1.f && to_fp.z == 0) {
+    right = {-1,0,0};
+  } else if (to_fp.x == 0 && to_fp.y == 1.f && to_fp.z == 0) {
+    right = {1,0,0};
+  } else {
+    right = cross_product(to_fp, world_up);
+  }
+
+  vec3 diff = {0,0,0};
+  diff.x += to_fp.x * offset_dir.y;
+  diff.y += to_fp.y * offset_dir.y;
+  diff.z += to_fp.z * offset_dir.y;
+
+  diff.x += right.x * offset_dir.x;
+  diff.y += right.y * offset_dir.x;
+  diff.z += right.z * offset_dir.x;
+
+  cam.transform.pos.x += diff.x;
+  cam.transform.pos.y += diff.y;
+  cam.transform.pos.z += diff.z;
+
+}
+
+void cam_zoom(float amount) {
   vec3 diff;
 
   vec3 to_fp;
@@ -201,7 +247,7 @@ void cam_move_forward(float amount) {
   }
 }
 
-void cam_move_rotate(float lat_amount, float vert_amount) {
+void cam_rotate(float lat_amount, float vert_amount) {
   vec3 to_fp;
   to_fp.x = cam.focal_pt.x - cam.transform.pos.x;
   to_fp.y = cam.focal_pt.y - cam.transform.pos.y;

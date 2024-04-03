@@ -179,6 +179,10 @@ LRESULT CALLBACK window_procedure(HWND h_window, UINT u_msg, WPARAM w_param, LPA
       window.input.scroll_wheel_delta = scroll_wheel_delta / WHEEL_DELTA;
       return 0;
     }
+    case WM_KEYUP: {
+      int a = 5;
+      break; 
+    }
   }
   return DefWindowProc(h_window, u_msg, w_param, l_param);
 }
