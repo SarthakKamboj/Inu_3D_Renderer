@@ -17,7 +17,8 @@
 #define VIEW_DIR_LIGHT_CLOSEST_DEPTH 0
 #define VIEW_DIR_LIGHT_DEPTH 0
 #define VIEW_DIR_LIGHT_AMOUNT_IN_LIGHT 0
-#define ENABLE_QUANTIZING 0
+#define VIEW_CASCADE 0
+#define ENABLE_QUANTIZING 1
 
 struct shader_tex {
   sampler2D samp; 
@@ -371,6 +372,17 @@ void main() {
 #elif VIEW_DIR_LIGHT_AMOUNT_IN_LIGHT
   float ail = in_dir0.amount_in_light;
   frag_color = vec4(ail,ail,ail,1);
+#elif VIEW_CASCADE
+  int dir_light_layer = dir_light_rel_data.highest_precision_cascade;
+  if (dir_light_layer == 0) {
+    frag_color = vec4(1,0,0,1);
+  } else if (dir_light_layer == 1) {
+    frag_color = vec4(0,1,0,1);
+  } else if (dir_light_layer == 2) {
+    frag_color = vec4(0,0,1,1);
+  } else {
+    frag_color = vec4(1,1,1,1);
+  }
 #endif 
 
 #if ENABLE_QUANTIZING
@@ -380,20 +392,4 @@ void main() {
   if (override_color_bool == 1) {
     frag_color = vec4(1,1,1,1);
   }
-
-#if 0
-  int dir_light_layer = dir_light_rel_data.highest_precision_cascade;
-  if (dir_light_layer == 0) {
-    frag_color = vec4(1,0,0,1);
-  } 
-  else if (dir_light_layer == 1) {
-    frag_color = vec4(0,1,0,1);
-  } else if (dir_light_layer == 2) {
-    frag_color = vec4(0,0,1,1);
-  } else {
-    frag_color = vec4(1,1,1,1);
-  }
-
-  // frag_color = vec4(mesh_color, 1);
-#endif
 }

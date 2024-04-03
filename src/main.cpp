@@ -179,7 +179,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     //
     if (window.input.right_mouse_up) {
       update_dir_light_frustums = !update_dir_light_frustums;
-      // play_next_anim();
+      play_next_anim();
       // RENDER_DEPTH = 1-RENDER_DEPTH;
     }
     

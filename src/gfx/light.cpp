@@ -328,12 +328,8 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
   mat4 cam_proj = get_cam_proj_mat();
   for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
     mat4 c = mat_multiply_mat(cam_proj, cam_view);
-#if 1
     vec4 corner = vec4(cam_frustum_ndc_corners.frustum_corners[i], 1.0f);
     vec4 world_unnorm = mat_multiply_vec(mat4_inverse(c), corner);
-#else
-    vec4 world_unnorm = mat_multiply_vec(mat4_inverse(c), cam_frustum_ndc_corners[i]);
-#endif
     vec4 world_norm = world_unnorm / world_unnorm.w;
     world_cam_frustum.frustum_corners[i] = {world_norm.x, world_norm.y, world_norm.z};
   }

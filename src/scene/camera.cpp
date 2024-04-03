@@ -244,23 +244,23 @@ void cam_translate(float lat, float vert) {
 }
 
 void cam_zoom(float amount) {
-  vec3 diff;
-
   vec3 to_fp;
   to_fp.x = cam.focal_pt.x - cam.transform.pos.x;
   to_fp.y = cam.focal_pt.y - cam.transform.pos.y;
   to_fp.z = cam.focal_pt.z - cam.transform.pos.z;
   to_fp = norm_vec3(to_fp);
 
-  diff.x = to_fp.x * amount;
-  diff.y = to_fp.y * amount;
-  diff.z = to_fp.z * amount;
-
-  vec3 neg_to_fp = {-to_fp.x, -to_fp.y, -to_fp.z};
+    vec3 neg_to_fp = {-to_fp.x, -to_fp.y, -to_fp.z};
   float s = dot(cam.transform.pos, neg_to_fp);
   int side = sgn(s);
 
   inu_assert(side == 1);
+  // if (side != 1) return;
+
+  vec3 diff;
+  diff.x = to_fp.x * amount;
+  diff.y = to_fp.y * amount;
+  diff.z = to_fp.z * amount;
 
   cam.transform.pos.x += diff.x;
   cam.transform.pos.y += diff.y;
