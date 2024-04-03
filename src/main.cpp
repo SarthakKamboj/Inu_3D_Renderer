@@ -1,7 +1,6 @@
 #include <stdio.h>
 
 #include "windowing/window.h"
-#include "utils/inu_math.h"
 #include "utils/test.cpp"
 #include <iostream>
 #include <sstream>

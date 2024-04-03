@@ -1,5 +1,5 @@
 # include <iostream>
-#include "inu_math.h"
+# include "inu_math.h"
 
 using namespace std;
 //
@@ -96,14 +96,3 @@ void testNormalizationVec3() {
 
 
 
-int main() {
-	testDot2();
-    testDotProductVec3();
-    testCrossProduct();
-    testMagnitudeVec2();
-    testSubtractionVec2();
-    testDivisionVec2();
-    testNormalizationVec3();
-
-
-}

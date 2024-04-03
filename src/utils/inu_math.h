@@ -1,5 +1,6 @@
-#pragma once
-
+//#pragma once
+#ifndef INU_MATH_H
+#define INU_MATH_H
 #include "vectors.h"
 
 // LIST OF FUNCTIONS YOU WILL NEED TO CREATE/IMPLEMENT
@@ -37,3 +38,5 @@ vec3 division(const vec3& vect, float scalar);
 
 vec2 normalize(const vec2& vect);
 vec3 normalize(const vec3& vect);
+
+#endif // INU_MATH_H
