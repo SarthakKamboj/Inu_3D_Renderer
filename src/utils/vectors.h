@@ -18,6 +18,8 @@ struct vec3 {
   float z = 0;
   // float operator[](int idx);
   float& operator[](int idx);
+  vec3 operator/(float divider);
+  vec3 operator*(float multiplier);
 };
 void print_vec3(vec3& v);
 vec3 vec3_add(vec3& v1, vec3& v2);

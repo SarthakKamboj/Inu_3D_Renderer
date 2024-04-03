@@ -15,29 +15,28 @@ static camera_t cam;
 extern window_t window;
 
 void update_cam() {
-  if (window.input.scroll_wheel_delta != 0) {
+  bool rotate_enabled = length(window.input.mouse_pos_diff) != 0 && window.input.middle_mouse_down;
+  bool translate_enabled = rotate_enabled && window.input.shift_down;
+  bool zoomed_enabled = window.input.scroll_wheel_delta != 0;
+
+  if (zoomed_enabled) {
     vec3 diff;
     diff.x = cam.transform.pos.x - cam.focal_pt.x;
     diff.y = cam.transform.pos.y - cam.focal_pt.y;
     diff.z = cam.transform.pos.z - cam.focal_pt.z;
     float l = length(diff);
     cam_zoom(window.input.scroll_wheel_delta * l / 20.f);
-  }
-
-  bool rotate_enabled = length(window.input.mouse_pos_diff) != 0 && window.input.middle_mouse_down;
-  bool translate_enabled = rotate_enabled && window.input.shift_clicked;
-
-  if (rotate_enabled) {
+  } else if (translate_enabled) {
+    float sensitivity = 0.1f;
+    float lat = window.input.mouse_pos_diff.x * -2.f * sensitivity;
+    float vert = window.input.mouse_pos_diff.y * 1.f * sensitivity;
+    cam_translate(lat, vert); 
+  } else if (rotate_enabled) {
     float sensitivity = 0.3f;
     float lat = window.input.mouse_pos_diff.x * -2.f * sensitivity;
     float vert = window.input.mouse_pos_diff.y * 1.f * sensitivity;
     cam_rotate(lat, vert);
-  } else if (translate_enabled) {
-    float sensitivity = 0.3f;
-    float lat = window.input.mouse_pos_diff.x * -2.f * sensitivity;
-    float vert = window.input.mouse_pos_diff.y * 1.f * sensitivity;
-    cam_translate(lat, vert); 
-  }
+  } 
   
 
   if (update_dir_light_frustums) {
@@ -187,8 +186,37 @@ void cam_translate(float lat, float vert) {
   to_fp.x = cam.focal_pt.x - cam.transform.pos.x;
   to_fp.y = cam.focal_pt.y - cam.transform.pos.y;
   to_fp.z = cam.focal_pt.z - cam.transform.pos.z;
+
+  float to_fp_dist = length(to_fp);
+
   to_fp = norm_vec3(to_fp);
 
+#if 1
+  vec3 forward_dir = {to_fp.x, 0, to_fp.z};
+  vec3 world_up = {0,1,0};
+  vec3 right = cross_product(forward_dir, world_up);
+
+  vec3 diff = {0,0,0};
+
+  diff.x += right.x * lat;
+  diff.y += right.y * lat;
+  diff.z += right.z * lat;
+
+  diff.x += forward_dir.x * vert;
+  diff.y += forward_dir.y * vert;
+  diff.z += forward_dir.z * vert;
+
+  diff = diff * to_fp_dist / 20.f;
+
+  cam.transform.pos.x += diff.x;
+  cam.transform.pos.y += diff.y;
+  cam.transform.pos.z += diff.z;
+
+  cam.focal_pt.x += diff.x;
+  cam.focal_pt.y += diff.y;
+  cam.focal_pt.z += diff.z;
+
+#else
   vec3 world_up = {0,1,0};
   vec3 right;
   if (to_fp.x == 0 && to_fp.y == -1.f && to_fp.z == 0) {
@@ -211,6 +239,7 @@ void cam_translate(float lat, float vert) {
   cam.transform.pos.x += diff.x;
   cam.transform.pos.y += diff.y;
   cam.transform.pos.z += diff.z;
+#endif
 
 }
 

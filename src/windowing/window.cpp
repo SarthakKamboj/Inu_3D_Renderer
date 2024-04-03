@@ -180,6 +180,28 @@ LRESULT CALLBACK window_procedure(HWND h_window, UINT u_msg, WPARAM w_param, LPA
       return 0;
     }
     case WM_KEYUP: {
+      switch (w_param) {
+        case VK_SHIFT: {
+          window.input.shift_down = false;
+          break;
+        }
+      }
+      break; 
+    }
+    case WM_KEYDOWN: {
+      switch (w_param) {
+        case VK_SHIFT: {
+          window.input.shift_down = true;
+          break;
+        }
+      }
+      break; 
+    }
+    case WM_CHAR: {
+      int a = 5;
+      break; 
+    }
+    case WM_SYSKEYUP: {
       int a = 5;
       break; 
     }
@@ -194,6 +216,7 @@ void poll_events() {
   window.input.mouse_pos_diff = {0,0};
   window.input.left_mouse_up = false;
   window.input.right_mouse_up = false;
+  // window.input.shift_down = false;
   MSG msg{};
   while (PeekMessage(&msg, window.win32_wnd, 0, 0, 0)) {
     bool quit_msg = (GetMessage(&msg, NULL, 0, 0) == 0);
