@@ -45,6 +45,7 @@ struct dir_light_mat_data_t {
   mat4 light_views[NUM_CASCADES];
   mat4 light_projs[NUM_CASCADES];
   float cascade_depths[NUM_CASCADES+1];
+  vec3 light_dir;
 };
 uniform dir_light_mat_data_t dir_light_mat_data;
 
@@ -56,6 +57,12 @@ struct dir_light_data_t {
 uniform light_data_t lights_data[3];
 uniform dir_light_data_t dir_light_data;
 
+struct cam_data_t {
+  float near_plane;
+  float far_plane;
+};
+// uniform cam_data_t cam_data;
+
 in vec2 tex_coords[2];
 in vec3 color;
 in vec4 normal;
@@ -66,13 +73,8 @@ in vec4 light_rel_screen_pos0;
 in vec4 light_rel_screen_pos1;
 in vec4 light_rel_screen_pos2;
 
-#if 0
-in vec4 dir_light_rel_screen_pos;
-flat in int dir_light_layer;
-#else
 in vec4 global;
 in vec4 cam_rel_pos;
-#endif
 
 out vec4 frag_color;
 
@@ -171,7 +173,7 @@ struct is_in_dir_light_info_t {
   vec3 tex_coords;
 };
 
-is_in_dir_light_info_t is_in_dir_light(dir_light_data_t dir_light_data, vec4 dir_light_rel_screen_pos, int dir_light_layer) {
+is_in_dir_light_info_t is_in_dir_light(dir_light_mat_data_t dir_light_mat_data, dir_light_data_t dir_light_data, vec4 dir_light_rel_screen_pos, int dir_light_layer) {
   is_in_dir_light_info_t info;
 
   vec2 tex_coords = ((dir_light_rel_screen_pos.xy / dir_light_rel_screen_pos.w) + vec2(1)) / 2;
@@ -179,14 +181,24 @@ is_in_dir_light_info_t is_in_dir_light(dir_light_data_t dir_light_data, vec4 dir
   info.tex_coords = vec3(tex_coords, dir_light_layer);
 
   float amount_in_light = 0.0;
+#if 1
   float bias = 0.001;
+#else
+  vec3 norm_normal = normal.xyz / normal.w;
+  float bias = max(0.05 * (1.0 - dot(norm_normal, -dir_light_mat_data.light_dir)), 0.005);
+  if (dir_light_layer == NUM_CASCADES) {
+      bias *= 1 / (cam_data.far_plane * 0.5f);
+  } else {
+      bias *= 1 / (dir_light_mat_data.cascade_depths[dir_light_layer] * 0.5f);
+  }
+#endif
 
   // z position of the vertex relative to the light, still [-1,1] for near to far
   info.depth = dir_light_rel_screen_pos.z / dir_light_rel_screen_pos.w;
   // depth [0,1] relative to light
   info.depth = dir_light_data.light_active * ((info.depth+1)/2);
 
-#if 0
+#if 1
   info.closest_depth = 1;
   if (info.tex_coords.x >= 0 && info.tex_coords.x <= 1 && info.tex_coords.y >= 0 && info.tex_coords.y <= 1) {
     info.closest_depth = dir_light_data.light_active * texture(dir_light_data.shadow_map, info.tex_coords).r;
@@ -303,7 +315,7 @@ void main() {
   is_in_light_info_t in_light2 = is_in_light(lights_data[2], light_rel_screen_pos2);
 
   dir_light_rel_data_t dir_light_rel_data = calc_light_rel_data(dir_light_mat_data);
-  is_in_dir_light_info_t in_dir0 = is_in_dir_light(dir_light_data, dir_light_rel_data.screen_rel_pos, dir_light_rel_data.highest_precision_cascade);
+  is_in_dir_light_info_t in_dir0 = is_in_dir_light(dir_light_mat_data, dir_light_data, dir_light_rel_data.screen_rel_pos, dir_light_rel_data.highest_precision_cascade);
 
   float max_in_light = max(max(max(in_light0.amount_in_light, in_light1.amount_in_light), in_light2.amount_in_light), in_dir0.amount_in_light);
 

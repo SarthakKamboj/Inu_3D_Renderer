@@ -164,6 +164,10 @@ shader_t create_shader(const char* vert_source_path, const char* geom_source_pat
 	shader_t shader;
 	shader.id = glCreateProgram();
 
+	if (shader.id == 10) {
+		int a = 5;
+	}
+
 	GLuint vert = glCreateShader(GL_VERTEX_SHADER);
 	char* vert_source = get_file_contents(vert_source_path);
 	glShaderSource(vert, 1, &vert_source, NULL);

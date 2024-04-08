@@ -8,6 +8,7 @@
 #include "model_loading/gltf/gltf.h"
 #include "scene/scene.h"
 #include "animation/interpolation.h"
+#include "windowing/window.h"
 
 #include <vector>
 
@@ -35,6 +36,7 @@ const float dir_light_t::SHADOW_MAP_WIDTH = 1024.f;
 const float dir_light_t::SHADOW_MAP_HEIGHT = 1024.f;
 shader_t dir_light_t::light_shader;
 shader_t dir_light_t::debug_shader;
+shader_t dir_light_t::display_shadow_map_shader;
 
 extern bool render_dir_orthos;
 
@@ -70,6 +72,12 @@ void init_light_data() {
   sprintf(vert_shader_path, "%s\\shaders\\light.vert", resources_path);
   sprintf(frag_shader_path, "%s\\shaders\\light.frag", resources_path);
   dir_light_t::debug_shader = create_shader(vert_shader_path, frag_shader_path);
+
+  memset(vert_shader_path, 0, sizeof(vert_shader_path));
+  memset(frag_shader_path, 0, sizeof(frag_shader_path));
+  sprintf(vert_shader_path, "%s\\shaders\\dir_shadow_maps.vert", resources_path);
+  sprintf(frag_shader_path, "%s\\shaders\\dir_shadow_maps.frag", resources_path);
+  dir_light_t::display_shadow_map_shader = create_shader(vert_shader_path, frag_shader_path);
 }
 
 int create_light(vec3 pos) {
@@ -270,6 +278,18 @@ int create_dir_light(vec3 dir) {
   }
 #endif
 
+  light.display_shadow_map_vao = create_vao();
+  light.display_shadow_map_vbo = create_dyn_vbo(sizeof(dir_light_shadow_map_vert_t) * 4);
+  unsigned int indicies[6] {
+    0, 2, 1,
+    0, 3, 2
+  };
+  light.display_shadow_map_ebo = create_ebo(indicies, sizeof(indicies));
+
+  vao_enable_attribute(light.display_shadow_map_vao, light.display_shadow_map_vbo, 0, 2, GL_FLOAT, sizeof(dir_light_shadow_map_vert_t), offsetof(dir_light_shadow_map_vert_t, pos));
+  vao_enable_attribute(light.display_shadow_map_vao, light.display_shadow_map_vbo, 1, 2, GL_FLOAT, sizeof(dir_light_shadow_map_vert_t), offsetof(dir_light_shadow_map_vert_t, tex));
+  vao_bind_ebo(light.display_shadow_map_vao, light.display_shadow_map_ebo);
+
   dir_lights.push_back(light);
   return light.id;
 }
@@ -282,7 +302,6 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
   dir_light_t& dir_light = dir_lights[light_id];
 
   // calculate camera frustum in world coordinates
-#if 1
   frustum_t cam_frustum_ndc_corners = {
     {
       // near bottom left
@@ -303,26 +322,7 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
       {1,1,1}
     }
   };
-#else
-  vec4 cam_frustum_ndc_corners[NUM_CUBE_CORNERS] = {
-    // near bottom left
-    {-1,-1,-1,1},
-    // far bottom left
-    {-1,-1,1,1},
-    // near top left
-    {-1,1,-1,1},
-    // far top left 
-    {-1,1,1,1},
-    // near bottom right
-    {1,-1,-1,1},
-    // far bottom right
-    {1,-1,1,1},
-    // near top right
-    {1,1,-1,1},
-    // far top right
-    {1,1,1,1}
-  };
-#endif
+
   frustum_t world_cam_frustum;
   mat4 cam_view = get_cam_view_mat();
   mat4 cam_proj = get_cam_proj_mat();
@@ -350,7 +350,7 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
     dir_light.cacade_depths[cascade] = z_near;
     dir_light.cacade_depths[cascade+1] = z_far;
     
-    float zs[2] = {z_near, z_far};
+    // float zs[2] = {z_near, z_far};
     for (int i = 0; i < 2; i++) {
       float inter_n = (z_near - n) / (f - n);
       float inter_f = (z_far - n) / (f - n);
@@ -361,13 +361,23 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
         vf.frustum_corners[fc_near_idx] = vec3_linear(world_cam_frustum.frustum_corners[fc_near_idx], world_cam_frustum.frustum_corners[fc_far_idx], inter_n);
         vf.frustum_corners[fc_far_idx] = vec3_linear(world_cam_frustum.frustum_corners[fc_near_idx], world_cam_frustum.frustum_corners[fc_far_idx], inter_f);
       }
-    }
+    } 
+
+    vertex_t vertices[8];
+
+    vertices[BTR].position = vf.frustum_corners[7];
+    vertices[FTR].position = vf.frustum_corners[6];
+    vertices[BBR].position = vf.frustum_corners[5];
+    vertices[FBR].position = vf.frustum_corners[4];
+    vertices[BTL].position = vf.frustum_corners[3];
+    vertices[FTL].position = vf.frustum_corners[2];
+    vertices[BBL].position = vf.frustum_corners[1];
+    vertices[FBL].position = vf.frustum_corners[0];
 
 #if RENDER_DIR_LIGHT_FRUSTUMS
     int frustum_obj_id = dir_light.debug_obj_ids[cascade];
     vbo_t* vbo = get_obj_vbo(frustum_obj_id, 0);
 
-    vertex_t vertices[8];
     for (int i = 0; i < 8; i++) {
       vertex_t& v = vertices[i];
       v.tex0 = {0,0};
@@ -386,23 +396,53 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
       v.weights[3] = 0;
     }
 
-    vertices[BTR].position = vf.frustum_corners[7];
-    vertices[FTR].position = vf.frustum_corners[6];
-    vertices[BBR].position = vf.frustum_corners[5];
-    vertices[FBR].position = vf.frustum_corners[4];
-    vertices[BTL].position = vf.frustum_corners[3];
-    vertices[FTL].position = vf.frustum_corners[2];
-    vertices[BBL].position = vf.frustum_corners[1];
-    vertices[FBL].position = vf.frustum_corners[0];
-
     update_vbo_data(*vbo, vertices, sizeof(vertices));
 #endif
+
+#if 0
   }
 
   // calculate view and ortho mats for each cascaded frustum
   for (int cascade = 0; cascade < NUM_SM_CASCADES; cascade++) {
-    // get center
     frustum_t& vf = cascaded_frustums[cascade];
+#endif
+    float cascade_len = 0;
+    for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
+      for (int j = i+1; j < NUM_CUBE_CORNERS; j++) {
+        vec3 diff = vf.frustum_corners[i] - vf.frustum_corners[j];
+        float diff_len = length(diff);
+        if (diff_len > cascade_len) {
+          cascade_len = diff_len;
+          printf("pos of i: %i and pos of j: %i\n", 7-i, 7-j);
+        }
+      }  
+    }
+
+    // printf("cascade_len: %f\n", cascade_len);
+
+#if 0
+    vec3 longest_diag = vertices[FBR].position - vertices[BTL].position;
+    float cascade_len2 = length(longest_diag);
+
+    inu_assert(cascade_len2 == cascade_len);
+#endif
+
+#if 0
+    float world_len_per_texel = cascade_len / dir_light_t::SHADOW_MAP_WIDTH;
+    for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
+      vec3& corner = vf.frustum_corners[i];
+      vec3 orig_corner = corner;
+      float bucket = 0;
+      bucket = floor(corner.x / world_len_per_texel);
+      corner.x = bucket * world_len_per_texel;
+      bucket = floor(corner.y / world_len_per_texel);
+      corner.y = bucket * world_len_per_texel;
+      bucket = floor(corner.z / world_len_per_texel);
+      corner.z = bucket * world_len_per_texel;
+    }
+#endif
+
+    // get center
     vec3 frustum_center{};
     for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
       frustum_center.x += vf.frustum_corners[i].x;
@@ -417,15 +457,9 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
     dir_light.light_views[cascade] = get_view_mat(frustum_center, vec3_add(frustum_center, dir_light.dir));
 
     // get mins and maxs
-#if 0 
-    float x_min = vf.frustum_corners[0].x, x_max = vf.frustum_corners[0].x;
-    float y_min = vf.frustum_corners[0].y, y_max = vf.frustum_corners[0].y;
-    float z_min = vf.frustum_corners[0].z, z_max = vf.frustum_corners[0].z;
-#else
     float x_min = FLT_MAX, x_max = -FLT_MAX;
     float y_min = FLT_MAX, y_max = -FLT_MAX;
     float z_min = FLT_MAX, z_max = -FLT_MAX;
-#endif
     for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
       vec4 pt = {vf.frustum_corners[i].x, vf.frustum_corners[i].y, vf.frustum_corners[i].z, 1.0f};
       vec4 light_rel_view_pt = mat_multiply_vec(dir_light.light_views[cascade], pt);
@@ -436,6 +470,27 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
       z_min = min(z_min, light_rel_view_pt.z);
       z_max = max(z_max, light_rel_view_pt.z);
     }
+
+    float x_mid = (x_min + x_max) / 2.f;
+    float y_mid = (y_min + y_max) / 2.f;
+
+#if 1
+
+#if 0
+    float proj_dim = fmax(abs(x_max - x_min), abs(y_max - y_min));
+#else
+    vec4 cascade_test_pt = {cascade_len, 0,0,0};
+    vec4 light_projected_cascaded_test_pt = mat_multiply_vec(dir_light.light_views[cascade], cascade_test_pt);
+    float proj_dim = vec4_length(light_projected_cascaded_test_pt);
+#endif
+
+    x_min = x_mid - (proj_dim / 2.f);
+    x_max = x_mid + (proj_dim / 2.f);
+
+    y_min = y_mid - (proj_dim / 2.f);
+    y_max = y_mid + (proj_dim / 2.f);
+#endif
+
     // z_min and z_max will likely both be neative since we are looking down the negative z axis
     float z_multiplier = 4.f;
     if (z_max < 0) {
@@ -448,11 +503,64 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
       z_min = z_min * z_multiplier;
     } else {
       z_min = z_min / z_multiplier;
+    } 
+
+#if 0
+    float world_len_per_texel = cascade_len / dir_light_t::SHADOW_MAP_WIDTH;
+
+    x_min = floor(x_min / world_len_per_texel) * world_len_per_texel;
+    x_max = floor(x_max / world_len_per_texel) * world_len_per_texel;
+    y_min = floor(y_min / world_len_per_texel) * world_len_per_texel;
+    y_max = floor(y_max / world_len_per_texel) * world_len_per_texel;
+    z_min = floor(z_min / world_len_per_texel) * world_len_per_texel;
+    z_max = floor(z_max / world_len_per_texel) * world_len_per_texel;
+
+#endif
+
+#if 1
+    float world_len_per_texel = cascade_len / dir_light_t::SHADOW_MAP_WIDTH;
+    float xs[2] = {x_min, x_max};
+    float ys[2] = {y_min, y_max};
+    float zs[2] = {z_min, z_max};
+
+    vec3 new_world_cascade_pts[8]{};
+    int new_i = 0;
+
+    mat4 light_space_to_world_space = mat4_inverse(dir_light.light_views[cascade]);
+    for (int x_i = 0; x_i < 2; x_i++) {
+      for (int y_i = 0; y_i < 2; y_i++) {
+        for (int z_i = 0; z_i < 2; z_i++) {
+          vec4 pt = {xs[x_i], ys[y_i], zs[z_i], 1.0f};
+          vec4 new_world_pt = mat_multiply_vec(light_space_to_world_space, pt);
+          new_world_pt = new_world_pt / new_world_pt.w; 
+          new_world_pt.x = floor(new_world_pt.x / world_len_per_texel) * world_len_per_texel;
+          new_world_pt.y = floor(new_world_pt.y / world_len_per_texel) * world_len_per_texel;
+          new_world_pt.z = floor(new_world_pt.z / world_len_per_texel) * world_len_per_texel;
+          new_world_cascade_pts[new_i] = {new_world_pt.x, new_world_pt.y, new_world_pt.z};
+          new_i++;
+        }
+      }
     }
+
+    // get mins and maxs
+    x_min = FLT_MAX, x_max = -FLT_MAX;
+    y_min = FLT_MAX, y_max = -FLT_MAX;
+    z_min = FLT_MAX, z_max = -FLT_MAX;
+    for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
+      vec4 pt = {new_world_cascade_pts[i].x, new_world_cascade_pts[i].y, new_world_cascade_pts[i].z, 1.0f};
+      vec4 light_rel_view_pt = mat_multiply_vec(dir_light.light_views[cascade], pt);
+      x_min = min(x_min, light_rel_view_pt.x);
+      x_max = max(x_max, light_rel_view_pt.x);
+      y_min = min(y_min, light_rel_view_pt.y);
+      y_max = max(y_max, light_rel_view_pt.y);
+      z_min = min(z_min, light_rel_view_pt.z);
+      z_max = max(z_max, light_rel_view_pt.z);
+    }
+
+#endif
 
     // calc ortho mat
     dir_light.light_orthos[cascade] = ortho_mat(x_min, x_max, y_min, y_max, z_min, z_max);
-
 
 #if RENDER_DIR_LIGHT_ORTHOS
     // debug view for light orthos
@@ -572,6 +680,47 @@ void setup_dir_light_for_rendering_debug(int light_id, camera_t* camera, int cas
 void remove_dir_light_from_rendering_debug() {
   unbind_shader();
   unbind_framebuffer();
+}
+
+void render_dir_light_shadow_maps(int dir_light_id) {
+  glClear(GL_DEPTH_BUFFER_BIT);
+  dir_light_t& dir_light = dir_lights[dir_light_id];
+
+  mat4 o = ortho_mat(0, window.window_dim.x, 0, window.window_dim.y, -10, 10);
+  shader_set_mat4(dir_light_t::display_shadow_map_shader, "projection", o);
+  shader_set_int(dir_light_t::display_shadow_map_shader, "shadow_map", 0);
+
+  float display_dim = 200.f;
+
+  for (int i = 0; i < NUM_SM_CASCADES; i++) {
+    shader_set_int(dir_light_t::display_shadow_map_shader, "cascade", i);
+    vec2 top_left = {display_dim*i, 700};
+
+    dir_light_shadow_map_vert_t verts[4]{};
+    verts[0].pos = top_left;
+    verts[0].tex = {0,1};
+
+    verts[1].pos = {top_left.x + display_dim, top_left.y};
+    verts[1].tex = {1,1};
+
+    verts[2].pos = {top_left.x + display_dim, top_left.y - display_dim};
+    verts[2].tex = {1,0};
+
+    verts[3].pos = {top_left.x, top_left.y - display_dim};
+    verts[3].tex = {0,0};
+
+    update_vbo_data(dir_light.display_shadow_map_vbo, verts, sizeof(verts));
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, dir_light.light_pass_fb.depth_att);
+
+    bind_shader(dir_light_t::display_shadow_map_shader);
+    bind_vao(dir_light.display_shadow_map_vao);
+    draw_ebo(dir_light.display_shadow_map_ebo);
+    unbind_vao();
+    unbind_ebo();
+  }
+
 }
 
 dir_light_t* get_dir_light(int id) {

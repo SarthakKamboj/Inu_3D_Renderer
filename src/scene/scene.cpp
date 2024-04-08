@@ -252,12 +252,14 @@ void render_scene_obj(int obj_id, bool parent, bool light_pass, shader_t& shader
         m = bind_material(mesh.mat_idx);
       } else {
         m = get_material(mesh.mat_idx);
+#if 0
         // bind_shader(light_t::light_shader);
         float fr = rand() / static_cast<float>(RAND_MAX);
         float fg = rand() / static_cast<float>(RAND_MAX);
         float fb = rand() / static_cast<float>(RAND_MAX);
         vec3 v = {fr, fg, fb};
         shader_set_vec3(shader, "color", v);
+#endif
         bind_shader(shader);
       }
 
@@ -331,6 +333,7 @@ void render_scene() {
 
 #endif
 
+  glCullFace(GL_BACK);
   if (update_dir_light_frustums) {
     gen_dir_light_matricies(0, cam); 
   }
@@ -353,6 +356,7 @@ void render_scene() {
 #endif
 
   // OFFLINE RENDER PASS
+  glCullFace(GL_BACK);
   bind_framebuffer(offline_fb);
   clear_framebuffer(offline_fb);
 
@@ -362,6 +366,9 @@ void render_scene() {
   mat4 view = get_cam_view_mat();
   shader_set_mat4(material_t::associated_shader, "projection", proj);
   shader_set_mat4(material_t::associated_shader, "view", view);
+
+  // shader_set_float(material_t::associated_shader, "cam_data.near_plane", get_cam_near_plane());
+  // shader_set_float(material_t::associated_shader, "cam_data.far_plane", get_cam_far_plane());
 
   // spotlights
   int num_lights = get_num_lights();
@@ -456,6 +463,7 @@ void render_scene() {
     dir_light_t* dir_light = get_dir_light(i);
 
     for (int j = 0; j < NUM_SM_CASCADES; j++) {
+
       char var_name[64]{};
       sprintf(var_name, "dir_light_mat_data.light_views[%i]", j);
       if (inactive) {
@@ -485,12 +493,21 @@ void render_scene() {
     }
     
     char var_name[64]{};
+    memset(var_name, 0, sizeof(var_name));
     sprintf(var_name, "dir_light_mat_data.cascade_depths[%i]", NUM_SM_CASCADES);
     if (inactive) {
       shader_set_float(material_t::associated_shader, var_name, 0);
     } else {
       // mat4 light_view = get_light_view_mat(i);
       shader_set_float(material_t::associated_shader, var_name, dir_light->cacade_depths[NUM_SM_CASCADES]);
+    }
+
+    memset(var_name, 0, sizeof(var_name));
+    sprintf(var_name, "dir_light_mat_data.light_dir");
+    if (inactive) {
+      shader_set_vec3(material_t::associated_shader, var_name, {0,0,0});
+    } else {
+      shader_set_vec3(material_t::associated_shader, var_name, dir_light->dir);
     }
     
     memset(var_name, 0, sizeof(var_name));
@@ -523,6 +540,9 @@ void render_scene() {
     }
   }
   unbind_shader();
+
+  // show depth maps 
+  render_dir_light_shadow_maps(0);
 }
 
 skin_t::skin_t() {

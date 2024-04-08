@@ -82,8 +82,16 @@ vec3 vec3::operator*(float multiplier) {
   return {x * multiplier, y * multiplier, z * multiplier};
 }
 
+vec3 vec3::operator-(vec3 v) {
+  return {x-v.x, y-v.y, z-v.z};
+}
+
 float vec4_length(vec4& v) {
   return sqrt(v.x*v.x + v.y*v.y + v.z*v.z + v.w*v.w);
+}
+
+vec4 vec4::operator*(float m) {
+  return {x*m, y*m, z*m, w*m};
 }
 
 float& vec4::operator[](int idx) {
@@ -101,6 +109,10 @@ vec4 vec4::operator/(float divider) {
   return r;
 }
 
+vec4 vec4::operator+(vec4& o) {
+  return {x+o.x, y+o.y, z+o.z, w+o.w};
+}
+
 vec4::vec4() {}
 
 vec4::vec4(float _x, float _y, float _z, float _w) {
@@ -116,3 +128,4 @@ vec4::vec4(vec3& v, float _w) {
   z = v.z;
   w = _w;
 }
+

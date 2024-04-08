@@ -20,6 +20,7 @@ struct vec3 {
   float& operator[](int idx);
   vec3 operator/(float divider);
   vec3 operator*(float multiplier);
+  vec3 operator-(vec3 v);
 };
 void print_vec3(vec3& v);
 vec3 vec3_add(vec3& v1, vec3& v2);
@@ -40,6 +41,8 @@ struct vec4 {
   vec4(vec3& v, float _w);
 
   vec4 operator/(float divider);
+  vec4 operator*(float multiplier);
+  vec4 operator+(vec4& other);
   float& operator[](int idx);
 };
 float vec4_length(vec4& v);

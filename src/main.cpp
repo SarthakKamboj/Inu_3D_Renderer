@@ -48,10 +48,14 @@ struct test_t {
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
 
 #if 0
-  test_t t0;
-  test_t t1(15);
-  // test_t t2(15, 25);
-  test_t t3 = { 15,25 };
+  vec4 oatmeal = {150,27,5,3};
+  vec4 milk = {80,11,8,0};
+  vec4 yogurt = {90,15,7,0};
+  vec4 protein_powder = {130,3,24,2};
+  vec4 biscoff = {170, 17,0,11};
+
+  vec4 total = (oatmeal * 2.f) + (milk * 1.f) + (yogurt * 0.75f) + (protein_powder * 1.5f) + (biscoff * 1.f);
+
 #endif
 
   create_window(hInstance, win_width, win_height);

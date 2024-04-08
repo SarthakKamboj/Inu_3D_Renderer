@@ -302,3 +302,11 @@ camera_t* get_cam() {
   return &cam; 
 }
 
+float get_cam_near_plane() {
+  return cam.near_plane;
+}
+
+float get_cam_far_plane() {
+  return cam.far_plane;
+
+}

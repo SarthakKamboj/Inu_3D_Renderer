@@ -57,6 +57,11 @@ mat4 get_light_proj_mat(int light_id);
 mat4 get_light_view_mat(int light_id);
 vec3 get_light_pos(int light_id);
 
+struct dir_light_shadow_map_vert_t {
+  vec2 pos;
+  vec2 tex;
+};
+
 // will use cascading shadow maps
 struct dir_light_t {
   int id = -1;
@@ -66,6 +71,10 @@ struct dir_light_t {
 
   static shader_t light_shader;
   static shader_t debug_shader;
+  static shader_t display_shadow_map_shader;
+  vao_t display_shadow_map_vao;
+  vbo_t display_shadow_map_vbo;
+  ebo_t display_shadow_map_ebo;
 
   framebuffer_t debug_light_pass_fbs[NUM_SM_CASCADES];
 
@@ -89,6 +98,7 @@ void remove_dir_light_from_rendering();
 
 void setup_dir_light_for_rendering_debug(int light_id, camera_t* camera, int cascade);
 void remove_dir_light_from_rendering_debug();
+void render_dir_light_shadow_maps(int dir_light_id);
 
 dir_light_t* get_dir_light(int id);
 void gen_dir_light_matricies(int light_id, camera_t* camera);

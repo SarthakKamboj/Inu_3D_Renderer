@@ -12,6 +12,8 @@ struct camera_t {
 };
 
 void create_camera(transform_t& t);
+float get_cam_near_plane();
+float get_cam_far_plane();
 mat4 get_cam_view_mat();
 mat4 get_cam_proj_mat();
 mat4 get_view_mat(vec3 pos, vec3 focal_pt);
