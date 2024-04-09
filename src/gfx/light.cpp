@@ -43,9 +43,15 @@ shader_t dir_light_t::display_shadow_map_shader;
 
 extern bool render_dir_orthos;
 
+#if 1
 bool make_orthos_square = true;
 bool make_orthos_square_consistent = true;
 bool make_orthos_texel_snapped = true;
+#else
+bool make_orthos_square = false;
+bool make_orthos_square_consistent = false;
+bool make_orthos_texel_snapped = false;
+#endif
 
 void init_light_data() {
   char resources_path[256]{};
@@ -382,12 +388,15 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
   const int N = NUM_SM_CASCADES;
   const float N_f = static_cast<float>(N);
   frustum_t world_cascaded_frustums[N];
+
+  const float frustum_percent_splits[NUM_SM_CASCADES+1] = {0, 0.15f, 0.4f, 1.0f};
   for (int cascade = 0; cascade < NUM_SM_CASCADES; cascade++) {
     frustum_t& world_cascade_frustum = world_cascaded_frustums[cascade];
 
     float n = camera->near_plane;
     float f = camera->far_plane;
 
+#if 1
     float z_near = (0.5f*n*pow(f/n, cascade/N_f)) + (0.5f*(n+(cascade/N_f*(f-n))));
     float z_far = (0.5f*n*pow(f/n, (cascade+1)/N_f)) + (0.5f*(n+((cascade+1)/N_f*(f-n))));
 
@@ -396,6 +405,16 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
 
     float inter_n = (z_near - n) / (f - n);
     float inter_f = (z_far - n) / (f - n);
+#else
+    float inter_n = frustum_percent_splits[cascade];
+    float inter_f = frustum_percent_splits[cascade+1];
+
+    float z_near = linear(n, f, inter_n);
+    float z_far = linear(n, f, inter_f);
+
+    dir_light.cacade_depths[cascade] = z_near;
+    dir_light.cacade_depths[cascade+1] = z_far;
+#endif
     
     // float zs[2] = {z_near, z_far};
     for (int i = 0; i < 2; i++) {
@@ -500,8 +519,12 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
 
     float cascade_len = 0;
     if (!calculated_diags) {
-      vec3 longest_diag = vertices[FBR].position - vertices[BTL].position;
-      cascade_len = length(longest_diag);
+      vec3 longest_diag1 = vertices[FBR].position - vertices[BTL].position;
+      vec3 longest_diag2 = vertices[BBR].position - vertices[BTL].position;
+      float cascade_len1 = length(longest_diag1);
+      float cascade_len2 = length(longest_diag2);
+      cascade_len = fmax(cascade_len1, cascade_len2);
+      cascade_len = cascade_len1;
       cascade_lens[cascade] = cascade_len;
       if (cascade == NUM_SM_CASCADES-1) {
         calculated_diags = true;
@@ -512,10 +535,9 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
     // inu_assert(cascade_len2 == cascade_len);
 #endif
 
-    float world_len_per_texel = cascade_len / dir_light_t::SHADOW_MAP_WIDTH;
     if (cascade == 0) {
       printf("cascade_len: %f\n", cascade_len);
-    }
+    } 
 
 #if 0
     if (make_orthos_texel_snapped) {
@@ -550,9 +572,11 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
     frustum_center.y /= static_cast<float>(NUM_CUBE_CORNERS);
     frustum_center.z /= static_cast<float>(NUM_CUBE_CORNERS);
 
+#if 0
     frustum_center.x = round(frustum_center.x / world_len_per_texel) * world_len_per_texel;
     frustum_center.y = round(frustum_center.y / world_len_per_texel) * world_len_per_texel;
     frustum_center.z = round(frustum_center.z / world_len_per_texel) * world_len_per_texel;
+#endif
 
 #if 0
     // float world_len_per_texel = cascade_len / dir_light_t::SHADOW_MAP_WIDTH;
@@ -567,6 +591,51 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
 
     // calc view mat
     dir_light.light_views[cascade] = get_view_mat(frustum_center, vec3_add(frustum_center, dir_light.dir));
+
+    float proj_dim = 0;
+    if (make_orthos_square_consistent) {
+        proj_dim = cascade_len;
+#if 0
+      static float proj_dims[NUM_SM_CASCADES] = {0,0,0};
+      static bool calc_proj_dim = false;
+
+      vec4 cascade_test_pt = {cascade_len,0,0,1}; 
+      vec4 light_projected_cascaded_test_pt = mat_multiply_vec(dir_light.light_views[cascade], cascade_test_pt);
+      if (!calc_proj_dim) {
+        proj_dim = vec4_length(light_projected_cascaded_test_pt);
+        proj_dim = cascade_len;
+        proj_dims[cascade] = proj_dim;
+        if (cascade == NUM_SM_CASCADES-1) {
+          calc_proj_dim = true;
+        }
+      } else {
+        proj_dim = proj_dims[cascade];
+      }
+      if (cascade == 0) {
+        // should not be changing
+        printf("cascade_len: %f proj_dim: %f\n", cascade_len, proj_dim);
+      }
+#endif
+    }
+
+    // vec4 p1 = {proj_dim,0,0,1};
+
+    // float world_len_per_texel = proj_dim / dir_light_t::SHADOW_MAP_WIDTH;
+
+    mat4 light_space_to_world_space = mat4_inverse(dir_light.light_views[cascade]);
+    vec4 cascade_test_pt1 = {proj_dim, 0,0,1};
+    vec4 cascade_test_pt2 = {0, 0,0,1};
+
+    vec4 new_ct1 = mat_multiply_vec(light_space_to_world_space, cascade_test_pt1);
+    vec4 new_ct2 = mat_multiply_vec(light_space_to_world_space, cascade_test_pt2);
+
+    new_ct1 = new_ct1 / new_ct1.w;
+    new_ct2 = new_ct2 / new_ct2.w;
+
+    vec3 d = {new_ct1.x - new_ct2.x, new_ct1.y - new_ct2.y, new_ct1.z - new_ct2.z};
+    float world_units = length(d);
+    
+    float world_len_per_texel = world_units / dir_light_t::SHADOW_MAP_WIDTH;
 
     // get mins and maxs
     float x_min = FLT_MAX, x_max = -FLT_MAX;
@@ -583,7 +652,7 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
       z_max = fmax(z_max, light_rel_view_pt.z);
     }
 
-#if 0
+#if 1
     float x_mid = (x_min + x_max) / 2.f;
     float y_mid = (y_min + y_max) / 2.f;
 #else
@@ -604,11 +673,12 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
     printf("proj dim: %f\n", proj_dim);
 #else
 
-    float proj_dim = 0;
+    // float proj_dim = 0;
     if (make_orthos_square) {
-      proj_dim = fmax(abs(x_max - x_min), abs(y_max - y_min)); 
+      // proj_dim = fmax(abs(x_max - x_min), abs(y_max - y_min)); 
     }
 
+#if 0
     if (make_orthos_square_consistent) {
       static float proj_dims[NUM_SM_CASCADES] = {0,0,0};
       static bool calc_proj_dim = false;
@@ -632,6 +702,8 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
     }
 #endif
 
+#endif
+
 #if 0
     if (cascade == 0) {
       printf("proj dim: %f\n", proj_dim);
@@ -644,8 +716,9 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
 
       y_min = y_mid - (proj_dim / 2.f);
       y_max = y_mid + (proj_dim / 2.f);
-    }
+      
 #endif
+    }
 
     // z_min and z_max will likely both be neative since we are looking down the negative z axis
     float z_multiplier = 4.f;
@@ -666,12 +739,26 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
     // float world_len_per_texel = cascade_len / dir_light_t::SHADOW_MAP_WIDTH;
 
     if (make_orthos_texel_snapped) {
-      x_min = round(x_min / world_len_per_texel) * world_len_per_texel;
-      x_max = round(x_max / world_len_per_texel) * world_len_per_texel;
-      y_min = round(y_min / world_len_per_texel) * world_len_per_texel;
-      y_max = round(y_max / world_len_per_texel) * world_len_per_texel;
-      z_min = round(z_min / world_len_per_texel) * world_len_per_texel;
-      z_max = round(z_max / world_len_per_texel) * world_len_per_texel;
+      float c;
+      float rc;
+
+      c = x_min / world_len_per_texel;
+      rc = round(c);
+      x_min = rc * world_len_per_texel;
+
+      c = x_max / world_len_per_texel;
+      rc = round(c);
+      x_max = rc * world_len_per_texel;
+
+      c = y_min / world_len_per_texel;
+      rc = round(c);
+      y_min = rc * world_len_per_texel;
+
+      c = y_max / world_len_per_texel;
+      rc = round(c);
+      y_max = rc * world_len_per_texel;
+      // z_min = round(z_min / world_len_per_texel) * world_len_per_texel;
+      // z_max = round(z_max / world_len_per_texel) * world_len_per_texel;
     }
 
 #endif
@@ -727,7 +814,27 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
     }
 
     // calc ortho mat
+#if 1
     dir_light.light_orthos[cascade] = ortho_mat(x_min, x_max, y_min, y_max, z_min, z_max);
+#else
+    mat4 ortho1 = create_matrix(1.0f);
+    ortho1.first_col.x = 2.0f / (x_max - x_min);
+    ortho1.second_col.y = 2.0f / (y_max - y_min);
+    ortho1.third_col.z = -2.0f / (z_max - z_min);
+    ortho1.fourth_col = {
+      -(x_max + x_min) / (x_max - x_min),
+      -(y_max + y_min) / (y_max - y_min),
+      -(z_max + z_min) / (z_max - z_min),
+      1.0f
+    };
+
+    mat4 ortho2 = create_matrix(1.0f);
+    ortho2.third_col.z = 0.5f;
+    ortho2.fourth_col.z = 0.5f;
+
+    dir_light.light_orthos[cascade] = mat_multiply_mat(ortho2, ortho1);
+		
+#endif
 
 #if RENDER_DIR_LIGHT_ORTHOS
     // debug view for light orthos
@@ -772,7 +879,7 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
       v.weights[2] = 0;
       v.weights[3] = 0;
     }
-
+ 
     ortho_vertices[BTR].position = light_ortho_world_frustum.frustum_corners[BTR];
     ortho_vertices[FTR].position = light_ortho_world_frustum.frustum_corners[FTR];
     ortho_vertices[BBR].position = light_ortho_world_frustum.frustum_corners[BBR];
