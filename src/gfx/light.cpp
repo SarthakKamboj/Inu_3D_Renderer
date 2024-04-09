@@ -30,15 +30,22 @@ const float light_t::FAR_PLANE = 50.f;
 const float light_t::SHADOW_MAP_WIDTH = fb_width / 4.f;
 const float light_t::SHADOW_MAP_HEIGHT = fb_height / 4.f;
 
-// const float dir_light_t::SHADOW_MAP_WIDTH = 4096.f;
-// const float dir_light_t::SHADOW_MAP_HEIGHT = 4096.f;
+#if 0
+const float dir_light_t::SHADOW_MAP_WIDTH = 4096.f;
+const float dir_light_t::SHADOW_MAP_HEIGHT = 4096.f;
+#else
 const float dir_light_t::SHADOW_MAP_WIDTH = 1024.f;
 const float dir_light_t::SHADOW_MAP_HEIGHT = 1024.f;
+#endif
 shader_t dir_light_t::light_shader;
 shader_t dir_light_t::debug_shader;
 shader_t dir_light_t::display_shadow_map_shader;
 
 extern bool render_dir_orthos;
+
+bool make_orthos_square = true;
+bool make_orthos_square_consistent = true;
+bool make_orthos_texel_snapped = true;
 
 void init_light_data() {
   char resources_path[256]{};
@@ -298,6 +305,7 @@ struct frustum_t {
   vec3 frustum_corners[NUM_CUBE_CORNERS]{};
 };
 
+extern bool update_dir_light_frustums;
 void gen_dir_light_matricies(int light_id, camera_t* camera) {
   dir_light_t& dir_light = dir_lights[light_id];
 
@@ -323,10 +331,43 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
     }
   };
 
-  frustum_t world_cam_frustum;
-  mat4 cam_view = get_cam_view_mat();
+  frustum_t test_frustum;
+  static mat4 last_cam_view = create_matrix(1.0f);
+  mat4 cam_view;
+  if (update_dir_light_frustums) {
+    cam_view = get_cam_view_mat();
+    last_cam_view = cam_view;
+  } else {
+    cam_view = last_cam_view;
+  }
+  // mat4 cam_view ;
   mat4 cam_proj = get_cam_proj_mat();
+
+#if 0
   for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
+    // this does change every frame but the actual frustum should remain the same length always
+    vec4 corner = vec4(cam_frustum_ndc_corners.frustum_corners[i], 1.0f);
+    vec4 world_unnorm = mat_multiply_vec(mat4_inverse(cam_proj), corner);
+    vec4 world_norm = world_unnorm / world_unnorm.w;
+    test_frustum.frustum_corners[i] = {world_norm.x, world_norm.y, world_norm.z};
+  }
+  printf("test frustum edge length: %f\n", length(test_frustum.frustum_corners[5] - test_frustum.frustum_corners[4]));
+#endif
+
+#if 0
+  for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
+    // this does change every frame but the actual frustum should remain the same length always
+    vec4 corner = vec4(cam_frustum_ndc_corners.frustum_corners[i], 1.0f);
+    vec4 world_unnorm = mat_multiply_vec(mat4_inverse(cam_view), corner);
+    vec4 world_norm = world_unnorm / world_unnorm.w;
+    test_frustum.frustum_corners[i] = {world_norm.x, world_norm.y, world_norm.z};
+  }
+  printf("test frustum edge length: %f\n", length(test_frustum.frustum_corners[7] - test_frustum.frustum_corners[6]));
+#endif
+
+  frustum_t world_cam_frustum;
+  for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
+    // this does change every frame but the actual frustum should remain the same length always
     mat4 c = mat_multiply_mat(cam_proj, cam_view);
     vec4 corner = vec4(cam_frustum_ndc_corners.frustum_corners[i], 1.0f);
     vec4 world_unnorm = mat_multiply_vec(mat4_inverse(c), corner);
@@ -334,12 +375,15 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
     world_cam_frustum.frustum_corners[i] = {world_norm.x, world_norm.y, world_norm.z};
   }
 
+  // seems like frustum edge is not consistent...could be a problem with the projection or view matricies
+  // printf("frustum edge length: %f\n", length(world_cam_frustum.frustum_corners[7] - world_cam_frustum.frustum_corners[6]));
+
   // split camera frustum in cascades
   const int N = NUM_SM_CASCADES;
   const float N_f = static_cast<float>(N);
-  frustum_t cascaded_frustums[N];
+  frustum_t world_cascaded_frustums[N];
   for (int cascade = 0; cascade < NUM_SM_CASCADES; cascade++) {
-    frustum_t& vf = cascaded_frustums[cascade];
+    frustum_t& world_cascade_frustum = world_cascaded_frustums[cascade];
 
     float n = camera->near_plane;
     float f = camera->far_plane;
@@ -349,30 +393,55 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
 
     dir_light.cacade_depths[cascade] = z_near;
     dir_light.cacade_depths[cascade+1] = z_far;
+
+    float inter_n = (z_near - n) / (f - n);
+    float inter_f = (z_far - n) / (f - n);
     
     // float zs[2] = {z_near, z_far};
     for (int i = 0; i < 2; i++) {
-      float inter_n = (z_near - n) / (f - n);
-      float inter_f = (z_far - n) / (f - n);
+
+#if 0
+      if (cascade == 0) {
+        printf("i: %i inter_n: %f inter_f: %f || ", i, inter_n, inter_f);
+        if (i == 1) {
+          printf("\n");
+        }
+      }
+#endif
 
       for (int j = 0; j < NUM_CUBE_CORNERS / 2; j++) {
         int fc_near_idx = j*2;
         int fc_far_idx = fc_near_idx + 1;
-        vf.frustum_corners[fc_near_idx] = vec3_linear(world_cam_frustum.frustum_corners[fc_near_idx], world_cam_frustum.frustum_corners[fc_far_idx], inter_n);
-        vf.frustum_corners[fc_far_idx] = vec3_linear(world_cam_frustum.frustum_corners[fc_near_idx], world_cam_frustum.frustum_corners[fc_far_idx], inter_f);
+        world_cascade_frustum.frustum_corners[fc_near_idx] = vec3_linear(world_cam_frustum.frustum_corners[fc_near_idx], world_cam_frustum.frustum_corners[fc_far_idx], inter_n);
+        world_cascade_frustum.frustum_corners[fc_far_idx] = vec3_linear(world_cam_frustum.frustum_corners[fc_near_idx], world_cam_frustum.frustum_corners[fc_far_idx], inter_f);
+        
+#if 0
+        vec3 c = world_cascade_frustum.frustum_corners[fc_far_idx] - world_cascade_frustum.frustum_corners[fc_near_idx];
+        // this changes frame to frame...but why?
+        float total_len = length(world_cam_frustum.frustum_corners[fc_far_idx] - world_cam_frustum.frustum_corners[fc_near_idx]);
+
+        float percent_of_full_frustum_len = length(c) / total_len;
+        
+        if (cascade == 0) {
+          printf("percent: %f\n", percent_of_full_frustum_len);
+          printf("cam frustum edge total_len: %f\n", total_len);
+        }
+#endif
+
       }
+      
     } 
 
     vertex_t vertices[8];
 
-    vertices[BTR].position = vf.frustum_corners[7];
-    vertices[FTR].position = vf.frustum_corners[6];
-    vertices[BBR].position = vf.frustum_corners[5];
-    vertices[FBR].position = vf.frustum_corners[4];
-    vertices[BTL].position = vf.frustum_corners[3];
-    vertices[FTL].position = vf.frustum_corners[2];
-    vertices[BBL].position = vf.frustum_corners[1];
-    vertices[FBL].position = vf.frustum_corners[0];
+    vertices[BTR].position = world_cascade_frustum.frustum_corners[7];
+    vertices[FTR].position = world_cascade_frustum.frustum_corners[6];
+    vertices[BBR].position = world_cascade_frustum.frustum_corners[5];
+    vertices[FBR].position = world_cascade_frustum.frustum_corners[4];
+    vertices[BTL].position = world_cascade_frustum.frustum_corners[3];
+    vertices[FTL].position = world_cascade_frustum.frustum_corners[2];
+    vertices[BBL].position = world_cascade_frustum.frustum_corners[1];
+    vertices[FBL].position = world_cascade_frustum.frustum_corners[0];
 
 #if RENDER_DIR_LIGHT_FRUSTUMS
     int frustum_obj_id = dir_light.debug_obj_ids[cascade];
@@ -404,54 +473,97 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
 
   // calculate view and ortho mats for each cascaded frustum
   for (int cascade = 0; cascade < NUM_SM_CASCADES; cascade++) {
-    frustum_t& vf = cascaded_frustums[cascade];
+    frustum_t& world_cascade_frustum = cascaded_frustums[cascade];
 #endif
+
+#if 0
     float cascade_len = 0;
     for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
       for (int j = i+1; j < NUM_CUBE_CORNERS; j++) {
-        vec3 diff = vf.frustum_corners[i] - vf.frustum_corners[j];
+        vec3 diff = world_cascade_frustum.frustum_corners[i] - world_cascade_frustum.frustum_corners[j];
         float diff_len = length(diff);
         if (diff_len > cascade_len) {
           cascade_len = diff_len;
-          printf("pos of i: %i and pos of j: %i\n", 7-i, 7-j);
+          // printf("pos of i: %i and pos of j: %i\n", 7-i, 7-j);
         }
       }  
     }
 
-    // printf("cascade_len: %f\n", cascade_len);
+    if (cascade == 0) {
+      // printf("cascade_len: %f\n", cascade_len);
+    }
 
-#if 0
-    vec3 longest_diag = vertices[FBR].position - vertices[BTL].position;
-    float cascade_len2 = length(longest_diag);
+#else
 
-    inu_assert(cascade_len2 == cascade_len);
+    static float cascade_lens[NUM_SM_CASCADES]{};
+    static bool calculated_diags = false;
+
+    float cascade_len = 0;
+    if (!calculated_diags) {
+      vec3 longest_diag = vertices[FBR].position - vertices[BTL].position;
+      cascade_len = length(longest_diag);
+      cascade_lens[cascade] = cascade_len;
+      if (cascade == NUM_SM_CASCADES-1) {
+        calculated_diags = true;
+      }
+    } else {
+      cascade_len = cascade_lens[cascade];
+    } 
+    // inu_assert(cascade_len2 == cascade_len);
 #endif
 
-#if 0
     float world_len_per_texel = cascade_len / dir_light_t::SHADOW_MAP_WIDTH;
-    for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
-      vec3& corner = vf.frustum_corners[i];
-      vec3 orig_corner = corner;
-      float bucket = 0;
-      bucket = floor(corner.x / world_len_per_texel);
-      corner.x = bucket * world_len_per_texel;
-      bucket = floor(corner.y / world_len_per_texel);
-      corner.y = bucket * world_len_per_texel;
-      bucket = floor(corner.z / world_len_per_texel);
-      corner.z = bucket * world_len_per_texel;
+    if (cascade == 0) {
+      printf("cascade_len: %f\n", cascade_len);
+    }
+
+#if 0
+    if (make_orthos_texel_snapped) {
+      for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
+        vec3& corner = world_cascade_frustum.frustum_corners[i];
+        vec3 orig_corner = corner;
+#if 0
+        float bucket = 0;
+        bucket = round(corner.x / world_len_per_texel);
+        corner.x = bucket * world_len_per_texel;
+        bucket = round(corner.y / world_len_per_texel);
+        corner.y = bucket * world_len_per_texel;
+        bucket = round(corner.z / world_len_per_texel);
+        corner.z = bucket * world_len_per_texel;
+#else
+        corner.x = round(corner.x / world_len_per_texel) * world_len_per_texel;
+        corner.y = round(corner.y / world_len_per_texel) * world_len_per_texel;
+        corner.z = round(corner.z / world_len_per_texel) * world_len_per_texel;
+#endif
+      }
     }
 #endif
 
     // get center
     vec3 frustum_center{};
     for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
-      frustum_center.x += vf.frustum_corners[i].x;
-      frustum_center.y += vf.frustum_corners[i].y;
-      frustum_center.z += vf.frustum_corners[i].z;
+      frustum_center.x += world_cascade_frustum.frustum_corners[i].x;
+      frustum_center.y += world_cascade_frustum.frustum_corners[i].y;
+      frustum_center.z += world_cascade_frustum.frustum_corners[i].z;
     }
     frustum_center.x /= static_cast<float>(NUM_CUBE_CORNERS);
     frustum_center.y /= static_cast<float>(NUM_CUBE_CORNERS);
     frustum_center.z /= static_cast<float>(NUM_CUBE_CORNERS);
+
+    frustum_center.x = round(frustum_center.x / world_len_per_texel) * world_len_per_texel;
+    frustum_center.y = round(frustum_center.y / world_len_per_texel) * world_len_per_texel;
+    frustum_center.z = round(frustum_center.z / world_len_per_texel) * world_len_per_texel;
+
+#if 0
+    // float world_len_per_texel = cascade_len / dir_light_t::SHADOW_MAP_WIDTH;
+    float bucket = 0;
+    bucket = round(frustum_center.x / world_len_per_texel);
+    frustum_center.x = bucket * world_len_per_texel;
+    bucket = round(frustum_center.y / world_len_per_texel);
+    frustum_center.y = bucket * world_len_per_texel;
+    bucket = round(frustum_center.z / world_len_per_texel);
+    frustum_center.z = bucket * world_len_per_texel;
+#endif
 
     // calc view mat
     dir_light.light_views[cascade] = get_view_mat(frustum_center, vec3_add(frustum_center, dir_light.dir));
@@ -461,34 +573,78 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
     float y_min = FLT_MAX, y_max = -FLT_MAX;
     float z_min = FLT_MAX, z_max = -FLT_MAX;
     for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
-      vec4 pt = {vf.frustum_corners[i].x, vf.frustum_corners[i].y, vf.frustum_corners[i].z, 1.0f};
+      vec4 pt = {world_cascade_frustum.frustum_corners[i].x, world_cascade_frustum.frustum_corners[i].y, world_cascade_frustum.frustum_corners[i].z, 1.0f};
       vec4 light_rel_view_pt = mat_multiply_vec(dir_light.light_views[cascade], pt);
-      x_min = min(x_min, light_rel_view_pt.x);
-      x_max = max(x_max, light_rel_view_pt.x);
-      y_min = min(y_min, light_rel_view_pt.y);
-      y_max = max(y_max, light_rel_view_pt.y);
-      z_min = min(z_min, light_rel_view_pt.z);
-      z_max = max(z_max, light_rel_view_pt.z);
+      x_min = fmin(x_min, light_rel_view_pt.x);
+      x_max = fmax(x_max, light_rel_view_pt.x);
+      y_min = fmin(y_min, light_rel_view_pt.y);
+      y_max = fmax(y_max, light_rel_view_pt.y);
+      z_min = fmin(z_min, light_rel_view_pt.z);
+      z_max = fmax(z_max, light_rel_view_pt.z);
     }
 
+#if 0
     float x_mid = (x_min + x_max) / 2.f;
     float y_mid = (y_min + y_max) / 2.f;
+#else
+    // projected frustum center will be at (0,0,0)
+    float x_mid = 0;
+    float y_mid = 0;
+#endif
 
 #if 1
 
 #if 0
     float proj_dim = fmax(abs(x_max - x_min), abs(y_max - y_min));
-#else
+#elif 0
     vec4 cascade_test_pt = {cascade_len, 0,0,0};
     vec4 light_projected_cascaded_test_pt = mat_multiply_vec(dir_light.light_views[cascade], cascade_test_pt);
     float proj_dim = vec4_length(light_projected_cascaded_test_pt);
+
+    printf("proj dim: %f\n", proj_dim);
+#else
+
+    float proj_dim = 0;
+    if (make_orthos_square) {
+      proj_dim = fmax(abs(x_max - x_min), abs(y_max - y_min)); 
+    }
+
+    if (make_orthos_square_consistent) {
+      static float proj_dims[NUM_SM_CASCADES] = {0,0,0};
+      static bool calc_proj_dim = false;
+
+      vec4 cascade_test_pt = {cascade_len, 0,0,0};
+      if (cascade == 0) {
+        // should not be changing
+        // printf("cascade_len_diag: %f\n", cascade_len_diag);
+      }
+      vec4 light_projected_cascaded_test_pt = mat_multiply_vec(dir_light.light_views[cascade], cascade_test_pt);
+      proj_dim = 0;
+      if (!calc_proj_dim) {
+        proj_dim = vec4_length(light_projected_cascaded_test_pt);
+        proj_dims[cascade] = proj_dim;
+        if (cascade == NUM_SM_CASCADES-1) {
+          calc_proj_dim = true;
+        }
+      } else {
+        proj_dim = proj_dims[cascade];
+      }
+    }
 #endif
 
-    x_min = x_mid - (proj_dim / 2.f);
-    x_max = x_mid + (proj_dim / 2.f);
+#if 0
+    if (cascade == 0) {
+      printf("proj dim: %f\n", proj_dim);
+    }
+#endif
 
-    y_min = y_mid - (proj_dim / 2.f);
-    y_max = y_mid + (proj_dim / 2.f);
+    if (make_orthos_square || make_orthos_square_consistent) {
+      x_min = x_mid - (proj_dim / 2.f);
+      x_max = x_mid + (proj_dim / 2.f);
+
+      y_min = y_mid - (proj_dim / 2.f);
+      y_max = y_mid + (proj_dim / 2.f);
+    }
 #endif
 
     // z_min and z_max will likely both be neative since we are looking down the negative z axis
@@ -505,20 +661,23 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
       z_min = z_min / z_multiplier;
     } 
 
-#if 0
-    float world_len_per_texel = cascade_len / dir_light_t::SHADOW_MAP_WIDTH;
+#if 1
+    // float world_len_per_texel = cascade_len / dir_light_t::SHADOW_MAP_WIDTH;
+    // float world_len_per_texel = cascade_len / dir_light_t::SHADOW_MAP_WIDTH;
 
-    x_min = floor(x_min / world_len_per_texel) * world_len_per_texel;
-    x_max = floor(x_max / world_len_per_texel) * world_len_per_texel;
-    y_min = floor(y_min / world_len_per_texel) * world_len_per_texel;
-    y_max = floor(y_max / world_len_per_texel) * world_len_per_texel;
-    z_min = floor(z_min / world_len_per_texel) * world_len_per_texel;
-    z_max = floor(z_max / world_len_per_texel) * world_len_per_texel;
+    if (make_orthos_texel_snapped) {
+      x_min = round(x_min / world_len_per_texel) * world_len_per_texel;
+      x_max = round(x_max / world_len_per_texel) * world_len_per_texel;
+      y_min = round(y_min / world_len_per_texel) * world_len_per_texel;
+      y_max = round(y_max / world_len_per_texel) * world_len_per_texel;
+      z_min = round(z_min / world_len_per_texel) * world_len_per_texel;
+      z_max = round(z_max / world_len_per_texel) * world_len_per_texel;
+    }
 
 #endif
 
-#if 1
-    float world_len_per_texel = cascade_len / dir_light_t::SHADOW_MAP_WIDTH;
+#if 0
+    // float world_len_per_texel = cascade_len_diag / dir_light_t::SHADOW_MAP_WIDTH;
     float xs[2] = {x_min, x_max};
     float ys[2] = {y_min, y_max};
     float zs[2] = {z_min, z_max};
@@ -533,14 +692,18 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
           vec4 pt = {xs[x_i], ys[y_i], zs[z_i], 1.0f};
           vec4 new_world_pt = mat_multiply_vec(light_space_to_world_space, pt);
           new_world_pt = new_world_pt / new_world_pt.w; 
-          new_world_pt.x = floor(new_world_pt.x / world_len_per_texel) * world_len_per_texel;
-          new_world_pt.y = floor(new_world_pt.y / world_len_per_texel) * world_len_per_texel;
-          new_world_pt.z = floor(new_world_pt.z / world_len_per_texel) * world_len_per_texel;
+          new_world_pt.x = round(new_world_pt.x / world_len_per_texel) * world_len_per_texel;
+          new_world_pt.y = round(new_world_pt.y / world_len_per_texel) * world_len_per_texel;
+          new_world_pt.z = round(new_world_pt.z / world_len_per_texel) * world_len_per_texel;
           new_world_cascade_pts[new_i] = {new_world_pt.x, new_world_pt.y, new_world_pt.z};
           new_i++;
         }
       }
     }
+
+    float o_x_min = x_min, o_x_max = x_max;
+    float o_y_min = y_min, o_y_max = y_max;
+    float o_z_min = z_min, o_z_max = z_max;
 
     // get mins and maxs
     x_min = FLT_MAX, x_max = -FLT_MAX;
@@ -558,6 +721,10 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
     }
 
 #endif
+
+    if (cascade == 0) {
+      // printf("%f %f %f %f %f %f\n", x_min, x_max, y_min, y_max, z_min, z_max);
+    }
 
     // calc ortho mat
     dir_light.light_orthos[cascade] = ortho_mat(x_min, x_max, y_min, y_max, z_min, z_max);
@@ -587,9 +754,9 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
     int ortho_frustum_obj_id = dir_light.debug_ortho_obj_ids[cascade];
     vbo_t* vbo = get_obj_vbo(ortho_frustum_obj_id, 0);
 
-    vertex_t vertices[8];
+    vertex_t ortho_vertices[8];
     for (int i = 0; i < 8; i++) {
-      vertex_t& v = vertices[i];
+      vertex_t& v = ortho_vertices[i];
       v.tex0 = {0,0};
       v.tex1 = {0,0};
       v.normal = {0,0,0};
@@ -606,16 +773,16 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
       v.weights[3] = 0;
     }
 
-    vertices[BTR].position = light_ortho_world_frustum.frustum_corners[BTR];
-    vertices[FTR].position = light_ortho_world_frustum.frustum_corners[FTR];
-    vertices[BBR].position = light_ortho_world_frustum.frustum_corners[BBR];
-    vertices[FBR].position = light_ortho_world_frustum.frustum_corners[FBR];
-    vertices[BTL].position = light_ortho_world_frustum.frustum_corners[BTL];
-    vertices[FTL].position = light_ortho_world_frustum.frustum_corners[FTL];
-    vertices[BBL].position = light_ortho_world_frustum.frustum_corners[BBL];
-    vertices[FBL].position = light_ortho_world_frustum.frustum_corners[FBL];
+    ortho_vertices[BTR].position = light_ortho_world_frustum.frustum_corners[BTR];
+    ortho_vertices[FTR].position = light_ortho_world_frustum.frustum_corners[FTR];
+    ortho_vertices[BBR].position = light_ortho_world_frustum.frustum_corners[BBR];
+    ortho_vertices[FBR].position = light_ortho_world_frustum.frustum_corners[FBR];
+    ortho_vertices[BTL].position = light_ortho_world_frustum.frustum_corners[BTL];
+    ortho_vertices[FTL].position = light_ortho_world_frustum.frustum_corners[FTL];
+    ortho_vertices[BBL].position = light_ortho_world_frustum.frustum_corners[BBL];
+    ortho_vertices[FBL].position = light_ortho_world_frustum.frustum_corners[FBL];
 
-    update_vbo_data(*vbo, vertices, sizeof(vertices)); 
+    update_vbo_data(*vbo, ortho_vertices, sizeof(ortho_vertices)); 
 #endif
   }
 }

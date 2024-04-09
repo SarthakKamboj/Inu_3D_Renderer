@@ -13,6 +13,10 @@ struct input_t {
   bool left_mouse_up = false;
   bool right_mouse_up = false;
   bool shift_down = false;
+
+  bool a_up = false;
+  bool b_up = false;
+  bool c_up = false;
 };
 
 struct window_t {

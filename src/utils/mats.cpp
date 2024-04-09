@@ -120,7 +120,7 @@ mat4 proj_mat(float fov, float near, float far, float aspect_ratio) {
   float multipler = 3.141526f / 180.f;
   float top = near * tan(fov * multipler / 2.f);
   float right = top * aspect_ratio;
-
+  float x_angle = atan(right / near) / multipler;
   
   // pers proj keeps +z as out of screen and -z into screen
   mat4 pers = create_matrix(1.0f);

@@ -334,9 +334,9 @@ void render_scene() {
 #endif
 
   glCullFace(GL_BACK);
-  if (update_dir_light_frustums) {
+  // if (update_dir_light_frustums) {
     gen_dir_light_matricies(0, cam); 
-  }
+  // }
 
   for (int i = 0; i < num_dir_lights; i++) {
     setup_dir_light_for_rendering(i, cam);

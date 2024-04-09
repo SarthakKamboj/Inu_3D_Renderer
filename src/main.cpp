@@ -25,6 +25,10 @@ extern animation_globals_t animation_globals;
 extern framebuffer_t offline_fb;
 // extern framebuffer_t light_pass_fb;
 
+extern bool make_orthos_square;
+extern bool make_orthos_square_consistent;
+extern bool make_orthos_texel_snapped;
+
 app_info_t app_info;
 
 #if 0
@@ -166,6 +170,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     // WINDOW + INPUT PASS
     poll_events();
 
+    if (window.input.a_up) {
+      make_orthos_square = !make_orthos_square;
+    } else if (window.input.b_up) {
+      make_orthos_square_consistent = !make_orthos_square_consistent;
+    } else if (window.input.c_up) {
+      make_orthos_texel_snapped = !make_orthos_texel_snapped;
+    }
+
     // UPDATE PASS
     if (window.input.left_mouse_up) {
       render_dir_orthos = !render_dir_orthos;
@@ -189,6 +201,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     
     update_cam();
     update_animations();
+
+    // vec4 pt = {10,1,-25,0};
+    vec4 pt = {-10.25744f,4.49857f,17.58958f,1.0f};
+    vec4 pt_m1 = mat_multiply_vec(get_cam_view_mat(), pt);
+    vec4 pt_m2 = mat_multiply_vec(get_cam_proj_mat(), pt_m1);
+    pt_m2 = pt_m2 / pt_m2.w;
+    int a = 5;
 
     // RENDERING PASS
 

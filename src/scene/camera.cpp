@@ -8,6 +8,8 @@
 
 #include <math.h>
 
+static const float cam_far_plane = 100.f;
+
 extern bool update_dir_light_frustums;
 
 static camera_t cam;
@@ -40,9 +42,9 @@ void update_cam() {
   
 
   if (update_dir_light_frustums) {
-    cam.far_plane = 100.f;
+    cam.far_plane = cam_far_plane;
   } else {
-    cam.far_plane = 200.f;
+    cam.far_plane = cam_far_plane * 2.f;
   }
 
 #define USE_PERS 1
@@ -64,7 +66,7 @@ void update_cam() {
 
 void create_camera(transform_t& t) {
   cam.near_plane = 0.01f;
-  cam.far_plane = 100.f;
+  cam.far_plane = cam_far_plane;
 
   cam.transform.pos.x = t.pos.x;
   cam.transform.pos.y = t.pos.y;
@@ -102,7 +104,9 @@ mat4 get_view_mat(vec3 pos, vec3 focal_pt) {
     right = cross_product(to_fp, world_up);
   }
 
+  right = norm_vec3(right);
   vec3 up = cross_product(right, to_fp);
+  up = norm_vec3(up);
 
   mat4 rot_mat = create_matrix(1.0f);
 
@@ -308,5 +312,4 @@ float get_cam_near_plane() {
 
 float get_cam_far_plane() {
   return cam.far_plane;
-
 }
