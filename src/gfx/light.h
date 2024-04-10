@@ -7,7 +7,7 @@
 #include "model_loading/model_internal.h"
 
 #define CHANGING_REF_TO_FIT 0
-#define USE_GLM 1
+#define USE_GLM 0
 
 #define SHOW_LIGHTS 1
 #define NUM_SM_CASCADES 3

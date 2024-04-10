@@ -61,7 +61,7 @@ struct cam_data_t {
   float near_plane;
   float far_plane;
 };
-// uniform cam_data_t cam_data;
+uniform cam_data_t cam_data;
 
 in vec2 tex_coords[2];
 in vec3 color;
@@ -182,15 +182,17 @@ is_in_dir_light_info_t is_in_dir_light(dir_light_mat_data_t dir_light_mat_data, 
 
   float amount_in_light = 0.0;
 #if 1
-  float bias = 0.001;
+  float bias = 0.0005;
 #else
-  vec3 norm_normal = normal.xyz / normal.w;
+  vec4 norm_normal4 = normalize(normal);
+  vec3 norm_normal = norm_normal4.xyz / norm_normal4.w;
   float bias = max(0.05 * (1.0 - dot(norm_normal, -dir_light_mat_data.light_dir)), 0.005);
   if (dir_light_layer == NUM_CASCADES) {
       bias *= 1 / (cam_data.far_plane * 0.5f);
   } else {
       bias *= 1 / (dir_light_mat_data.cascade_depths[dir_light_layer] * 0.5f);
   }
+  bias *= 0.001;
 #endif
 
   // z position of the vertex relative to the light, still [-1,1] for near to far

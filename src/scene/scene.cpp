@@ -367,8 +367,8 @@ void render_scene() {
   shader_set_mat4(material_t::associated_shader, "projection", proj);
   shader_set_mat4(material_t::associated_shader, "view", view);
 
-  // shader_set_float(material_t::associated_shader, "cam_data.near_plane", get_cam_near_plane());
-  // shader_set_float(material_t::associated_shader, "cam_data.far_plane", get_cam_far_plane());
+  shader_set_float(material_t::associated_shader, "cam_data.near_plane", get_cam_near_plane());
+  shader_set_float(material_t::associated_shader, "cam_data.far_plane", get_cam_far_plane());
 
   // spotlights
   int num_lights = get_num_lights();

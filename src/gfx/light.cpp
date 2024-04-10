@@ -39,8 +39,8 @@ const float light_t::SHADOW_MAP_HEIGHT = fb_height / 4.f;
 const float dir_light_t::SHADOW_MAP_WIDTH = 4096.f;
 const float dir_light_t::SHADOW_MAP_HEIGHT = 4096.f;
 #else
-const float dir_light_t::SHADOW_MAP_WIDTH = 2048.f;
-const float dir_light_t::SHADOW_MAP_HEIGHT = 2048.f;
+const float dir_light_t::SHADOW_MAP_WIDTH = 1024.f;
+const float dir_light_t::SHADOW_MAP_HEIGHT = 1024.f;
 #endif
 shader_t dir_light_t::light_shader;
 shader_t dir_light_t::debug_shader;
@@ -322,24 +322,7 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
 
 #if CHANGING_REF_TO_FIT
 
-  // multiply by inverse projection*view matrix to find frustum vertices in world space
-	// transform to light space
-	// same pass, find minimum along each axis
-	glm::mat4 lightSpaceTransform = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), -glm::vec3(dir_light.dir.x, dir_light.dir.y, dir_light.dir.z), glm::vec3(0.0f, 1.0f, 0.0f));
-
-  mat4 internal_view = create_matrix(1.0f);
-  for (int col = 0; col < 4; col++) {
-    for (int row = 0; row < 4; row++) {
-      internal_view.cols[col][row] = lightSpaceTransform[col][row];
-    }
-  }
-  
-
-  dir_light.light_views[0] = internal_view;
-  dir_light.light_views[1] = internal_view;
-  dir_light.light_views[2] = internal_view;
-
-	bool firstProcessed = false;
+  bool firstProcessed = false;
 	glm::vec3 boundingA(std::numeric_limits<float>::infinity());
 	glm::vec3 boundingB(-std::numeric_limits<float>::infinity());
 
@@ -382,116 +365,168 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
 		vert /= vert.w;
 	}
 
-	for (glm::vec4 vert : boundingVertices) {
-		// clip space -> world space -> light space
+  const int N = NUM_SM_CASCADES;
+  const float N_f = static_cast<float>(N);
 
-		// multiply by light look at matrix
-		vert = lightSpaceTransform * vert;
+  for (int cascade = 0; cascade < NUM_SM_CASCADES; cascade++) {
 
-		// initialize bounds without comparison, only for first transformed vertex
-		if (!firstProcessed) {
-			boundingA = glm::vec3(vert);
-			boundingB = glm::vec3(vert);
-			firstProcessed = true;
-			continue;
-		}
+    float cam_n = camera->near_plane;
+    float cam_f = camera->far_plane;
 
-		// // get mins and maxs
-		// expand bounding box to encompass everything in 3D
-		boundingA.x = fmin(vert.x, boundingA.x);
-		boundingB.x = fmax(vert.x, boundingB.x);
-		boundingA.y = fmin(vert.y, boundingA.y);
-		boundingB.y = fmax(vert.y, boundingB.y);
-		boundingA.z = fmin(vert.z, boundingA.z);
-		boundingB.z = fmax(vert.z, boundingB.z);
-	}
+    float z_near = (0.5f*cam_n*pow(cam_f/cam_n, cascade/N_f)) + (0.5f*(cam_n+(cascade/N_f*(cam_f-cam_n))));
+    float z_far = (0.5f*cam_n*pow(cam_f/cam_n, (cascade+1)/N_f)) + (0.5f*(cam_n+((cascade+1)/N_f*(cam_f-cam_n))));
 
-	// from https://en.wikipedia.org/wiki/Orthographic_projection#Geometry
-	// because I don't trust GLM
-	float l = boundingA.x;
-	float r = boundingB.x;
-	float b = boundingA.y;
-	float t = boundingB.y;
-	float n = boundingA.z;
-	float f = boundingB.z;
+    dir_light.cacade_depths[cascade] = z_near;
+    dir_light.cacade_depths[cascade+1] = z_far;
 
-	float actualSize;
-	bool useConstantSize = true;
-	if (useConstantSize) {
-		// keep constant world-size resolution, side length = diagonal of largest face of frustum
-		// the other option looks good at high resolutions, but can result in shimmering as you look in different directions and the cascade changes size
-		float farFaceDiagonal = glm::length(glm::vec3(boundingVertices[7]) - glm::vec3(boundingVertices[1]));
-		float forwardDiagonal = glm::length(glm::vec3(boundingVertices[7]) - glm::vec3(boundingVertices[0]));
-		actualSize = fmax(farFaceDiagonal, forwardDiagonal);
-	}
-	else {
-		actualSize = fmax(r - l, t - b);
-	}
+    float inter_n = (z_near - cam_n) / (cam_f - cam_n);
+    float inter_f = (z_far - cam_n) / (cam_f - cam_n);
+
+    dir_light.cacade_depths[cascade] = z_near;
+    dir_light.cacade_depths[cascade+1] = z_far;
+
+    std::vector<glm::vec3> cascadeVertices;
+    for (int i = 0; i < 4; i++) {
+      glm::vec3 nearer = boundingVertices[2*i];
+      glm::vec3 further = boundingVertices[(2*i)+1];
+      vec3 n = {nearer.x, nearer.y, nearer.z};
+      vec3 f = {further.x, further.y, further.z};
+      vec3 nc = vec3_linear(n, f, inter_n);
+      vec3 fc = vec3_linear(n, f, inter_f);
+      cascadeVertices.push_back(glm::vec3(nc.x, nc.y, nc.z));
+      cascadeVertices.push_back(glm::vec3(fc.x, fc.y, fc.z));
+    }
+
+    glm::vec3 frustum_center(0,0,0);
+    for (int i = 0; i < 8; i++) {
+      frustum_center += cascadeVertices[i];
+    }
+    frustum_center = frustum_center / 8.f; 
+
+    vec3 fc = {frustum_center.x, frustum_center.y, frustum_center.z};
+
+	  // glm::mat4 lightSpaceTransform = glm::lookAt(frustum_center, frustum_center-glm::vec3(dir_light.dir.x, dir_light.dir.y, dir_light.dir.z), glm::vec3(0.0f, 1.0f, 0.0f));
+    vec3 neg_dir = {-dir_light.dir.x, -dir_light.dir.y, -dir_light.dir.z};
+    dir_light.light_views[cascade] = get_view_mat(fc, vec3_add(fc, neg_dir));
+    glm::mat4 lightSpaceTransform(1.0f);
+    internal_to_glm(dir_light.light_views[cascade], lightSpaceTransform);
+
+	  for (glm::vec3 cv : cascadeVertices) {
+		  // clip space -> world space -> light space
+
+      // multiply by inverse projection*view matrix to find frustum vertices in world space
+	    // transform to light space
+	    // same pass, find minimum along each axis
+
+		  // multiply by light look at matrix
+      glm::vec4 vert = lightSpaceTransform * glm::vec4(cv, 1.0f);
+      vert = vert/vert.w;
+
+		  // initialize bounds without comparison, only for first transformed vertex
+		  if (!firstProcessed) {
+			  boundingA = glm::vec3(vert);
+			  boundingB = glm::vec3(vert);
+			  firstProcessed = true;
+			  continue;
+		  }
+
+		  // // get mins and maxs
+		  // expand bounding box to encompass everything in 3D
+		  boundingA.x = fmin(vert.x, boundingA.x);
+		  boundingB.x = fmax(vert.x, boundingB.x);
+		  boundingA.y = fmin(vert.y, boundingA.y);
+		  boundingB.y = fmax(vert.y, boundingB.y);
+		  boundingA.z = fmin(vert.z, boundingA.z);
+		  boundingB.z = fmax(vert.z, boundingB.z);
+	  }
+
+	  // from https://en.wikipedia.org/wiki/Orthographic_projection#Geometry
+	  // because I don't trust GLM
+	  float l = boundingA.x;
+	  float r = boundingB.x;
+	  float b = boundingA.y;
+	  float t = boundingB.y;
+	  float n = boundingA.z;
+	  float f = boundingB.z;
+
+	  float actualSize;
+	  bool useConstantSize = true;
+	  if (useConstantSize) {
+		  // keep constant world-size resolution, side length = diagonal of largest face of frustum
+		  // the other option looks good at high resolutions, but can result in shimmering as you look in different directions and the cascade changes size
+		  float farFaceDiagonal = glm::length(glm::vec3(cascadeVertices[7]) - glm::vec3(cascadeVertices[1]));
+		  float forwardDiagonal = glm::length(glm::vec3(cascadeVertices[7]) - glm::vec3(cascadeVertices[0]));
+		  actualSize = fmax(farFaceDiagonal, forwardDiagonal);
+	  }
+	  else {
+		  actualSize = fmax(r - l, t - b);
+	  }
 
 #if 0
-	*worldSpaceDim = actualSize;
-	*worldSpaceDepth = f - n;
+	  *worldSpaceDim = actualSize;
+	  *worldSpaceDepth = f - n;
 #endif
 
-	// make it square
-    bool square = true;
-	if (square) {
-		float W = r - l, H = t - b;
-		float diff = actualSize - H;
-		if (diff > 0) {
-			t += diff / 2.0f;
-			b -= diff / 2.0f;
-		}
-		diff = actualSize - W;
-		if (diff > 0) {
-			r += diff / 2.0f;
-			l -= diff / 2.0f;
-		}
-	}
+	  // make it square
+      bool square = true;
+	  if (square) {
+		  float W = r - l, H = t - b;
+		  float diff = actualSize - H;
+		  if (diff > 0) {
+			  t += diff / 2.0f;
+			  b -= diff / 2.0f;
+		  }
+		  diff = actualSize - W;
+		  if (diff > 0) {
+			  r += diff / 2.0f;
+			  l -= diff / 2.0f;
+		  }
+	  }
 
-	// avoid shimmering
-	float dim = dir_light_t::SHADOW_MAP_WIDTH;
-    bool roundToPixelSize = true;
-	if (roundToPixelSize) {
-		float pixelSize = actualSize / dim;
-		l = std::round(l / pixelSize) * pixelSize;
-		r = std::round(r / pixelSize) * pixelSize;
-		b = std::round(b / pixelSize) * pixelSize;
-		t = std::round(t / pixelSize) * pixelSize;
-	}
+	  // avoid shimmering
+	  float dim = dir_light_t::SHADOW_MAP_WIDTH;
+      bool roundToPixelSize = true;
+	  if (roundToPixelSize) {
+		  float pixelSize = actualSize / dim;
+		  l = std::round(l / pixelSize) * pixelSize;
+		  r = std::round(r / pixelSize) * pixelSize;
+		  b = std::round(b / pixelSize) * pixelSize;
+		  t = std::round(t / pixelSize) * pixelSize;
+	  }
 
-	glm::mat4 ortho = {
-		2.0f / (r - l),	0.0f,			0.0f,			0.0f,
-		0.0f,			2.0f / (t - b),	0.0f,			0.0f,
-		0.0f,			0.0f,			2.0f / (f - n),	0.0f,
-		-(r + l) / (r - l),	-(t + b) / (t - b),	-(f + n) / (f - n),	1.0f
-	};
-	ortho = glm::mat4{
-		1,0,0,0,
-		0,1,0,0,
-		0,0,.5f,0,
-		0,0,.5f,1
-	} * ortho;
+	  glm::mat4 ortho = {
+		  2.0f / (r - l),	0.0f,			0.0f,			0.0f,
+		  0.0f,			2.0f / (t - b),	0.0f,			0.0f,
+		  0.0f,			0.0f,			2.0f / (f - n),	0.0f,
+		  -(r + l) / (r - l),	-(t + b) / (t - b),	-(f + n) / (f - n),	1.0f
+	  };
+	  ortho = glm::mat4{
+		  1,0,0,0,
+		  0,1,0,0,
+		  0,0,.5f,0,
+		  0,0,.5f,1
+	  } * ortho;
 
-	// project in light space -> world space
-	ortho = ortho * lightSpaceTransform;
+	  // project in light space -> world space
+	  // ortho = ortho * lightSpaceTransform;
 
-  mat4 internal_ortho = create_matrix(1.0f);
-  for (int col = 0; col < 4; col++) {
-    for (int row = 0; row < 4; row++) {
-      internal_ortho.cols[col][row] = ortho[col][row];
+    mat4 internal_ortho = create_matrix(1.0f);
+    for (int col = 0; col < 4; col++) {
+      for (int row = 0; row < 4; row++) {
+        internal_ortho.cols[col][row] = ortho[col][row];
+      }
     }
+    
+
+    dir_light.light_orthos[cascade] = internal_ortho;
   }
-  
 
-  dir_light.light_orthos[0] = internal_ortho;
-  dir_light.light_orthos[1] = internal_ortho;
-  dir_light.light_orthos[2] = internal_ortho;
-
+#if 0
   dir_light.cacade_depths[0] = 0;
   dir_light.cacade_depths[1] = 0;
   dir_light.cacade_depths[2] = 0;
   dir_light.cacade_depths[3] = 0;
+#endif
 
   return;
 #else
@@ -743,6 +778,7 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
 
     // get center
     vec3 frustum_center{};
+#if 0
     for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
       frustum_center.x += world_cascade_frustum.frustum_corners[i].x;
       frustum_center.y += world_cascade_frustum.frustum_corners[i].y;
@@ -751,6 +787,7 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
     frustum_center.x /= static_cast<float>(NUM_CUBE_CORNERS);
     frustum_center.y /= static_cast<float>(NUM_CUBE_CORNERS);
     frustum_center.z /= static_cast<float>(NUM_CUBE_CORNERS);
+#endif
 
 #if 0
     frustum_center.x = round(frustum_center.x / world_len_per_texel) * world_len_per_texel;
