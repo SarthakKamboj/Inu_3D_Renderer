@@ -5,6 +5,10 @@
 #include "windowing/window.h"
 #include "utils/general.h"
 #include "utils/log.h"
+#include "gfx/light.h"
+
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 
 #include <math.h>
 
@@ -58,7 +62,7 @@ void update_cam() {
   float multipler = 3.141526f / 180.f;
   float top = mid * tan(60.f * multipler / 2.f);
   float right = mid * static_cast<float>(window.window_dim.x) / window.window_dim.y;
-  cam.proj = ortho_mat(-right, right, -top, top, -cam.far_plane, -cam.near_plane);
+  cam.proj = ortho_mat(-right, right, -top, top, cam.near_plane, cam.far_plane);
 #endif
   // cam.proj = proj_mat(60.f, cam.near_plane, cam.far_plane, static_cast<float>(window.window_dim.x) / window.window_dim.y);
 #undef USE_PERS
@@ -85,6 +89,7 @@ void create_camera(transform_t& t) {
 }
 
 mat4 get_view_mat(vec3 pos, vec3 focal_pt) {
+#if !USE_GLM
   vec3 inv_t = {-pos.x, -pos.y, -pos.z};
   mat4 inv_translate = translate_mat(inv_t);
 
@@ -125,6 +130,13 @@ mat4 get_view_mat(vec3 pos, vec3 focal_pt) {
 
   mat4 inv_rot = transpose(rot_mat);
   return mat_multiply_mat(inv_rot, inv_translate);
+#else
+  // glm::mat4 l = glm::lookAt(glm::vec3(pos.x, pos.y, pos.z), glm::vec3(focal_pt.x, focal_pt.y,1focal_pt.z), glm::vec3(0, -1.0f, 0));
+  glm::mat4 l = glm::lookAt(glm::vec3(pos.x, pos.y, pos.z), glm::vec3(focal_pt.x, focal_pt.y, focal_pt.z), glm::vec3(0, 1.0f, 0));
+  mat4 l_out = create_matrix(1.0f);
+  glm_to_internal(l, l_out);
+  return l_out;
+#endif
 }
 
 mat4 get_cam_proj_mat() {
@@ -132,7 +144,7 @@ mat4 get_cam_proj_mat() {
 }
 
 mat4 get_cam_view_mat() {
-#if 0
+#if CHANGING_REF_TO_FIT
   vec3 inv_t = {-cam.transform.pos.x, -cam.transform.pos.y, -cam.transform.pos.z};
   mat4 inv_translate = translate_mat(inv_t);
 

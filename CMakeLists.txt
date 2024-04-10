@@ -52,6 +52,8 @@ function(configure_project)
         PUBLIC src
         PUBLIC src/gfx/opengl
         PUBLIC src/gfx/opengl/GL
+
+        PUBLIC ext/glm
     )
 
     target_link_libraries(${PROJECT_NAME}

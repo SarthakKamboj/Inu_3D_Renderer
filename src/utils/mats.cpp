@@ -3,6 +3,9 @@
 #include <memory>
 #include <cmath>
 
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+
 // mat 2x2
 mat2::mat2() {
   memset(cols, 0, sizeof(cols));
@@ -93,10 +96,15 @@ vec4 mat_multiply_vec(mat4& m, vec4& v) {
 // z_max to closer to dir light, this is near
 // z_min needs to be put to 1
 // z_max needs to be put to -1
-mat4 ortho_mat(float x_min, float x_max, float y_min, float y_max, float z_min, float z_max) {
+mat4 ortho_mat(float x_min, float x_max, float y_min, float y_max, float z_near, float z_far) {
+#if !USE_GLM
+
+  float z_min = -z_far;
+  float z_max = -z_near;
+
   // ortho matrix brings (-right,right) to (-1,1)
   // brings (-top,top) to (-1,1)
-  // brings (near [z_max], far[z_min]) to (-1,1)
+  // brings (-near, -far) to (-1,1)
   // brings to origin
   mat4 translate = create_matrix(1.0f);
   translate.fourth_col.x = (x_max+x_min) / -2.f;
@@ -114,9 +122,32 @@ mat4 ortho_mat(float x_min, float x_max, float y_min, float y_max, float z_min, 
   mat4 ortho = mat_multiply_mat(scale, translate);
 
   return ortho;
+#else
+  glm::mat4 o = glm::ortho(x_min, x_max, y_min, y_max, z_near, z_far);
+  mat4 o_out = create_matrix(1.0f);
+  glm_to_internal(o, o_out);
+  return o_out;
+#endif
+}
+
+void internal_to_glm(mat4& m1, glm::mat4& m2) {
+  for (int col = 0; col < 4; col++) {
+    for (int row = 0; row < 4; row++) {
+      m2[col][row] = m1.cols[col][row];
+    }
+  }
+}
+
+void glm_to_internal(glm::mat4& m1, mat4& m2) {
+  for (int col = 0; col < 4; col++) {
+    for (int row = 0; row < 4; row++) {
+      m2.cols[col][row] = m1[col][row];
+    }
+  }
 }
 
 mat4 proj_mat(float fov, float near, float far, float aspect_ratio) {
+#if !USE_GLM
   float multipler = 3.141526f / 180.f;
   float top = near * tan(fov * multipler / 2.f);
   float right = top * aspect_ratio;
@@ -151,6 +182,12 @@ mat4 proj_mat(float fov, float near, float far, float aspect_ratio) {
 
   mat4 proj = mat_multiply_mat(ortho, pers);
   return proj;
+#else
+  glm::mat4 p = glm::perspective(fov / 2.f, aspect_ratio, near, far);
+  mat4 i = create_matrix(1.0f);
+  glm_to_internal(p, i);
+  return i;
+#endif
 }
 
 mat4 scale_mat(float s) {
@@ -227,6 +264,7 @@ float determinant(mat4& m) {
 }
 
 mat4 mat4_inverse(mat4& m) {
+#if !USE_GLM
   mat4 inv;
   float det = determinant(m); 
 
@@ -241,4 +279,12 @@ mat4 mat4_inverse(mat4& m) {
   }
 
   return inv;
+#else
+  glm::mat4 m2(1.0f);
+  internal_to_glm(m, m2);
+  glm::mat4 inv = glm::inverse(m2);
+  mat4 out = create_matrix(1.0f);
+  glm_to_internal(inv, out);
+  return out;
+#endif
 }

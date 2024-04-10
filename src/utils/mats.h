@@ -2,6 +2,8 @@
 
 #include "vectors.h"
 
+#include "glm/glm.hpp"
+
 struct mat2 {
   union {
     float vals[4];
@@ -74,7 +76,10 @@ float determinant(mat3& m);
 float determinant(mat4& m);
 mat4 mat4_inverse(mat4& m);
 mat4 proj_mat(float fov, float near, float far, float aspect_ratio);
-mat4 ortho_mat(float x_min, float x_max, float y_min, float y_max, float z_min, float z_max);
+mat4 ortho_mat(float x_min, float x_max, float y_min, float y_max, float z_near, float z_far);
 mat4 scale_mat(float s);
 mat4 scale_mat(vec3& scale);
 mat4 translate_mat(vec3& p);
+
+void glm_to_internal(glm::mat4& m1, mat4& m2);
+void internal_to_glm(mat4& m1, glm::mat4& m2);
