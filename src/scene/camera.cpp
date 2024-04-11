@@ -183,17 +183,6 @@ mat4 get_cam_view_mat() {
 #endif
 }
 
-#if 0
-mat4 get_cam_view_mat(vec3& diff) {
-  cam.transform.pos.x += diff.x;
-  cam.transform.pos.y += diff.y;
-  cam.transform.pos.z += diff.z;
-  return get_cam_view_mat();
-}
-#endif
-
-
-
 void cam_translate(float lat, float vert) {
   vec2 offset_dir = {lat, vert};
   offset_dir = normalize(offset_dir);
