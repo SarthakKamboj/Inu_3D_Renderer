@@ -10,8 +10,8 @@ mat4 get_model_matrix(transform_t& t) {
   mat4 scale = scale_mat(t.scale);
   mat4 translate = translate_mat(t.pos);
   mat4 rot = quat_as_mat4(t.rot);
-  mat4 inter = mat_multiply_mat(translate, rot);
-  mat4 model = mat_multiply_mat(inter, scale);
+  mat4 inter = translate * rot;
+  mat4 model = inter * scale;
   return model;
 }
 
@@ -30,7 +30,7 @@ transform_t get_transform_from_matrix(mat4& m) {
   t.scale.z = m.third_col.length();
 
   // get rotation
-  mat4 rot_mat = create_matrix(1.0f);
+  mat4 rot_mat(1.0f);
   rot_mat.cols[0] = m.cols[0] / t.scale.x;
   rot_mat.cols[1] = m.cols[1] / t.scale.y;
   rot_mat.cols[2] = m.cols[2] / t.scale.z;

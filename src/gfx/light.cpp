@@ -323,7 +323,7 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
     }
   };
 
-  static mat4 last_cam_view = create_matrix(1.0f);
+  static mat4 last_cam_view(1.0f);
   mat4 cam_view;
   if (update_dir_light_frustums) {
     cam_view = get_cam_view_mat();
@@ -336,9 +336,9 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
   frustum_t world_cam_frustum;
   for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
     // this does change every frame but the actual frustum should remain the same length always
-    mat4 c = mat_multiply_mat(cam_proj, cam_view);
+    mat4 c = cam_proj * cam_view;
     vec4 corner = vec4(cam_frustum_ndc_corners.frustum_corners[i], 1.0f);
-    vec4 world_unnorm = mat_multiply_vec(mat4_inverse(c), corner);
+    vec4 world_unnorm = c.inverse() * corner;
     vec4 world_norm = world_unnorm / world_unnorm.w;
     world_cam_frustum.frustum_corners[i] = {world_norm.x, world_norm.y, world_norm.z};
   }
@@ -415,7 +415,7 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
     float z_min = FLT_MAX, z_max = -FLT_MAX;
     for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
       vec4 pt = {world_cascade_frustum.frustum_corners[i].x, world_cascade_frustum.frustum_corners[i].y, world_cascade_frustum.frustum_corners[i].z, 1.0f};
-      vec4 light_rel_view_pt = mat_multiply_vec(dir_light.light_views[cascade], pt);
+      vec4 light_rel_view_pt = dir_light.light_views[cascade] * pt;
       x_min = fmin(x_min, light_rel_view_pt.x);
       x_max = fmax(x_max, light_rel_view_pt.x);
       y_min = fmin(y_min, light_rel_view_pt.y);

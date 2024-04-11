@@ -58,3 +58,8 @@ T normalize(T& v) {
   T res = v / v.length();
   return res;
 }
+
+template <typename T>
+float length(T& v) {
+  return v.length();
+}

@@ -22,6 +22,8 @@ struct mat2 {
     };
   };
   mat2();
+
+  float determinant();
 };
 
 struct mat3 {
@@ -40,6 +42,8 @@ struct mat3 {
     };
   };
   mat3();
+
+  float determinant();
 };
 
 struct mat4 {
@@ -60,21 +64,24 @@ struct mat4 {
     };
   };
   mat4();
+  mat4(float diag_val);
+
+  mat4 operator*(mat4& other);
+  vec4 operator*(vec4& v);
+
+  float determinant();
+  mat3 minor(int row, int col);
+  mat4 inverse();
+  mat4 transpose();
 };
+
+template <typename T>
+float determinant(T& mat) {
+  return mat.determinant();
+}
 
 void print_mat4(mat4& mat);
 
-mat3 mat4_minor(mat4& m, int row, int col);
-mat4 create_matrix(float diag_val);
-mat4 mat_multiply_mat(mat4& m1, mat4& m2);
-vec4 vec_multiply_float(vec4& v, float f);
-vec4 mat_multiply_vec(mat4& m, vec4& v);
-
-mat4 transpose(mat4& m);
-float determinant(mat2& m);
-float determinant(mat3& m);
-float determinant(mat4& m);
-mat4 mat4_inverse(mat4& m);
 mat4 proj_mat(float fov, float near, float far, float aspect_ratio);
 mat4 ortho_mat(float x_min, float x_max, float y_min, float y_max, float z_near, float z_far);
 mat4 scale_mat(float s);

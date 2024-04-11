@@ -113,7 +113,7 @@ mat4 get_view_mat(vec3 pos, vec3 focal_pt) {
   vec3 up = cross_product(right, to_fp);
   up = normalize(up);
 
-  mat4 rot_mat = create_matrix(1.0f);
+  mat4 rot_mat(1.0f);
 
   rot_mat.first_col.x = right.x;
   rot_mat.first_col.y = right.y;
@@ -128,12 +128,12 @@ mat4 get_view_mat(vec3 pos, vec3 focal_pt) {
   rot_mat.third_col.y = neg_to_fp.y;
   rot_mat.third_col.z = neg_to_fp.z;
 
-  mat4 inv_rot = transpose(rot_mat);
-  return mat_multiply_mat(inv_rot, inv_translate);
+  mat4 inv_rot = rot_mat.transpose();
+  return inv_rot * inv_translate;
 #else
   // glm::mat4 l = glm::lookAt(glm::vec3(pos.x, pos.y, pos.z), glm::vec3(focal_pt.x, focal_pt.y,1focal_pt.z), glm::vec3(0, -1.0f, 0));
   glm::mat4 l = glm::lookAt(glm::vec3(pos.x, pos.y, pos.z), glm::vec3(focal_pt.x, focal_pt.y, focal_pt.z), glm::vec3(0, 1.0f, 0));
-  mat4 l_out = create_matrix(1.0f);
+  mat4 l_out(1.0f);
   glm_to_internal(l, l_out);
   return l_out;
 #endif
@@ -160,7 +160,7 @@ mat4 get_cam_view_mat() {
   vec3 neg_to_fp = {-to_fp.x, -to_fp.y, -to_fp.z};
   vec3 up = cross_product(right, to_fp);
 
-  mat4 rot_mat = create_matrix(1.0f);
+  mat4 rot_mat(1.0f);
 
   rot_mat.first_col.x = right.x;
   rot_mat.first_col.y = right.y;

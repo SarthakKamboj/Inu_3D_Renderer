@@ -86,7 +86,7 @@ vec3 get_rotated_position_raw(vec3& pos, quaternion_t& q) {
  */
 
 mat4 quat_as_mat4(quaternion_t& q) {
-  mat4 m = create_matrix(1.0f);
+  mat4 m(1.0f);
 
   float a = q.x;
   float b = q.y;

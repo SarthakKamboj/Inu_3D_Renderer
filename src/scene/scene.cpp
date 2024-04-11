@@ -98,7 +98,7 @@ void update_obj_model_mats_recursive(int obj_id, mat4& running_model) {
       inu_assert_msg("obj model matrix from transform is nan");
     }
   }
-  objs[obj_id].model_mat = mat_multiply_mat(running_model, model);
+  objs[obj_id].model_mat = running_model * model;
   updated_idxs.insert(obj_id);
   for (int child_id : objs[obj_id].child_objects) {
     update_obj_model_mats_recursive(child_id, objs[obj_id].model_mat);
@@ -115,13 +115,13 @@ object_t* get_obj(int obj_id) {
 void update_obj_model_mats() {
   updated_idxs.clear();
   for (int parent_id : scene.parent_objs) {
-    mat4 running_model_mat = create_matrix(1.0f);
+    mat4 running_model_mat(1.0f);
     update_obj_model_mats_recursive(parent_id, running_model_mat);
   }
 
   for (object_t& obj : objs) {
     if (updated_idxs.find(obj.id) == updated_idxs.end() && obj.is_joint_obj && obj.parent_obj == -1) {
-      mat4 running_model_mat = create_matrix(1.0f);
+      mat4 running_model_mat(1.0f);
       update_obj_model_mats_recursive(obj.id, running_model_mat);
     }
   }
@@ -203,13 +203,14 @@ void render_scene_obj(int obj_id, bool parent, bool light_pass, shader_t& shader
 
       // setting the rest to defaults
       for (int i = skin.num_bones; i < BONES_PER_SKIN_LIMIT; i++) {
+        mat4 identity(1.0f);
         char mat4_name[64]{};
         sprintf(mat4_name, "joint_inverse_bind_mats[%i]", i);
-        shader_set_mat4(shader, mat4_name, create_matrix(1.0f));
+        shader_set_mat4(shader, mat4_name, identity);
 
         memset(mat4_name, 0, sizeof(mat4_name));
         sprintf(mat4_name, "joint_model_matricies[%i]", i);
-        shader_set_mat4(shader, mat4_name, create_matrix(1.0f));
+        shader_set_mat4(shader, mat4_name, identity);
       }
     } else {
       shader_set_int(shader, "skinned", 0);
@@ -327,7 +328,7 @@ void offline_final_render_pass() {
   // spotlights for offline shader
   int num_lights = get_num_lights();
   for (int i = 0; i < NUM_LIGHTS_SUPPORTED_IN_SHADER; i++) {
-    mat4 identity = create_matrix(1.0f);
+    mat4 identity(1.0f);
     bool inactive = (i >= num_lights);
 
     char var_name[64]{};
@@ -411,7 +412,7 @@ void offline_final_render_pass() {
 
   // set up dir lights in offline shader
   for (int i = 0; i < HAVE_DIR_LIGHT; i++) {
-    mat4 identity = create_matrix(1.0f);
+    mat4 identity(1.0f);
     bool inactive = (i >= 1);
 
     dir_light_t* dir_light = get_dir_light(i);
@@ -506,7 +507,7 @@ skin_t::skin_t() {
   upper_most_joint_node_idx = -1;
   memset(joint_obj_ids, 0, sizeof(joint_obj_ids));
   for (int i = 0; i < BONES_PER_SKIN_LIMIT; i++) {
-    inverse_bind_matricies[i] = create_matrix(1.0f);
+    inverse_bind_matricies[i] = mat4(1.0f);
   }
 }
 
