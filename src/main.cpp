@@ -14,6 +14,7 @@ extern window_t window;
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
 #if TEST_MATH
+    create_window(hInstance, 400, 300); 
   // add your testing functionality here that you were writing in the int main() in test.cpp
     testDot2();
     testDotProductVec3();
