@@ -103,5 +103,6 @@ void setup_dir_light_for_rendering_debug(int light_id, camera_t* camera, int cas
 void remove_dir_light_from_rendering_debug();
 void render_dir_light_shadow_maps(int dir_light_id);
 
+int get_num_dir_lights();
 dir_light_t* get_dir_light(int id);
 void gen_dir_light_matricies(int light_id, camera_t* camera);

@@ -287,13 +287,13 @@ void dirlight_pass() {
 
 #if HAVE_DIR_LIGHT
   // DIR light
-  int num_dir_lights = 1;
+  int num_dir_lights = get_num_dir_lights();
   camera_t* cam = get_cam();
 
   glCullFace(GL_BACK);
-  gen_dir_light_matricies(0, cam); 
 
-  for (int i = 0; i < num_dir_lights; i++) {
+  for (int i = 0; i < num_dir_lights; i++) { 
+    gen_dir_light_matricies(i, cam); 
     setup_dir_light_for_rendering(i, cam);
 
     for (int parent_id : scene.parent_objs) {
@@ -411,9 +411,18 @@ void offline_final_render_pass() {
   }
 
   // set up dir lights in offline shader
-  for (int i = 0; i < HAVE_DIR_LIGHT; i++) {
+  int num_dir_lights = get_num_dir_lights(); 
+  const int NUM_MAX_DIR_LIGHTS = 1;
+  for (int i = 0; i < NUM_MAX_DIR_LIGHTS * HAVE_DIR_LIGHT; i++) {
+
     mat4 identity(1.0f);
-    bool inactive = (i >= 1);
+    bool inactive = (i >= num_dir_lights);
+
+    if (inactive) {
+      const char* var_name = "dir_light_data.light_active";
+      shader_set_int(material_t::associated_shader, var_name, 0);
+      continue;
+    }
 
     dir_light_t* dir_light = get_dir_light(i);
 
@@ -492,8 +501,10 @@ void offline_final_render_pass() {
   }
   unbind_shader();
 
-  // show depth maps 
-  render_dir_light_shadow_maps(0);
+  if (num_dir_lights > 0) {
+    // show depth maps 
+    render_dir_light_shadow_maps(0);
+  }
 }
 
 void render_scene() { 

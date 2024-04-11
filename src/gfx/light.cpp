@@ -293,6 +293,10 @@ int create_dir_light(vec3 dir) {
   return light.id;
 }
 
+int get_num_dir_lights() {
+  return dir_lights.size();
+}
+
 struct frustum_t {
   vec3 frustum_corners[NUM_CUBE_CORNERS]{};
 };
