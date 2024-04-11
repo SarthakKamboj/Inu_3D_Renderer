@@ -111,9 +111,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // create_light({-2,3,0});
   // create_light({-20,30,0});
 #if 0
-  create_light({2,8,0});
-  create_light({-20,10,0});
-  create_light({10,5,-5});
+  create_spotlight({2,8,0});
+  create_spotlight({-20,10,0});
+  create_spotlight({10,5,-5});
 #endif
   // create_light({-8,5,-5});
   // create_light({-5,3,0});

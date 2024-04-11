@@ -34,9 +34,9 @@ uniform int use_mesh_color;
 
 uniform int override_color_bool;
 
-struct light_data_t {
-  vec3 pos;
+struct spotlight_data_t {
   sampler2D depth_tex;
+  vec3 pos;
   int light_active;
   int shadow_map_width;
   int shadow_map_height;
@@ -50,15 +50,15 @@ struct dir_light_mat_data_t {
   float cascade_depths[NUM_CASCADES+1];
   vec3 light_dir;
 };
-uniform dir_light_mat_data_t dir_light_mat_data;
 
 struct dir_light_data_t {
   sampler2DArray shadow_map;
   int light_active;
 };
 
-uniform light_data_t lights_data[3];
+uniform spotlight_data_t spotlights_data[3];
 uniform dir_light_data_t dir_light_data;
+uniform dir_light_mat_data_t dir_light_mat_data;
 
 struct cam_data_t {
   float near_plane;
@@ -72,16 +72,16 @@ in vec4 normal;
 
 in vec4 pos;
 
-in vec4 light_rel_screen_pos0;
-in vec4 light_rel_screen_pos1;
-in vec4 light_rel_screen_pos2;
+in vec4 spotlight_rel_screen_pos0;
+in vec4 spotlight_rel_screen_pos1;
+in vec4 spotlight_rel_screen_pos2;
 
 in vec4 global;
 in vec4 cam_rel_pos;
 
 out vec4 frag_color;
 
-float linearize_depth(light_data_t light_data, vec4 light_rel_screen_pos) {
+float linearize_depth(spotlight_data_t light_data, vec4 light_rel_screen_pos) {
   // the z_pos is negative since light looks down the negative z axis
   float light_near = light_data.near_plane;
   float light_far = light_data.far_plane;
@@ -111,15 +111,15 @@ vec4 quantize_color(vec4 c) {
 #endif
 }
 
-struct is_in_light_info_t {
+struct is_in_spotlight_info_t {
   float amount_in_light;
   float depth;
   float closest_depth;
   vec2 tex_coords;
 };
 
-is_in_light_info_t is_in_light(light_data_t light_data, vec4 light_rel_pos) {
-  is_in_light_info_t info;
+is_in_spotlight_info_t is_in_spotlight(spotlight_data_t light_data, vec4 light_rel_pos) {
+  is_in_spotlight_info_t info;
 
   vec2 tex_coords = ((light_rel_pos.xy / light_rel_pos.w) + vec2(1)) / 2;
   tex_coords = tex_coords * vec2(light_data.light_active, light_data.light_active);
@@ -180,7 +180,6 @@ struct is_in_dir_light_info_t {
 is_in_dir_light_info_t is_in_dir_light(dir_light_mat_data_t dir_light_mat_data, dir_light_data_t dir_light_data, vec4 dir_light_rel_screen_pos, int dir_light_layer) {
   is_in_dir_light_info_t info;
 
-  // vec2 tex_coords = ((dir_light_rel_screen_pos.xy / dir_light_rel_screen_pos.w) + vec2(1)) / 2;
   vec3 adjusted = ((dir_light_rel_screen_pos.xyz / dir_light_rel_screen_pos.w) + vec3(1)) / 2;
   info.tex_coords = vec3(adjusted.xy, dir_light_layer);
   info.tex_coords = info.tex_coords * vec3(dir_light_data.light_active, dir_light_data.light_active, dir_light_data.light_active);
@@ -322,14 +321,14 @@ void main() {
     frag_color = texture(base_color_tex.samp, tex_coords[base_color_tex.tex_id]);
   }
 
-  is_in_light_info_t in_light0 = is_in_light(lights_data[0],  light_rel_screen_pos0);
-  is_in_light_info_t in_light1 = is_in_light(lights_data[1], light_rel_screen_pos1);
-  is_in_light_info_t in_light2 = is_in_light(lights_data[2], light_rel_screen_pos2);
+  is_in_spotlight_info_t in_spotlight0 = is_in_spotlight(spotlights_data[0],  spotlight_rel_screen_pos0);
+  is_in_spotlight_info_t in_spotlight1 = is_in_spotlight(spotlights_data[1], spotlight_rel_screen_pos1);
+  is_in_spotlight_info_t in_spotlight2 = is_in_spotlight(spotlights_data[2], spotlight_rel_screen_pos2);
 
   dir_light_rel_data_t dir_light_rel_data = calc_light_rel_data(dir_light_mat_data);
   is_in_dir_light_info_t in_dir0 = is_in_dir_light(dir_light_mat_data, dir_light_data, dir_light_rel_data.screen_rel_pos, dir_light_rel_data.highest_precision_cascade);
 
-  float max_in_light = max(max(max(in_light0.amount_in_light, in_light1.amount_in_light), in_light2.amount_in_light), in_dir0.amount_in_light);
+  float max_in_light = max(max(max(in_spotlight0.amount_in_light, in_spotlight1.amount_in_light), in_spotlight2.amount_in_light), in_dir0.amount_in_light);
 
   // float shadow_damp_factor = 0.2;
   // float multiplier = ((1.0 - max_in_light) * shadow_damp_factor) + max_in_light;
@@ -339,7 +338,7 @@ void main() {
 #if 0
   vec4 normalized_pos = pos / pos.w;
   vec4 normal_norm = normal / normal.w;
-  float albedo_factor = max(0, dot(normalize(normal.xyz), normalize(lights_data[0].pos - normalized_pos.xyz)));
+  float albedo_factor = max(0, dot(normalize(normal.xyz), normalize(spotlights_data[0].pos - normalized_pos.xyz)));
   float multiplier = ambient_factor + (max_in_light * albedo_factor);
 #else
   float multiplier = ambient_factor + max_in_light;
@@ -356,41 +355,41 @@ void main() {
 #elif VIEW_LIGHT_MULTIPLIER
   frag_color = vec4(multiplier, multiplier, multiplier, 1);
 #elif VIEW_LIGHT0_CLOSEST_DEPTH
-  float v = pow(in_light0.closest_depth, 80);
+  float v = pow(in_spotlight0.closest_depth, 80);
   frag_color = vec4(v,v,v,1);
 #elif VIEW_LIGHT1_CLOSEST_DEPTH
-  float v = pow(in_light1.closest_depth, 80);
+  float v = pow(in_spotlight1.closest_depth, 80);
   frag_color = vec4(v,v,v,1);
 #elif VIEW_LIGHT2_CLOSEST_DEPTH
-  float v = pow(in_light2.closest_depth, 80);
+  float v = pow(in_spotlight2.closest_depth, 80);
   frag_color = vec4(v,v,v,1);
 #elif VIEW_LIGHT0_DEPTH
-  float v = linearize_depth(lights_data[0], light_rel_screen_pos0);
+  float v = linearize_depth(spotlights_data[0], spotlight_rel_screen_pos0);
   frag_color = vec4(v,v,v,1);
 #elif VIEW_LIGHT1_DEPTH
-  float v = linearize_depth(lights_data[1], light_rel_screen_pos1);
+  float v = linearize_depth(spotlights_data[1], spotlight_rel_screen_pos1);
   frag_color = vec4(v,v,v,1);
 #elif VIEW_LIGHT2_DEPTH
-  float v = linearize_depth(lights_data[2], light_rel_screen_pos2);
+  float v = linearize_depth(spotlights_data[2], spotlight_rel_screen_pos2);
   frag_color = vec4(v,v,v,1);
 #elif VIEW_LIGHT0_CALCULATED_UVs
-  frag_color = vec4(in_light0.tex_coords.x,0,0,1);
-  frag_color = vec4(0,in_light0.tex_coords.y,0,1);
-  // frag_color = vec4(in_light0.tex_coords.xy,0,1);
+  frag_color = vec4(in_spotlight0.tex_coords.x,0,0,1);
+  frag_color = vec4(0,in_spotlight0.tex_coords.y,0,1);
+  // frag_color = vec4(in_spotlight0.tex_coords.xy,0,1);
 #elif VIEW_LIGHT1_CALCULATED_UVs
-  frag_color = vec4(in_light1.tex_coords.x,0,0,1);
-  frag_color = vec4(0,in_light1.tex_coords.y,0,1);
-  // frag_color = vec4(in_light1.tex_coords.xy,0,1);
+  frag_color = vec4(in_spotlight1.tex_coords.x,0,0,1);
+  frag_color = vec4(0,in_spotlight1.tex_coords.y,0,1);
+  // frag_color = vec4(in_spotlight1.tex_coords.xy,0,1);
 #elif VIEW_LIGHT2_CALCULATED_UVs
-  frag_color = vec4(in_light2.tex_coords.x,0,0,1);
-  frag_color = vec4(0,in_light2.tex_coords.y,0,1);
-  // frag_color = vec4(in_light2.tex_coords.xy,0,1);
+  frag_color = vec4(in_spotlight2.tex_coords.x,0,0,1);
+  frag_color = vec4(0,in_spotlight2.tex_coords.y,0,1);
+  // frag_color = vec4(in_spotlight2.tex_coords.xy,0,1);
 #elif VIEW_LIGHT0_AMOUNT_IN_LIGHT
-  frag_color = vec4(in_light0.amount_in_light,in_light0.amount_in_light,in_light0.amount_in_light,1);
+  frag_color = vec4(in_spotlight0.amount_in_light,in_spotlight0.amount_in_light,in_spotlight0.amount_in_light,1);
 #elif VIEW_LIGHT1_AMOUNT_IN_LIGHT
-  frag_color = vec4(in_light1.amount_in_light,in_light1.amount_in_light,in_light1.amount_in_light,1);
+  frag_color = vec4(in_spotlight1.amount_in_light,in_spotlight1.amount_in_light,in_spotlight1.amount_in_light,1);
 #elif VIEW_LIGHT2_AMOUNT_IN_LIGHT
-  frag_color = vec4(in_light2.amount_in_light,in_light2.amount_in_light,in_light2.amount_in_light,1);
+  frag_color = vec4(in_spotlight2.amount_in_light,in_spotlight2.amount_in_light,in_spotlight2.amount_in_light,1);
 #elif VIEW_NORMALS
   frag_color = normal_norm;
 #elif VIEW_DIR_LIGHT_CLOSEST_DEPTH

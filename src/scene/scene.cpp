@@ -332,7 +332,7 @@ void offline_final_render_pass() {
     bool inactive = (i >= num_lights);
 
     char var_name[64]{};
-    sprintf(var_name, "lights_mat_data[%i].light_view", i);
+    sprintf(var_name, "spotlights_mat_data[%i].light_view", i);
     if (inactive) {
       shader_set_mat4(material_t::associated_shader, var_name, identity);
     } else {
@@ -341,7 +341,7 @@ void offline_final_render_pass() {
     }
     
     memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "lights_mat_data[%i].light_projection", i);
+    sprintf(var_name, "spotlights_mat_data[%i].light_projection", i);
     if (inactive) {
       shader_set_mat4(material_t::associated_shader, var_name, identity);
     } else {
@@ -350,7 +350,7 @@ void offline_final_render_pass() {
     }
 
     memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "lights_data[%i].depth_tex", i);
+    sprintf(var_name, "spotlights_data[%i].depth_tex", i);
     if (inactive) {
       shader_set_int(material_t::associated_shader, var_name, 0);
     } else {
@@ -361,7 +361,7 @@ void offline_final_render_pass() {
     }
 
     memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "lights_data[%i].pos", i);
+    sprintf(var_name, "spotlights_data[%i].pos", i);
     if (inactive) {
       shader_set_vec3(material_t::associated_shader, var_name, {0,0,0});
     } else {
@@ -370,7 +370,7 @@ void offline_final_render_pass() {
     }
 
     memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "lights_data[%i].light_active", i);
+    sprintf(var_name, "spotlights_data[%i].light_active", i);
     if (inactive) {
       shader_set_int(material_t::associated_shader, var_name, 0);
     } else {
@@ -378,7 +378,7 @@ void offline_final_render_pass() {
     }
 
     memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "lights_data[%i].shadow_map_width", i);
+    sprintf(var_name, "spotlights_data[%i].shadow_map_width", i);
     if (inactive) {
       shader_set_int(material_t::associated_shader, var_name, 0);
     } else {
@@ -386,7 +386,7 @@ void offline_final_render_pass() {
     }
 
     memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "lights_data[%i].shadow_map_height", i);
+    sprintf(var_name, "spotlights_data[%i].shadow_map_height", i);
     if (inactive) {
       shader_set_int(material_t::associated_shader, var_name, 0);
     } else {
@@ -394,7 +394,7 @@ void offline_final_render_pass() {
     }
     
     memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "lights_data[%i].near_plane", i);
+    sprintf(var_name, "spotlights_data[%i].near_plane", i);
     if (inactive) {
       shader_set_float(material_t::associated_shader, var_name, 0);
     } else {
@@ -402,7 +402,7 @@ void offline_final_render_pass() {
     }
 
     memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "lights_data[%i].far_plane", i);
+    sprintf(var_name, "spotlights_data[%i].far_plane", i);
     if (inactive) {
       shader_set_float(material_t::associated_shader, var_name, 0);
     } else {
