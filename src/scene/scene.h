@@ -64,5 +64,9 @@ object_t* get_obj(int obj_id);
 std::vector<int> get_bone_objs();
 
 void init_scene_rendering();
-void render_scene();
 void print_joint_transform_info();
+
+void spotlight_pass();
+void dirlight_pass();
+void offline_final_render_pass();
+void render_scene();

@@ -177,24 +177,9 @@ void attach_skin_to_obj(int obj_id, int skin_id) {
   }
 }
 
-// void render_scene_obj(int obj_id, bool parent, bool light_pass) {
 void render_scene_obj(int obj_id, bool parent, bool light_pass, shader_t& shader) {
-
-  if (obj_id >= 28 && obj_id <= 30) {
-    int a = 5;
-  }
-
   object_t& obj = objs[obj_id];
 
-#if 0
-  mat4 translate = create_matrix(1.0f);
-  if (parent) {
-    vec3 t = { 0,0,-0.5f };
-    // translate = translate_mat(t);
-  }
-  // mat4 final_model = mat_multiply_mat(translate, scale);
-  mat4 final_model = mat_multiply_mat(translate, obj.model_mat);
-#endif
 #if SHOW_LIGHTS
   bool not_render_obj = (obj.model_id == -1) || (light_pass && obj.model_id == light_t::LIGHT_MESH_ID);
 #else
@@ -230,7 +215,6 @@ void render_scene_obj(int obj_id, bool parent, bool light_pass, shader_t& shader
       shader_set_int(shader, "skinned", 0);
       shader_set_mat4(shader, "model", obj.model_mat);
 
-      // transform_t final_transform = get_transform_from_matrix(final_model);
       transform_t final_transform = get_transform_from_matrix(obj.model_mat);
       if (isnan(final_transform.pos.x) || isnan(final_transform.pos.y) || isnan(final_transform.pos.z)) {
         inu_assert_msg("final transform is nan");
@@ -252,14 +236,6 @@ void render_scene_obj(int obj_id, bool parent, bool light_pass, shader_t& shader
         m = bind_material(mesh.mat_idx);
       } else {
         m = get_material(mesh.mat_idx);
-#if 0
-        // bind_shader(light_t::light_shader);
-        float fr = rand() / static_cast<float>(RAND_MAX);
-        float fg = rand() / static_cast<float>(RAND_MAX);
-        float fb = rand() / static_cast<float>(RAND_MAX);
-        vec3 v = {fr, fg, fb};
-        shader_set_vec3(shader, "color", v);
-#endif
         bind_shader(shader);
       }
 
@@ -289,8 +265,7 @@ void render_scene_obj(int obj_id, bool parent, bool light_pass, shader_t& shader
   }
 }
 
-void render_scene() {
-
+void spotlight_pass() {
   // LIGHT PASS
   for (int i = 0; i < get_num_lights(); i++) {
     setup_light_for_rendering(i);
@@ -303,40 +278,19 @@ void render_scene() {
         render_scene_obj(obj.id, false, true, light_t::light_shader);
       }
     }
-
     remove_light_from_rendering();
   }
+}
+
+void dirlight_pass() {
 
 #if HAVE_DIR_LIGHT
   // DIR light
   int num_dir_lights = 1;
   camera_t* cam = get_cam();
 
-#if 0
-  for (int cascade = 0; cascade < NUM_SM_CASCADES; cascade++) {
-    for (int i = 0; i < num_dir_lights; i++) {
-      setup_dir_light_for_rendering_debug(i, cam, cascade);
-
-      for (int parent_id : scene.parent_objs) {
-        render_scene_obj(parent_id, true, true, dir_light_t::debug_shader);
-      }
-
-      for (object_t& obj : objs) {
-        if (obj.is_skinned) {
-          render_scene_obj(obj.id, false, true, dir_light_t::debug_shader);
-        }
-      }
-
-      remove_dir_light_from_rendering_debug();
-    }
-  }
-
-#endif
-
   glCullFace(GL_BACK);
-  // if (update_dir_light_frustums) {
-    gen_dir_light_matricies(0, cam); 
-  // }
+  gen_dir_light_matricies(0, cam); 
 
   for (int i = 0; i < num_dir_lights; i++) {
     setup_dir_light_for_rendering(i, cam);
@@ -354,14 +308,14 @@ void render_scene() {
     remove_dir_light_from_rendering();
   }
 #endif
+}
 
+void offline_final_render_pass() {
   // OFFLINE RENDER PASS
   glCullFace(GL_BACK);
   bind_framebuffer(offline_fb);
   clear_framebuffer(offline_fb);
 
-  // mat4 proj = proj_mat(60.f, 0.01f, 1000.f, static_cast<float>(window.window_dim.x) / window.window_dim.y);
-  // mat4 proj = proj_mat(60.f, 0.01f, 1000.f, static_cast<float>(window.window_dim.x) / window.window_dim.y);
   mat4 proj = get_cam_proj_mat();
   mat4 view = get_cam_view_mat();
   shader_set_mat4(material_t::associated_shader, "projection", proj);
@@ -370,7 +324,7 @@ void render_scene() {
   shader_set_float(material_t::associated_shader, "cam_data.near_plane", get_cam_near_plane());
   shader_set_float(material_t::associated_shader, "cam_data.far_plane", get_cam_far_plane());
 
-  // spotlights
+  // spotlights for offline shader
   int num_lights = get_num_lights();
   for (int i = 0; i < NUM_LIGHTS_SUPPORTED_IN_SHADER; i++) {
     mat4 identity = create_matrix(1.0f);
@@ -469,7 +423,6 @@ void render_scene() {
       if (inactive) {
         shader_set_mat4(material_t::associated_shader, var_name, identity);
       } else {
-        // mat4 light_view = get_light_view_mat(i);
         shader_set_mat4(material_t::associated_shader, var_name, dir_light->light_views[j]);
       }
 
@@ -478,7 +431,6 @@ void render_scene() {
       if (inactive) {
         shader_set_mat4(material_t::associated_shader, var_name, identity);
       } else {
-        // mat4 light_view = get_light_view_mat(i);
         shader_set_mat4(material_t::associated_shader, var_name, dir_light->light_orthos[j]);
       }
 
@@ -487,7 +439,6 @@ void render_scene() {
       if (inactive) {
         shader_set_float(material_t::associated_shader, var_name, 0);
       } else {
-        // mat4 light_view = get_light_view_mat(i);
         shader_set_float(material_t::associated_shader, var_name, dir_light->cacade_depths[j]);
       }
     }
@@ -498,7 +449,6 @@ void render_scene() {
     if (inactive) {
       shader_set_float(material_t::associated_shader, var_name, 0);
     } else {
-      // mat4 light_view = get_light_view_mat(i);
       shader_set_float(material_t::associated_shader, var_name, dir_light->cacade_depths[NUM_SM_CASCADES]);
     }
 
@@ -543,6 +493,12 @@ void render_scene() {
 
   // show depth maps 
   render_dir_light_shadow_maps(0);
+}
+
+void render_scene() { 
+  spotlight_pass();
+  dirlight_pass();
+  offline_final_render_pass();
 }
 
 skin_t::skin_t() {
