@@ -57,7 +57,7 @@ vec3 division(const vec3 & vect, float scalar) {
 }
 
 vec2 normalize(const vec2& vect) {
-	float mag = magnitude(vect);
+	int mag = magnitude(vect);
 	if (mag != 0)
 		return { vect.x / mag, vect.y / mag };
 	else
@@ -65,7 +65,7 @@ vec2 normalize(const vec2& vect) {
 }
 
 vec3 normalize(const vec3& vect) {
-	float mag = magnitude(vect);
+	int mag = magnitude(vect);
 	if (mag != 0)
 		return { vect.x / mag, vect.y / mag, vect.z / mag };
 	else

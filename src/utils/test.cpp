@@ -85,7 +85,7 @@ void testDivisionVec2() {
 void testNormalizationVec3() {
     vec3 a = { 3, 1, 2 };
     vec3 result = normalize(a);
-    float length = sqrt(result.x * result.x + result.y * result.y + result.z * result.z);
+    int length = sqrt(result.x * result.x + result.y * result.y + result.z * result.z);
     if (length == 1.0) {
         printf("Normalization (vec3) test passed.");
     }
