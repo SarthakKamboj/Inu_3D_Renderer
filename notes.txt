@@ -1,1 +1,5 @@
 yusuke_urameshi model may be too big...may need to delete it in the future
+
+code organized such that
+  - utils files include only each other...not anything outside
+  - gfx files can include utils file and each other but not scene files

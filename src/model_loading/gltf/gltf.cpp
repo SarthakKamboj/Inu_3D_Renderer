@@ -15,6 +15,8 @@
 #include "gfx/gfx.h"
 #include "scene/scene.h"
 
+#define SET_MESHES_TO_WHITE 0
+
 /*
  https://github.com/KhronosGroup/glTF-Sample-Models/blob/main/2.0/README.md#showcase
  */
@@ -462,6 +464,23 @@ void gltf_parse_meshes_section() {
   gltf_eat();
 }
 
+bool gltf_parse_boolean() {
+  char* start = data + offset; 
+  while (gltf_peek() != ',' && gltf_peek() != '}' && gltf_peek() != ']') {
+    gltf_eat();
+  }
+  char c = data[offset];
+  data[offset] = 0;
+  if (strcmp(start, "true") == 0) {
+    data[offset] = c;
+    return true;
+  } else if (strcmp(start, "false") == 0) {
+    data[offset] = c;
+    return false;
+  }
+  inu_assert_msg("boolean parameter does not have true or false");
+}
+
 int gltf_parse_integer() {
   char* start = data + offset; 
   int val = -1;
@@ -738,7 +757,7 @@ void gltf_parse_samplers_section() {
   if (gltf_peek() == ',') gltf_eat();
 }
 
-gltf_mat_image_info_t gltf_parse_base_color_texture() {
+gltf_mat_image_info_t gltf_parse_mat_image_info() {
   gltf_mat_image_info_t info;
   inu_assert(gltf_peek() == '{');
   gltf_eat();
@@ -751,7 +770,7 @@ gltf_mat_image_info_t gltf_parse_base_color_texture() {
     } else if (key == "texCoord") {
       info.tex_coord_idx = gltf_parse_integer();
     } else {
-      gltf_skip_section();
+      info.extra_params[key] = gltf_parse_string();
     }
     if (gltf_peek() == ',') gltf_eat();
   }
@@ -771,10 +790,15 @@ gltf_pbr_metallic_roughness_t gltf_parse_pbr_met_rough() {
     gltf_eat();
     if (key == "baseColorFactor") {
       pbr.base_color_factor = gltf_parse_vec4();
+      pbr.base_color_tex_multiplers = pbr.base_color_factor;
+    } else if (key == "baseColorTexture") {
+      pbr.base_color_tex_info = gltf_parse_mat_image_info();
     } else if (key == "metallicFactor") {
       pbr.metallic_factor = gltf_parse_float();
-    } else if (key == "baseColorTexture") {
-      pbr.base_color_tex_info = gltf_parse_base_color_texture();
+    } else if (key == "roughnessFactor") {
+      pbr.metallic_factor = gltf_parse_float();
+    } else if (key == "metallicRoughnessTexture") {
+      pbr.metal_rough_tex_info = gltf_parse_mat_image_info();
     } else {
       gltf_skip_section();
     }
@@ -784,6 +808,33 @@ gltf_pbr_metallic_roughness_t gltf_parse_pbr_met_rough() {
   if (gltf_peek() == ',') gltf_eat();
 
   return pbr;
+}
+
+gltf_normal_tex_info_t gltf_parse_normal_tex_info() {
+  gltf_mat_image_info_t info = gltf_parse_mat_image_info();
+
+  gltf_normal_tex_info_t normal_tex_info;
+  normal_tex_info.tex_info.gltf_texture_idx = info.gltf_texture_idx;
+  normal_tex_info.tex_info.tex_coord_idx = info.tex_coord_idx;
+  if (info.extra_params.find("scale") != info.extra_params.end()) {
+    std::string scale_str = info.extra_params["scale"];
+    normal_tex_info.x_y_normals_scale = atof(scale_str.c_str());
+  }
+   
+  return normal_tex_info;
+}
+
+gltf_occ_tex_info_t gltf_parse_occ_tex_info() {
+  gltf_mat_image_info_t info = gltf_parse_mat_image_info();
+
+  gltf_occ_tex_info_t occ_tex_info;
+  occ_tex_info.tex_info.gltf_texture_idx = info.gltf_texture_idx;
+  occ_tex_info.tex_info.tex_coord_idx = info.tex_coord_idx;
+  if (info.extra_params.find("strength") != info.extra_params.end()) {
+    std::string strength_str = info.extra_params["strength"];
+    occ_tex_info.strength = atof(strength_str.c_str());
+  }
+  return occ_tex_info;
 }
 
 void gltf_parse_material() {
@@ -800,6 +851,27 @@ void gltf_parse_material() {
       mat.pbr = gltf_parse_pbr_met_rough();
     } else if (key == "name") {
       mat.name = gltf_parse_string();
+    } else if (key == "alphaMode") {
+      std::string alpha_mode_str = gltf_parse_string();
+      if (alpha_mode_str == "OPAQUE") {
+        mat.alpha_mode = ALPHA_MODE::OPQUE;
+      } else if (alpha_mode_str == "MASK") {
+        mat.alpha_mode = ALPHA_MODE::MASK;
+      } else if (alpha_mode_str == "BLEND") {
+        mat.alpha_mode = ALPHA_MODE::BLEND;
+      }
+    } else if (key == "alphaCutoff") {
+      mat.alpha_cutoff = gltf_parse_float();
+    } else if (key == "doubleSided") {
+      mat.double_sided = gltf_parse_boolean();
+    } else if (key == "normalTexture") {
+      mat.normal_tex_info = gltf_parse_normal_tex_info();
+    } else if (key == "occlusionTexture") {
+      mat.occ_tex_info = gltf_parse_occ_tex_info();
+    } else if (key == "emissiveTexture") {
+      mat.emissive_tex_info = gltf_parse_mat_image_info();
+    } else if (key == "emissiveFactor") {
+      mat.emissive_factor = gltf_parse_vec3();
     } else {
       gltf_skip_section();
     }
@@ -1205,21 +1277,21 @@ void* gltf_read_accessor_data(int accessor_idx) {
   return (void*)data;
 }
 
-int gltf_read_texture(int gltf_tex_idx) {
+int gltf_read_texture(int gltf_tex_idx, int tex_slot) {
   inu_assert(gltf_tex_idx < gltf_textures.size());
   gltf_texture_t& gltf_tex = gltf_textures[gltf_tex_idx];
   gltf_image_t& img = gltf_images[gltf_tex.image_source_idx];
   std::string& img_file_name = img.uri;
   char img_full_path[256]{};
   sprintf(img_full_path, "%s\\%s", folder_path, img_file_name.c_str());
-  return create_texture(img_full_path);
+  return create_texture(img_full_path, tex_slot);
 }
 
-material_image_t gltf_mat_img_to_internal_mat_img(gltf_mat_image_info_t& gltf_mat_image_info) {
+material_image_t gltf_mat_img_to_internal_mat_img(gltf_mat_image_info_t& gltf_mat_image_info, int tex_slot) {
   int mat_gltf_tex_idx = gltf_mat_image_info.gltf_texture_idx;
   int tex_handle = -1;
   if (mat_gltf_tex_idx != -1) {
-    tex_handle = gltf_read_texture(mat_gltf_tex_idx);
+    tex_handle = gltf_read_texture(mat_gltf_tex_idx, tex_slot);
   }
   material_image_t mat_img;
   mat_img.tex_handle = tex_handle;
@@ -1274,8 +1346,13 @@ void gltf_load_file(const char* filepath) {
 
   // 3. LOAD INTO INTERNAL FORMAT/ LOAD RAW DATA
   for (gltf_material_t& mat : gltf_materials) {
-    material_image_t base_color_img = gltf_mat_img_to_internal_mat_img(mat.pbr.base_color_tex_info);
+    material_image_t base_color_img = gltf_mat_img_to_internal_mat_img(mat.pbr.base_color_tex_info, ALBEDO_IMG_TEX_SLOT);
+#if SET_MESHES_TO_WHITE == 0
     create_material(mat.pbr.base_color_factor, base_color_img);
+#else
+    material_image_t d;
+    create_material({1,1,1,1}, d);
+#endif
   }
  
   // mesh processing
@@ -1285,6 +1362,8 @@ void gltf_load_file(const char* filepath) {
     
     // each prim could have its own vao, vbo, and ebo
     for (gltf_primitive_t& prim : gltf_mesh.primitives) {
+      inu_assert(prim.mode == GLTF_PRIMITIVE_MODE::TRIANGLES, "meshes right now can only be triangles");
+
       mesh_t mesh;
 
       int vert_count = -1;
@@ -1335,8 +1414,21 @@ void gltf_load_file(const char* filepath) {
       }
 
       if (prim.attribs.normals_accessor_idx != -1) {
-        // void* normals_data = gltf_read_accessor_data(prim.attribs.normals_accessor_idx);
-      } 
+        void* normals_data = gltf_read_accessor_data(prim.attribs.normals_accessor_idx);
+        gltf_accessor_t& normals_acc = gltf_accessors[prim.attribs.normals_accessor_idx];
+        inu_assert(normals_acc.component_type == ACC_COMPONENT_TYPE::FLOAT, "normals need to be of float type");
+        inu_assert(normals_acc.element_type == ACC_ELEMENT_TYPE::VEC3, "normals need to be of vec3 type");
+        // can do direct cast b/c vec3 is made of floats
+        vec3* v_normals_data = static_cast<vec3*>(normals_data);
+        for (int i = 0; i < acc.count; i++) {
+          vertex_t& vert = mesh.vertices[i];
+          vec3 n = v_normals_data[i];
+          vert.normal = norm_vec3(n);
+        }
+        free(normals_data);
+      } else {
+        inu_assert_msg("this model does not have normals");
+      }
 
       if (prim.attribs.color_0_accessor_idx != -1) {
         void* color_data = gltf_read_accessor_data(prim.attribs.color_0_accessor_idx);
@@ -1413,6 +1505,7 @@ void gltf_load_file(const char* filepath) {
         free(joint_data);
         inu_assert(prim.attribs.weights_0_accessor_idx != -1, "weights must be specified when joints are");
       }
+      
 
 #define idx_into_weights_data ((j*4)+k)
       if (prim.attribs.weights_0_accessor_idx != -1) {
@@ -1478,7 +1571,7 @@ void gltf_load_file(const char* filepath) {
         mesh.mat_idx = prim.material_idx;
       } else {
         vec4 color;
-#if 0
+#if 1
         color.x = 0;
         color.y = 0;
         color.z = 0;
@@ -1501,11 +1594,18 @@ void gltf_load_file(const char* filepath) {
       vao_enable_attribute(mesh.vao, mesh.vbo, 0, 3, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, position));
       vao_enable_attribute(mesh.vao, mesh.vbo, 1, 2, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, tex0));
       vao_enable_attribute(mesh.vao, mesh.vbo, 2, 2, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, tex1));
+#if 0
       vao_enable_attribute(mesh.vao, mesh.vbo, 3, 2, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, tex2));
       vao_enable_attribute(mesh.vao, mesh.vbo, 4, 2, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, tex3));
       vao_enable_attribute(mesh.vao, mesh.vbo, 5, 3, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, color));
       vao_enable_attribute(mesh.vao, mesh.vbo, 6, 4, GL_UNSIGNED_INT, sizeof(vertex_t), offsetof(vertex_t, joints));
       vao_enable_attribute(mesh.vao, mesh.vbo, 7, 4, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, weights));
+#else
+      vao_enable_attribute(mesh.vao, mesh.vbo, 3, 3, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, color));
+      vao_enable_attribute(mesh.vao, mesh.vbo, 4, 4, GL_UNSIGNED_INT, sizeof(vertex_t), offsetof(vertex_t, joints));
+      vao_enable_attribute(mesh.vao, mesh.vbo, 5, 4, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, weights));
+      vao_enable_attribute(mesh.vao, mesh.vbo, 6, 3, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, normal));
+#endif
       vao_bind_ebo(mesh.vao, mesh.ebo);
       
       model.meshes.push_back(mesh);
@@ -1706,5 +1806,7 @@ void gltf_load_file(const char* filepath) {
     register_animation(anim);
 
   }
+
+  printf("finished gltf file: %s\n", filepath);
 
 }

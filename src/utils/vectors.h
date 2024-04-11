@@ -4,6 +4,7 @@ struct vec2 {
   float x = 0;
   float y = 0;
 };
+vec2 norm_vec2(vec2& v);
 
 struct ivec2 {
   int x = 0;
@@ -15,8 +16,14 @@ struct vec3 {
   float x = 0;
   float y = 0;
   float z = 0;
+  // float operator[](int idx);
+  float& operator[](int idx);
+  vec3 operator/(float divider);
+  vec3 operator*(float multiplier);
+  vec3 operator-(vec3 v);
 };
 void print_vec3(vec3& v);
+vec3 vec3_add(vec3& v1, vec3& v2);
 vec3 norm_vec3(vec3& v);
 vec3 cross_product(vec3& v1, vec3& v2);
 float dot(vec3& v1, vec3& v2);
@@ -29,6 +36,13 @@ struct vec4 {
   float z = 0;
   float w = 0;
 
+  vec4();
+  vec4(float _x, float _y, float _z, float _w);
+  vec4(vec3& v, float _w);
+
   vec4 operator/(float divider);
+  vec4 operator*(float multiplier);
+  vec4 operator+(vec4& other);
+  float& operator[](int idx);
 };
 float vec4_length(vec4& v);

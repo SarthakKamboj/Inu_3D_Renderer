@@ -22,6 +22,7 @@ function(configure_project)
         src/gfx/gfx.cpp
         src/gfx/opengl/glew.c
         src/gfx/online_renderer.cpp
+        src/gfx/light.cpp
 
         src/model_loading/gltf/gltf.cpp
         src/model_loading/image/stb_image.cpp
@@ -33,9 +34,9 @@ function(configure_project)
         src/utils/quaternion.cpp
         src/utils/vectors.cpp
         src/utils/inu_time.cpp
+        src/utils/transform.cpp
 
         src/scene/scene.cpp
-        src/scene/transform.cpp
         src/scene/camera.cpp
 
         src/animation/interpolation.cpp
@@ -51,6 +52,8 @@ function(configure_project)
         PUBLIC src
         PUBLIC src/gfx/opengl
         PUBLIC src/gfx/opengl/GL
+
+        PUBLIC ext/glm
     )
 
     target_link_libraries(${PROJECT_NAME}

@@ -4,6 +4,7 @@
 #include "windowing/window.h"
 
 static online_renderer_t online_renderer;
+extern framebuffer_t offline_fb;
 
 extern window_t window;
 
@@ -56,19 +57,25 @@ void init_online_renderer() {
   vao_bind_ebo(offline_to_online_quad.vao, offline_to_online_quad.ebo);
 }
 
-void render_online(framebuffer_t& final_offline_fb) {
+// extern framebuffer_t light_pass_fb;
+// void render_online(framebuffer_t& final_offline_fb) {
+void render_online(GLuint final_att, int render_depth) {
   unbind_framebuffer();
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
   if (online_renderer.first_render || window.resized) {
     online_renderer.first_render = false;
-    update_online_vertices(final_offline_fb);
+    // need to change this logic to not rely on another fbo but rather just the online fbo and/or window dimensions
+    update_online_vertices(offline_fb);
+    // update_online_vertices(light_pass_fb);
   }
 
+  shader_set_int(online_renderer.offline_to_online_shader, "render_depth", render_depth);
   glClearColor(0.f, 0.f, 0.f, 1.f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, final_offline_fb.color_att);
+  glBindTexture(GL_TEXTURE_2D, final_att);
+  glTexParameteri (GL_TEXTURE_2D, GL_DEPTH_STENCIL_TEXTURE_MODE, GL_DEPTH_COMPONENT);
   bind_shader(online_renderer.offline_to_online_shader);
   bind_vao(online_renderer.offline_to_online_quad.vao);
   draw_ebo(online_renderer.offline_to_online_quad.ebo);

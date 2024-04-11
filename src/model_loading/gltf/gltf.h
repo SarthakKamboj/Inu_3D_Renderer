@@ -7,8 +7,14 @@
 
 #include <vector>
 #include <string>
+#include <unordered_map>
 
-#define MAX_SUPPORTED_TEX_COORDS 4
+#define MAX_SUPPORTED_TEX_COORDS 2
+
+struct gltf_param_t {
+  std::string key;
+  std::string value;
+};
 
 struct gltf_node_t {
   std::vector<int> child_node_idxs;
@@ -79,17 +85,64 @@ struct gltf_buffer_view_t {
 struct gltf_mat_image_info_t {
   int gltf_texture_idx = -1;
   int tex_coord_idx = 0;
+  std::unordered_map<std::string, std::string> extra_params;
+};
+
+struct gltf_normal_tex_info_t {
+  gltf_mat_image_info_t tex_info;
+  float x_y_normals_scale = 1;
+};
+
+struct gltf_occ_tex_info_t {
+  gltf_mat_image_info_t tex_info;
+  float strength = -1;
+};
+
+enum class ALPHA_MODE {
+  OPQUE = 0,
+  MASK,
+  BLEND
 };
 
 struct gltf_pbr_metallic_roughness_t {
-  vec4 base_color_factor;
-  float metallic_factor = 0;
+  // base colors
+  // option 1
+  vec4 base_color_factor = {1,1,1,1};
+  // option 2
+  vec4 base_color_tex_multiplers = {1,1,1,1};
   gltf_mat_image_info_t base_color_tex_info;
+
+  // metallicness/roughness
+  // option 1
+  float metallic_factor = 1;
+  float roughness_factor = 1;
+  // option 2
+  gltf_mat_image_info_t metal_rough_tex_info;
+ 
 };
 
 struct gltf_material_t {
   std::string name;
   gltf_pbr_metallic_roughness_t pbr;
+
+  // normals tex info
+  gltf_normal_tex_info_t normal_tex_info;
+
+  // occlusion
+  gltf_occ_tex_info_t occ_tex_info;
+   
+  // emission
+  // option 1
+  vec3 emissive_factor;
+  // option 2
+  gltf_mat_image_info_t emissive_tex_info;
+
+  // alpha settings
+  ALPHA_MODE alpha_mode = ALPHA_MODE::OPQUE;
+  float alpha_cutoff = 0.5f;
+
+  // double-sidedness
+  bool double_sided = false;
 };
 
 enum class ACC_COMPONENT_TYPE {
@@ -208,7 +261,9 @@ struct gltf_skin_t {
   std::string name;
 };
 
+bool gltf_parse_boolean();
 int gltf_parse_integer();
+gltf_mat_image_info_t gltf_parse_mat_image_info();
 std::string gltf_parse_string();
 std::vector<int> gltf_parse_integer_array();
 vec4 gltf_parse_vec4();

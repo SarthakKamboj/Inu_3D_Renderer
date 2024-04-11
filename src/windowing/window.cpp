@@ -179,6 +179,44 @@ LRESULT CALLBACK window_procedure(HWND h_window, UINT u_msg, WPARAM w_param, LPA
       window.input.scroll_wheel_delta = scroll_wheel_delta / WHEEL_DELTA;
       return 0;
     }
+    case WM_KEYUP: {
+      switch (w_param) {
+        case VK_SHIFT: {
+          window.input.shift_down = false;
+          break;
+        }
+        case 0x41: {
+          window.input.a_up = true;
+          break;
+        }
+        case 0x42: {
+          window.input.b_up = true;
+          break;
+        }
+        case 0x43: {
+          window.input.c_up = true;
+          break;
+        }
+      }
+      break; 
+    }
+    case WM_KEYDOWN: {
+      switch (w_param) {
+        case VK_SHIFT: {
+          window.input.shift_down = true;
+          break;
+        }
+      }
+      break; 
+    }
+    case WM_CHAR: {
+      int a = 5;
+      break; 
+    }
+    case WM_SYSKEYUP: {
+      int a = 5;
+      break; 
+    }
   }
   return DefWindowProc(h_window, u_msg, w_param, l_param);
 }
@@ -190,6 +228,11 @@ void poll_events() {
   window.input.mouse_pos_diff = {0,0};
   window.input.left_mouse_up = false;
   window.input.right_mouse_up = false;
+
+  window.input.a_up = false;
+  window.input.b_up = false;
+  window.input.c_up = false;
+  // window.input.shift_down = false;
   MSG msg{};
   while (PeekMessage(&msg, window.win32_wnd, 0, 0, 0)) {
     bool quit_msg = (GetMessage(&msg, NULL, 0, 0) == 0);

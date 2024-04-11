@@ -13,3 +13,7 @@ int register_model(model_t& model) {
 int latest_model_id() {
   return models[models.size()-1].id;
 }
+
+model_t* get_model(int model_id) {
+  return &models[model_id];
+}
