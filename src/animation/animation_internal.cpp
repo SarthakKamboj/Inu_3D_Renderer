@@ -177,7 +177,7 @@ void update_animations() {
       }
 
       if (left_anim_frame_idx != -1) {
-        right_anim_frame_idx = clamp(right_anim_frame_idx, 0, chunk->num_timestamps-1);
+        right_anim_frame_idx = clamp<int>(right_anim_frame_idx, 0, chunk->num_timestamps-1);
       }
 
       if (left_anim_frame_idx == -1) {

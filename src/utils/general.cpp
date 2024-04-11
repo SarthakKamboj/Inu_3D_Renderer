@@ -72,8 +72,5 @@ int sgn(float val) {
   return -1;
 }
 
-int clamp(int v, int low, int high) {
-  if (v < low) return low;
-  if (v > high) return high;
-  return v;
-}
+// int clamp(int v, int low, int high) {
+

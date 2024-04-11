@@ -5,29 +5,31 @@
 #include <math.h>
 #include <stdio.h>
 
-vec2 norm_vec2(vec2& v) {
-  float length = sqrt(v.x*v.x + v.y*v.y); 
-  vec2 res;
-  res.x = v.x / length;
-  res.y = v.y / length;
+// VEC2
+
+float vec2::length() {
+  return sqrt(x*x + y*y);
+}
+
+vec2 vec2::operator/(float divider) {
+  vec2 res = {x / divider, y / divider};
   return res;
 }
 
-float length(ivec2& v) {
-  return sqrt(v.x*v.x + v.y*v.y);
+// IVEC2
+
+float ivec2::length() {
+  return sqrt(x*x + y*y);
 }
 
-vec3 norm_vec3(vec3& v) {
-  float length = sqrt(v.x*v.x + v.y*v.y + v.z*v.z); 
-  vec3 res;
-  res.x = v.x / length;
-  res.y = v.y / length;
-  res.z = v.z / length;
-  return res;
+// VEC3
+
+float vec3::length() {
+  return sqrt(x*x + y*y + z*z);
 }
 
-vec3 vec3_add(vec3& v1, vec3& v2) {
-  return {v1.x+v2.x, v1.y+v2.y, v1.z+v2.z};
+vec3 vec3::operator+(vec3 v) {
+  return {x+v.x, y+v.y, z+v.z};
 }
 
 void print_vec3(vec3& v) {
@@ -39,14 +41,6 @@ float& vec3::operator[](int idx) {
   float* f = &x;
   return *(f+idx);
 }
-
-#if 0
-float vec3::operator[](int idx) {
-  inu_assert(idx < 3, "idx cannot be more than 2");
-  float* f = &x;
-  return *(f+idx);
-}
-#endif
 
 vec3 cross_product(vec3& v1, vec3& v2) {
   vec3 c;
@@ -66,12 +60,8 @@ float dot(vec3& v1, vec3& v2) {
   return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z;
 }
 
-float length(vec3& v) {
-  return sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
-}
-
-bool operator==(const vec3& v1, const vec3& v2) {
-  return (v1.x == v2.x && v1.y == v2.y && v1.z == v2.z);
+bool vec3::operator==(const vec3& v) {
+  return (x == v.x && y == v.y && z == v.z);
 }
 
 vec3 vec3::operator/(float divider) {
@@ -86,8 +76,33 @@ vec3 vec3::operator-(vec3 v) {
   return {x-v.x, y-v.y, z-v.z};
 }
 
-float vec4_length(vec4& v) {
-  return sqrt(v.x*v.x + v.y*v.y + v.z*v.z + v.w*v.w);
+// VEC4
+
+vec4::vec4() {}
+
+vec4::vec4(float _x, float _y, float _z, float _w) {
+  x = _x;
+  y = _y;
+  z = _z;
+  w = _w;
+}
+
+vec4::vec4(vec2& v, float _z, float _w) {
+  x = v.x;
+  y = v.y;
+  z = _z;
+  w = _w;
+}
+
+vec4::vec4(vec3& v, float _w) {
+  x = v.x;
+  y = v.y;
+  z = v.z;
+  w = _w;
+}
+
+float vec4::length() {
+  return sqrt(x*x + y*y + z*z + w*w);
 }
 
 vec4 vec4::operator*(float m) {
@@ -111,21 +126,5 @@ vec4 vec4::operator/(float divider) {
 
 vec4 vec4::operator+(vec4& o) {
   return {x+o.x, y+o.y, z+o.z, w+o.w};
-}
-
-vec4::vec4() {}
-
-vec4::vec4(float _x, float _y, float _z, float _w) {
-  x = _x;
-  y = _y;
-  z = _z;
-  w = _w;
-}
-
-vec4::vec4(vec3& v, float _w) {
-  x = v.x;
-  y = v.y;
-  z = v.z;
-  w = _w;
 }
 

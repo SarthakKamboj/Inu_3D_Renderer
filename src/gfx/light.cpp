@@ -155,7 +155,7 @@ vec3 get_light_pos(int light_id) {
 
 int create_dir_light(vec3 dir) {
   dir_light_t light;
-  light.dir = norm_vec3(dir);
+  light.dir = normalize(dir);
   light.id = dir_lights.size();
   light.debug_light_pass_fbs[0] = create_framebuffer(dir_light_t::SHADOW_MAP_WIDTH, dir_light_t::SHADOW_MAP_HEIGHT, FB_TYPE::TEXTURE_DEPTH_STENCIL);
   light.debug_light_pass_fbs[1] = create_framebuffer(dir_light_t::SHADOW_MAP_WIDTH, dir_light_t::SHADOW_MAP_HEIGHT, FB_TYPE::TEXTURE_DEPTH_STENCIL);
@@ -390,8 +390,8 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
     if (!calculated_diags) {
       vec3 longest_diag1 = vertices[FBR].position - vertices[BTL].position;
       vec3 longest_diag2 = vertices[BBR].position - vertices[BTL].position;
-      float cascade_len1 = length(longest_diag1);
-      float cascade_len2 = length(longest_diag2);
+      float cascade_len1 = longest_diag1.length();
+      float cascade_len2 = longest_diag2.length();
       cascade_len = fmax(cascade_len1, cascade_len2);
       cascade_lens[cascade] = cascade_len;
       if (cascade == NUM_SM_CASCADES-1) {
@@ -403,7 +403,7 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
  
     // get center
     vec3 frustum_center{};
-    vec3 focal_pt = vec3_add(dir_light.dir, frustum_center);
+    vec3 focal_pt = dir_light.dir + frustum_center;
     // calc view mat
     dir_light.light_views[cascade] = get_view_mat(frustum_center, focal_pt);
 

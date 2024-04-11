@@ -1423,7 +1423,7 @@ void gltf_load_file(const char* filepath) {
         for (int i = 0; i < acc.count; i++) {
           vertex_t& vert = mesh.vertices[i];
           vec3 n = v_normals_data[i];
-          vert.normal = norm_vec3(n);
+          vert.normal = normalize(n);
         }
         free(normals_data);
       } else {

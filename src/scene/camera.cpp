@@ -21,7 +21,7 @@ static camera_t cam;
 extern window_t window;
 
 void update_cam() {
-  bool rotate_enabled = length(window.input.mouse_pos_diff) != 0 && window.input.middle_mouse_down;
+  bool rotate_enabled = window.input.mouse_pos_diff.length() != 0 && window.input.middle_mouse_down;
   bool translate_enabled = rotate_enabled && window.input.shift_down;
   bool zoomed_enabled = window.input.scroll_wheel_delta != 0;
 
@@ -30,7 +30,7 @@ void update_cam() {
     diff.x = cam.transform.pos.x - cam.focal_pt.x;
     diff.y = cam.transform.pos.y - cam.focal_pt.y;
     diff.z = cam.transform.pos.z - cam.focal_pt.z;
-    float l = length(diff);
+    float l = diff.length();
     cam_zoom(window.input.scroll_wheel_delta * l / 20.f);
   } else if (translate_enabled) {
     float sensitivity = 0.1f;
@@ -97,7 +97,7 @@ mat4 get_view_mat(vec3 pos, vec3 focal_pt) {
   to_fp.x = focal_pt.x - pos.x;
   to_fp.y = focal_pt.y - pos.y;
   to_fp.z = focal_pt.z - pos.z;
-  to_fp = norm_vec3(to_fp);
+  to_fp = normalize(to_fp);
 
   vec3 world_up = {0,1,0};
   vec3 right;
@@ -109,9 +109,9 @@ mat4 get_view_mat(vec3 pos, vec3 focal_pt) {
     right = cross_product(to_fp, world_up);
   }
 
-  right = norm_vec3(right);
+  right = normalize(right);
   vec3 up = cross_product(right, to_fp);
-  up = norm_vec3(up);
+  up = normalize(up);
 
   mat4 rot_mat = create_matrix(1.0f);
 
@@ -152,7 +152,7 @@ mat4 get_cam_view_mat() {
   to_fp.x = cam.focal_pt.x - cam.transform.pos.x;
   to_fp.y = cam.focal_pt.y - cam.transform.pos.y;
   to_fp.z = cam.focal_pt.z - cam.transform.pos.z;
-  to_fp = norm_vec3(to_fp);
+  to_fp = normalize(to_fp);
 
   vec3 world_up = {0,1,0};
   vec3 right = cross_product(to_fp, world_up);
@@ -196,16 +196,16 @@ mat4 get_cam_view_mat(vec3& diff) {
 
 void cam_translate(float lat, float vert) {
   vec2 offset_dir = {lat, vert};
-  offset_dir = norm_vec2(offset_dir);
+  offset_dir = normalize(offset_dir);
 
   vec3 to_fp;
   to_fp.x = cam.focal_pt.x - cam.transform.pos.x;
   to_fp.y = cam.focal_pt.y - cam.transform.pos.y;
   to_fp.z = cam.focal_pt.z - cam.transform.pos.z;
 
-  float to_fp_dist = length(to_fp);
+  float to_fp_dist = to_fp.length();
 
-  to_fp = norm_vec3(to_fp);
+  to_fp = normalize(to_fp);
 
 #if 1
   vec3 forward_dir = {to_fp.x, 0, to_fp.z};
@@ -264,7 +264,7 @@ void cam_zoom(float amount) {
   to_fp.x = cam.focal_pt.x - cam.transform.pos.x;
   to_fp.y = cam.focal_pt.y - cam.transform.pos.y;
   to_fp.z = cam.focal_pt.z - cam.transform.pos.z;
-  to_fp = norm_vec3(to_fp);
+  to_fp = normalize(to_fp);
 
     vec3 neg_to_fp = {-to_fp.x, -to_fp.y, -to_fp.z};
   float s = dot(cam.transform.pos, neg_to_fp);
@@ -300,7 +300,7 @@ void cam_rotate(float lat_amount, float vert_amount) {
 
   vec3 n_to_fp = {-to_fp.x, -to_fp.y, -to_fp.z};
 
-  to_fp = norm_vec3(to_fp);
+  to_fp = normalize(to_fp);
 
   vec3 focal_pt_up = {0,1,0};
   vec3 right = cross_product(to_fp, focal_pt_up);

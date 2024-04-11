@@ -17,7 +17,7 @@ quaternion_t create_quaternion(float x, float y, float z, float w) {
 
 quaternion_t create_quaternion_w_rot(vec3 axis, float angle) {
   quaternion_t q;
-  vec3 norm_axis = norm_vec3(axis); 
+  vec3 norm_axis = normalize(axis); 
   float radians = (angle / 2.f) * 3.1415926535f / 180.f;
   float s = sin(radians);
   float c = cos(radians);
