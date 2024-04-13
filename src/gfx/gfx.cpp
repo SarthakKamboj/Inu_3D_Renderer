@@ -5,12 +5,23 @@
 #include <string>
 #include <stdexcept>
 #include <vector>
+#include <unordered_map>
 
 #include "model_loading/image/stb_image.h"
 
+#include "opengl_gfx_helper.h"
 #include "utils/general.h"
 #include "utils/log.h"
 #include "windowing/window.h"
+
+static std::unordered_map<tex_id_t, GLuint> tex_id_to_gl_id;
+static std::unordered_map<fb_id_t, GLuint> fb_id_to_gl_id;
+
+static fb_id_t internal_fb_running_id = 1;
+static tex_id_t internal_tex_running_id = 1;
+
+static std::vector<texture_t> textures;
+static std::vector<file_texture_t> file_textures;
 
 std::vector<material_t> materials;
 extern window_t window;
@@ -296,55 +307,102 @@ void shader_set_vec3(shader_t& shader, const char* var_name, vec3 vec) {
 }
 
 // TEXTURES
-static std::vector<texture_t> textures;
-int create_texture(const char* img_path, int tex_slot) {
-	for (texture_t& t : textures) {
-		if (strcmp(img_path, t.path.c_str()) == 0) {
-			return t.id;
+
+file_texture_t create_file_texture(const char* img_path, int tex_slot) {
+	tex_creation_meta_t meta;
+	return create_file_texture(img_path, tex_slot, meta);
+}
+
+file_texture_t create_file_texture(const char* img_path, int tex_slot, tex_creation_meta_t& meta_data) {
+	for (file_texture_t& ft : file_textures) {
+		if (strcmp(img_path, ft.path.c_str()) == 0) {
+			return ft;
 		}
 	}
 
-	texture_t texture;
-	texture.tex_slot = tex_slot;	
-	texture.path = std::string(img_path);
+	file_texture_t ft;
+
+	int width = -1;
+	int height = -1;
+	int num_channels = -1;
 
 	stbi_set_flip_vertically_on_load(false);
-	unsigned char* data = stbi_load(img_path, &texture.width, &texture.height, &texture.num_channels, 0);
+	unsigned char* data = stbi_load(img_path, &width, &height, &num_channels, 0);
 	inu_assert(data, "image data not loaded");
 
-	texture.id = textures.size();
-
-	glGenTextures(1, &texture.gl_id);
-	glBindTexture(GL_TEXTURE_2D, texture.gl_id);
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	if (texture.num_channels == 3) {
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture.width, texture.height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-	} else if (texture.num_channels == 4) {
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture.width, texture.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-	} else if (texture.num_channels == 1) {
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, texture.width, texture.height, 0, GL_RED, GL_UNSIGNED_BYTE, data);
+	if (num_channels == 3) {
+		meta_data.input_data_tex_format = TEX_FORMAT::RGB;
+		meta_data.tex_format = TEX_FORMAT::RGB;
+	} else if (num_channels == 4) {
+		meta_data.input_data_tex_format = TEX_FORMAT::RGBA;
+		meta_data.tex_format = TEX_FORMAT::RGBA;
+	} else if (num_channels == 1) {
+		meta_data.input_data_tex_format = TEX_FORMAT::SINGLE;
+		meta_data.tex_format = TEX_FORMAT::SINGLE;
 	} else {
 		stbi_image_free(data);
-		glDeleteTextures(1, &texture.gl_id);
-		return -1;
+		ft.id = -1;
+		return ft;
 	}
-	glGenerateMipmap(GL_TEXTURE_2D);
 
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-  glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-  glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-  glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
-
-	glBindTexture(GL_TEXTURE_2D, 0);
+	ft.id = create_texture(data, tex_slot, width, height, 1, meta_data);
+	ft.path = std::string(img_path);
 
 	stbi_image_free(data);
+
+	return ft;
+}
+
+tex_id_t create_texture(unsigned char* data, int tex_slot, int width, int height, int depth, tex_creation_meta_t& meta_data) {
+
+	gl_tex_creation_meta_t gl_meta = internal_to_gl_tex_meta(meta_data);
+
+	texture_t texture;
+
+	texture.id = internal_tex_running_id;
+	internal_tex_running_id++;
+	
+	GLuint gl_tex_id;
+	glGenTextures(1, &gl_tex_id);
+	tex_id_to_gl_id[texture.id] = gl_tex_id;
+	glBindTexture(gl_meta.tex_target, gl_tex_id);
+
+	texture.width = width;
+	texture.height = height;
+	texture.depth = depth;
+	texture.tex_slot = tex_slot;	
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+	if (gl_meta.tex_target == GL_TEXTURE_2D) {
+		glTexImage2D(gl_meta.tex_target, 0, gl_meta.tex_format, width, height, 0, gl_meta.input_data_tex_format, gl_meta.data_type, data);
+	} else if (gl_meta.tex_target == GL_TEXTURE_2D_ARRAY) {
+		glTexImage3D(gl_meta.tex_target, 0, gl_meta.tex_format, width, height, depth, 0, gl_meta.input_data_tex_format, gl_meta.data_type, data);
+	}
+
+	glTexParameteri(gl_meta.tex_target, GL_TEXTURE_MAG_FILTER, gl_meta.mag_filter);
+  glTexParameteri(gl_meta.tex_target, GL_TEXTURE_MIN_FILTER, gl_meta.min_filter);
+  glTexParameteri(gl_meta.tex_target, GL_TEXTURE_WRAP_S, gl_meta.s_wrap_mode);
+  glTexParameteri(gl_meta.tex_target, GL_TEXTURE_WRAP_T, gl_meta.t_wrap_mode);
+
+	if (gl_meta.tex_target == GL_TEXTURE_2D) {
+		glGenerateMipmap(gl_meta.tex_target);
+	}
+
+	glBindTexture(gl_meta.tex_target, 0);
+
 	textures.push_back(texture);
 	return texture.id;
 }
 
-texture_t bind_texture(int tex_id) {
+GLuint get_internal_tex_gluint(tex_id_t id) {
+	return tex_id_to_gl_id[id];
+}
+
+const texture_t bind_texture(tex_id_t tex_id) {
 	texture_t& tex = textures[tex_id];
 	glActiveTexture(GL_TEXTURE0 + tex.tex_slot);
+	GLuint gl_id = tex_id_to_gl_id[tex_id];
 	glBindTexture(GL_TEXTURE_2D, tex.gl_id);
 	return tex;
 }
@@ -382,7 +440,7 @@ material_t bind_material(int mat_idx) {
 	material_t& mat = materials[mat_idx];
 	if (mat.albedo.base_color_img.tex_handle != -1) {
 		material_image_t& color_tex = mat.albedo.base_color_img;
-		texture_t& texture = bind_texture(color_tex.tex_handle);
+		const texture_t& texture = bind_texture(color_tex.tex_handle);
 		inu_assert(texture.tex_slot == ALBEDO_IMG_TEX_SLOT, "albedo texture slot must be 0");
 		shader_set_int(shader, "base_color_tex.samp", texture.tex_slot);
 		shader_set_int(shader, "base_color_tex.tex_id", color_tex.tex_coords_idx);
@@ -401,17 +459,32 @@ material_t bind_material(int mat_idx) {
 
 framebuffer_t create_framebuffer(int width, int height, FB_TYPE fb_type) {
 	framebuffer_t fb;
-	glGenFramebuffers(1, &fb.id);
-	glBindFramebuffer(GL_FRAMEBUFFER, fb.id);		
+
+	GLuint gl_fb_id;
+	glGenFramebuffers(1, &gl_fb_id);
+
+	fb.id = internal_fb_running_id;
+	internal_fb_running_id++;
+	fb_id_to_gl_id[fb.id] = gl_fb_id;
+
+	glBindFramebuffer(GL_FRAMEBUFFER, gl_fb_id);		
 
 	if (fb_type == FB_TYPE::RENDER_BUFFER_DEPTH_STENCIL) {
-
+#if 0
 		glGenTextures(1, &fb.color_att);
 		glBindTexture(GL_TEXTURE_2D, fb.color_att);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fb.color_att, 0);
+#else
+		tex_creation_meta_t meta_data;
+		meta_data.min_filter = TEX_FILTER_METHOD::LINEAR;
+		meta_data.mag_filter = TEX_FILTER_METHOD::LINEAR;
+		fb.color_att = create_texture(0, 0, width, height, 1, meta_data);
+		GLuint gl_color_att = get_internal_tex_gluint(fb.color_att);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gl_color_att, 0);
+#endif
 
 		unsigned int rbo;
 		glGenRenderbuffers(1, &rbo);
@@ -421,13 +494,24 @@ framebuffer_t create_framebuffer(int width, int height, FB_TYPE fb_type) {
 		glBindRenderbuffer(GL_RENDERBUFFER, 0);
 	} else if (fb_type == FB_TYPE::TEXTURE_DEPTH_STENCIL) {
 
+#if 0
 		glGenTextures(1, &fb.color_att);
 		glBindTexture(GL_TEXTURE_2D, fb.color_att);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fb.color_att, 0);
+#else
+		tex_creation_meta_t meta_data;
+		meta_data.min_filter = TEX_FILTER_METHOD::LINEAR;
+		meta_data.mag_filter = TEX_FILTER_METHOD::LINEAR;
+		fb.color_att = create_texture(0, 0, width, height, 1, meta_data);
+		GLuint gl_color_att = get_internal_tex_gluint(fb.color_att);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gl_color_att, 0);
+#endif
 
+
+#if 0
 		glGenTextures(1, &fb.depth_att);
 		glBindTexture(GL_TEXTURE_2D, fb.depth_att);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
@@ -439,15 +523,37 @@ framebuffer_t create_framebuffer(int width, int height, FB_TYPE fb_type) {
   	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
 
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, fb.depth_att, 0);
+#else
+		tex_creation_meta_t depth_meta_data;
+		depth_meta_data.min_filter = TEX_FILTER_METHOD::LINEAR;
+		depth_meta_data.mag_filter = TEX_FILTER_METHOD::LINEAR;
+		depth_meta_data.tex_format = TEX_FORMAT::DEPTH_STENCIL;
+		depth_meta_data.input_data_tex_format = TEX_FORMAT::DEPTH_STENCIL;
+		depth_meta_data.data_type = TEX_DATA_TYPE::DEPTH_STENCIL;
+
+		fb.depth_att = create_texture(0, 0, width, height, 1, depth_meta_data);
+		GLuint gl_depth_att = get_internal_tex_gluint(fb.depth_att);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, gl_depth_att, 0);
+#endif
 	} else if (fb_type == FB_TYPE::MULTIPLE_DEPTH_TEXTURE) {
 
+#if 0
 		glGenTextures(1, &fb.color_att);
 		glBindTexture(GL_TEXTURE_2D, fb.color_att);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fb.color_att, 0);
+#else
+		tex_creation_meta_t meta_data;
+		meta_data.min_filter = TEX_FILTER_METHOD::LINEAR;
+		meta_data.mag_filter = TEX_FILTER_METHOD::LINEAR;
+		fb.color_att = create_texture(0, 0, width, height, 1, meta_data);
+		GLuint gl_color_att = get_internal_tex_gluint(fb.color_att);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gl_color_att, 0);
+#endif
 
+#if 0
 		glGenTextures(1, &fb.depth_att);
 		get_gfx_error();
 		glBindTexture(GL_TEXTURE_2D_ARRAY, fb.depth_att);
@@ -475,7 +581,19 @@ framebuffer_t create_framebuffer(int width, int height, FB_TYPE fb_type) {
 		get_gfx_error();
 		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, fb.depth_att, 0);
 		get_gfx_error();
+#else
+		tex_creation_meta_t depth_meta_data;
+		depth_meta_data.min_filter = TEX_FILTER_METHOD::LINEAR;
+		depth_meta_data.mag_filter = TEX_FILTER_METHOD::LINEAR;
+		depth_meta_data.s_wrap_mode = WRAP_MODE::CLAMP_TO_BORDER;
+		depth_meta_data.t_wrap_mode = WRAP_MODE::CLAMP_TO_BORDER;
+		depth_meta_data.tex_type = TEX_TYPE::TEXTURE_2D_ARRAY;
+		fb.depth_att = create_texture(0, 0, width, height, 1, depth_meta_data);
+		GLuint gl_depth_att = get_internal_tex_gluint(fb.depth_att);
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, gl_depth_att, 0);
+#endif
 	} else if (fb_type == FB_TYPE::NO_COLOR_ATT_MULTIPLE_DEPTH_TEXTURE) {
+#if 0
 		glGenTextures(1, &fb.depth_att);
 		get_gfx_error();
 		glBindTexture(GL_TEXTURE_2D_ARRAY, fb.depth_att);
@@ -503,6 +621,17 @@ framebuffer_t create_framebuffer(int width, int height, FB_TYPE fb_type) {
 		get_gfx_error();
 		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, fb.depth_att, 0);
 		get_gfx_error();
+#else
+		tex_creation_meta_t meta_data;
+		meta_data.min_filter = TEX_FILTER_METHOD::LINEAR;
+		meta_data.mag_filter = TEX_FILTER_METHOD::LINEAR;
+		meta_data.s_wrap_mode = WRAP_MODE::CLAMP_TO_BORDER;
+		meta_data.t_wrap_mode = WRAP_MODE::CLAMP_TO_BORDER;
+		meta_data.tex_type = TEX_TYPE::TEXTURE_2D_ARRAY;
+		fb.depth_att = create_texture(0, 0, width, height, 1, meta_data);
+		GLuint gl_depth_att = get_internal_tex_gluint(fb.depth_att);
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, gl_depth_att, 0);
+#endif
 
 		glDrawBuffer(GL_NONE);
 		glReadBuffer(GL_NONE);

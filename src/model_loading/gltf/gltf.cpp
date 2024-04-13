@@ -1277,21 +1277,22 @@ void* gltf_read_accessor_data(int accessor_idx) {
   return (void*)data;
 }
 
-int gltf_read_texture(int gltf_tex_idx, int tex_slot) {
+file_texture_t gltf_read_texture(int gltf_tex_idx, int tex_slot) {
   inu_assert(gltf_tex_idx < gltf_textures.size());
   gltf_texture_t& gltf_tex = gltf_textures[gltf_tex_idx];
   gltf_image_t& img = gltf_images[gltf_tex.image_source_idx];
   std::string& img_file_name = img.uri;
   char img_full_path[256]{};
   sprintf(img_full_path, "%s\\%s", folder_path, img_file_name.c_str());
-  return create_texture(img_full_path, tex_slot);
+  return create_file_texture(img_full_path, tex_slot);
 }
 
 material_image_t gltf_mat_img_to_internal_mat_img(gltf_mat_image_info_t& gltf_mat_image_info, int tex_slot) {
   int mat_gltf_tex_idx = gltf_mat_image_info.gltf_texture_idx;
-  int tex_handle = -1;
+  tex_id_t tex_handle = -1;
   if (mat_gltf_tex_idx != -1) {
-    tex_handle = gltf_read_texture(mat_gltf_tex_idx, tex_slot);
+    file_texture_t ft = gltf_read_texture(mat_gltf_tex_idx, tex_slot);
+    tex_handle = ft.id;
   }
   material_image_t mat_img;
   mat_img.tex_handle = tex_handle;

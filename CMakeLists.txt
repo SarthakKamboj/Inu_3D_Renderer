@@ -20,6 +20,7 @@ function(configure_project)
         src/windowing/window.cpp
 
         src/gfx/gfx.cpp
+        src/gfx/opengl_gfx_helper.cpp
         src/gfx/opengl/glew.c
         src/gfx/online_renderer.cpp
         src/gfx/light.cpp

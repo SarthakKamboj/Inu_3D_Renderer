@@ -17,6 +17,9 @@
 #define LIGHT2_SHADOW_MAP_TEX 7
 #define DIR_LIGHT_SHADOW_MAP_TEX 8
 
+typedef int tex_id_t;
+typedef int fb_id_t;
+
 struct ebo_t {
 	GLuint id = 0;
 	int num_indicies = -1;
@@ -63,16 +66,65 @@ void shader_set_int(shader_t& shader, const char* var_name, int val);
 void shader_set_mat4(shader_t& shader, const char* var_name, mat4& mat);
 
 struct texture_t {
-	int id = -1;
+	tex_id_t id = -1;
 	GLuint gl_id = -1;
 	int tex_slot = 0;	
 	int width = -1;
 	int height = -1;
+	int depth = 1;
 	int num_channels = -1;
+};
+
+struct file_texture_t {
+	tex_id_t id;
 	std::string path;
 };
-int create_texture(const char* img_path, int tex_slot);
-texture_t bind_texture(int tex_id);
+
+enum class TEX_FILTER_METHOD {
+	LINEAR = 0,
+	NEAREST
+};
+
+enum class TEX_FORMAT {
+	RGB,
+	RGBA,
+	SINGLE,
+	DEPTH_STENCIL
+};
+
+enum class TEX_DATA_TYPE {
+	UNSIGNED_BYTE,
+	DEPTH_STENCIL
+};
+
+enum class WRAP_MODE {
+	REPEAT,
+	CLAMP_TO_EDGE,
+	CLAMP_TO_BORDER
+};
+
+enum class TEX_TYPE {
+	TEXTURE_2D,
+	TEXTURE_2D_ARRAY
+};
+
+struct tex_creation_meta_t {
+	TEX_TYPE tex_type = TEX_TYPE::TEXTURE_2D;
+	TEX_FILTER_METHOD min_filter = TEX_FILTER_METHOD::NEAREST;
+	TEX_FILTER_METHOD mag_filter = TEX_FILTER_METHOD::NEAREST;
+	TEX_FORMAT input_data_tex_format = TEX_FORMAT::RGB;
+	TEX_FORMAT tex_format = TEX_FORMAT::RGB;
+	WRAP_MODE s_wrap_mode = WRAP_MODE::REPEAT;
+	WRAP_MODE t_wrap_mode = WRAP_MODE::REPEAT;
+	TEX_DATA_TYPE data_type = TEX_DATA_TYPE::UNSIGNED_BYTE;
+};
+
+tex_id_t create_texture(unsigned char* data, int tex_slot, int width, int height, int depth, tex_creation_meta_t& meta_data);
+GLuint get_internal_tex_gluint(tex_id_t id);
+file_texture_t create_file_texture(const char* img_path, int tex_slot, tex_creation_meta_t& meta_data);
+file_texture_t create_file_texture(const char* img_path, int tex_slot);
+
+const texture_t bind_texture(tex_id_t tex_id);
 void unbind_texture();
 
 enum class MATERIAL_PARAM_VARIANT {
@@ -84,7 +136,7 @@ enum class MATERIAL_PARAM_VARIANT {
 
 struct material_image_t {
 	// the internal texture handle
-	int tex_handle = -1;
+	tex_id_t tex_handle = -1;
 	// which texture coordinatest to use for this texture
 	int tex_coords_idx = 0;
 };
@@ -144,11 +196,11 @@ enum class FB_TYPE {
 };
 
 struct framebuffer_t {
-	GLuint id = -1;
+	fb_id_t id = -1;
 
 	FB_TYPE fb_type = FB_TYPE::RENDER_BUFFER_DEPTH_STENCIL;
-	GLuint color_att = -1;
-	GLuint depth_att = -1;
+	tex_id_t color_att = -1;
+	tex_id_t depth_att = -1;
 
 	int width = -1;
 	int height = -1;

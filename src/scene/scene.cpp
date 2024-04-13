@@ -21,7 +21,6 @@ float fb_width = 1280 / 1.f;
 float fb_height = 960 / 1.f;
 
 framebuffer_t offline_fb;
-// framebuffer_t light_pass_fb;
 
 extern std::vector<model_t> models;
 extern app_info_t app_info;
@@ -31,7 +30,6 @@ int skin_t::BONE_MODEL_ID = -1;
 
 void init_scene_rendering() {
   offline_fb = create_framebuffer(fb_width, fb_height, FB_TYPE::RENDER_BUFFER_DEPTH_STENCIL);
-  // light_pass_fb = create_framebuffer(fb_width, fb_height, true);
 }
 
 int create_object(transform_t& transform) {
@@ -503,7 +501,7 @@ void offline_final_render_pass() {
 
   if (num_dir_lights > 0) {
     // show depth maps 
-    render_dir_light_shadow_maps(0);
+    // render_dir_light_shadow_maps(0);
   }
 }
 
