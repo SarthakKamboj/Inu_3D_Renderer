@@ -59,7 +59,7 @@ void init_online_renderer() {
 
 // extern framebuffer_t light_pass_fb;
 // void render_online(framebuffer_t& final_offline_fb) {
-void render_online(GLuint final_att, int render_depth) {
+void render_online(tex_id_t final_att, int render_depth) {
   unbind_framebuffer();
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -73,9 +73,12 @@ void render_online(GLuint final_att, int render_depth) {
   shader_set_int(online_renderer.offline_to_online_shader, "render_depth", render_depth);
   glClearColor(0.f, 0.f, 0.f, 1.f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+#if 0
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, final_att);
-  glTexParameteri (GL_TEXTURE_2D, GL_DEPTH_STENCIL_TEXTURE_MODE, GL_DEPTH_COMPONENT);
+#else
+  bind_texture(final_att);
+#endif
   bind_shader(online_renderer.offline_to_online_shader);
   bind_vao(online_renderer.offline_to_online_quad.vao);
   draw_ebo(online_renderer.offline_to_online_quad.ebo);

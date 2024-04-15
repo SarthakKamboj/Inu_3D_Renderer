@@ -137,7 +137,7 @@ void remove_spotlight_from_rendering() {
   unbind_framebuffer();
 }
 
-GLuint get_spotlight_fb_depth_tex(int light_id) {
+tex_id_t get_spotlight_fb_depth_tex(int light_id) {
   return spotlights[light_id].light_pass_fb.depth_att;
 }
 

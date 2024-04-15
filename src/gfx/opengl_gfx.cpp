@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "model_loading/image/stb_image.h"
+#include "glew.h"
 
 #include "opengl_gfx_helper.h"
 #include "utils/general.h"
@@ -395,6 +396,10 @@ tex_id_t create_texture(unsigned char* data, int tex_slot, int width, int height
 
 	glBindTexture(gl_meta.tex_target, 0);
 
+	texture.tex_creation_meta = meta_data;
+	texture.gl_tex_creation_meta = static_cast<gl_tex_creation_meta_t*>(malloc(sizeof(gl_tex_creation_meta_t)));
+	*texture.gl_tex_creation_meta = gl_meta;
+
 	textures.push_back(texture);
 	return texture.id;
 }
@@ -404,15 +409,24 @@ GLuint get_internal_tex_gluint(tex_id_t id) {
 }
 
 const texture_t bind_texture(tex_id_t tex_id) {
-	texture_t& tex = textures[tex_id];
+	texture_t& tex = textures[tex_id-1];
 	glActiveTexture(GL_TEXTURE0 + tex.tex_slot);
 	GLuint gl_id = tex_id_to_gl_id[tex_id];
-	glBindTexture(GL_TEXTURE_2D, gl_id);
+	glBindTexture(tex.gl_tex_creation_meta->tex_target, gl_id);
+	return tex;
+}
+
+const texture_t bind_texture(tex_id_t tex_id, int override_slot) {
+	texture_t& tex = textures[tex_id-1];
+	glActiveTexture(GL_TEXTURE0 + override_slot);
+	GLuint gl_id = tex_id_to_gl_id[tex_id];
+	glBindTexture(tex.gl_tex_creation_meta->tex_target, gl_id);
 	return tex;
 }
 
 void unbind_texture() {
 	glBindTexture(GL_TEXTURE_2D, 0);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 }
 
 // MATERIALS

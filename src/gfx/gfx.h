@@ -17,6 +17,8 @@
 #define LIGHT2_SHADOW_MAP_TEX 7
 #define DIR_LIGHT_SHADOW_MAP_TEX 8
 
+#define USING_OPENGL 1
+
 typedef int tex_id_t;
 typedef int fb_id_t;
 
@@ -65,21 +67,6 @@ void shader_set_vec3(shader_t& shader, const char* var_name, vec3 vec);
 void shader_set_int(shader_t& shader, const char* var_name, int val);
 void shader_set_mat4(shader_t& shader, const char* var_name, mat4& mat);
 
-struct texture_t {
-	tex_id_t id = -1;
-	// GLuint gl_id = -1;
-	int tex_slot = 0;	
-	int width = -1;
-	int height = -1;
-	int depth = 1;
-	int num_channels = -1;
-};
-
-struct file_texture_t {
-	tex_id_t id;
-	std::string path;
-};
-
 enum class TEX_FILTER_METHOD {
 	LINEAR = 0,
 	NEAREST
@@ -121,12 +108,38 @@ struct tex_creation_meta_t {
 	TEX_DATA_TYPE data_type = TEX_DATA_TYPE::UNSIGNED_BYTE;
 };
 
+
+#if USING_OPENGL
+struct gl_tex_creation_meta_t;
+#endif
+
+struct texture_t {
+	tex_id_t id = -1;
+	int tex_slot = 0;	
+	int width = -1;
+	int height = -1;
+	int depth = 1;
+	int num_channels = -1;
+
+	tex_creation_meta_t tex_creation_meta;
+
+#if USING_OPENGL
+	gl_tex_creation_meta_t* gl_tex_creation_meta;
+#endif
+};
+
+struct file_texture_t {
+	tex_id_t id;
+	std::string path;
+};
+
 tex_id_t create_texture(unsigned char* data, int tex_slot, int width, int height, int depth, tex_creation_meta_t& meta_data);
 GLuint get_internal_tex_gluint(tex_id_t id);
 file_texture_t create_file_texture(const char* img_path, int tex_slot, tex_creation_meta_t& meta_data);
 file_texture_t create_file_texture(const char* img_path, int tex_slot);
 
 const texture_t bind_texture(tex_id_t tex_id);
+const texture_t bind_texture(tex_id_t tex_id, int override_slot);
 void unbind_texture();
 
 enum class MATERIAL_PARAM_VARIANT {

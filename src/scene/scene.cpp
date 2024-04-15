@@ -353,9 +353,14 @@ void offline_final_render_pass() {
       shader_set_int(material_t::associated_shader, var_name, 0);
     } else {
       shader_set_int(material_t::associated_shader, var_name, LIGHT0_SHADOW_MAP_TEX + i);
+      tex_id_t depth_att = get_spotlight_fb_depth_tex(i);
+#if 0
+      // need to somehow reconsider what the tex slot will be for this texture
       glActiveTexture(GL_TEXTURE0 + LIGHT0_SHADOW_MAP_TEX + i);
-      GLuint depth_att = get_spotlight_fb_depth_tex(i);
       glBindTexture(GL_TEXTURE_2D, depth_att);
+#else
+      bind_texture(depth_att, LIGHT0_SHADOW_MAP_TEX + i);
+#endif
     }
 
     memset(var_name, 0, sizeof(var_name));
@@ -474,9 +479,13 @@ void offline_final_render_pass() {
       shader_set_int(material_t::associated_shader, var_name, 0);
     } else {
       shader_set_int(material_t::associated_shader, var_name, DIR_LIGHT_SHADOW_MAP_TEX);
+#if 0
       glActiveTexture(GL_TEXTURE0 + DIR_LIGHT_SHADOW_MAP_TEX);
       GLuint depth_att = dir_light->light_pass_fb.depth_att;
-      glBindTexture(GL_TEXTURE_2D_ARRAY, depth_att);
+#else
+      tex_id_t depth_att = dir_light->light_pass_fb.depth_att;
+      bind_texture(depth_att, DIR_LIGHT_SHADOW_MAP_TEX);
+#endif
     }
 
     memset(var_name, 0, sizeof(var_name));

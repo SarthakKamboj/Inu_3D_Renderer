@@ -171,7 +171,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
       render_online(offline_fb.color_att, 0);
     } else {
       // render_online(offline_fb.depth_att);
-      GLuint depth_att = get_spotlight_fb_depth_tex(0);
+      tex_id_t depth_att = get_spotlight_fb_depth_tex(0);
       render_online(depth_att, 1);
     }
 
