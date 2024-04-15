@@ -67,7 +67,7 @@ void shader_set_mat4(shader_t& shader, const char* var_name, mat4& mat);
 
 struct texture_t {
 	tex_id_t id = -1;
-	GLuint gl_id = -1;
+	// GLuint gl_id = -1;
 	int tex_slot = 0;	
 	int width = -1;
 	int height = -1;
@@ -89,12 +89,14 @@ enum class TEX_FORMAT {
 	RGB,
 	RGBA,
 	SINGLE,
-	DEPTH_STENCIL
+	DEPTH_STENCIL,
+	DEPTH
 };
 
 enum class TEX_DATA_TYPE {
 	UNSIGNED_BYTE,
-	DEPTH_STENCIL
+	DEPTH_STENCIL,
+	FLOAT
 };
 
 enum class WRAP_MODE {

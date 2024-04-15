@@ -32,6 +32,9 @@ GLint internal_to_gl_tex_format(TEX_FORMAT tex_format) {
 		case TEX_FORMAT::DEPTH_STENCIL: {
 			return GL_DEPTH24_STENCIL8;
 		}
+		case TEX_FORMAT::DEPTH: {
+			return GL_DEPTH_COMPONENT32F;
+		}
 	}
 	inu_assert_msg("tex format not found");
 	return GL_NONE;
@@ -50,6 +53,9 @@ GLenum internal_to_gl_input_data_tex_format(TEX_FORMAT tex_format) {
 		}
 		case TEX_FORMAT::DEPTH_STENCIL: {
 			return GL_DEPTH_STENCIL;
+		}
+		case TEX_FORMAT::DEPTH: {
+			return GL_DEPTH_COMPONENT;
 		}
 	}
 	inu_assert_msg("input data tex format not found");
@@ -77,6 +83,9 @@ GLenum internal_to_gl_tex_data_type(TEX_DATA_TYPE type) {
 		case TEX_DATA_TYPE::DEPTH_STENCIL: {
  		 return GL_UNSIGNED_INT_24_8;
 		}
+		case TEX_DATA_TYPE::FLOAT: {
+ 		 return GL_FLOAT;
+		}
 	}
 	inu_assert_msg("tex data type format not found");
 	return GL_NONE;
@@ -94,7 +103,7 @@ gl_tex_creation_meta_t internal_to_gl_tex_meta(tex_creation_meta_t& internal) {
 
 	gl_meta.min_filter = internal_to_gl_tex_filter(internal.min_filter);
 	gl_meta.mag_filter = internal_to_gl_tex_filter(internal.mag_filter);
-	gl_meta.input_data_tex_format = internal_to_gl_tex_format(internal.input_data_tex_format);
+	gl_meta.input_data_tex_format = internal_to_gl_input_data_tex_format(internal.input_data_tex_format);
 	gl_meta.tex_format = internal_to_gl_tex_format(internal.tex_format);
 	gl_meta.s_wrap_mode = internal_to_gl_wrap_mode(internal.s_wrap_mode);
 	gl_meta.t_wrap_mode = internal_to_gl_wrap_mode(internal.t_wrap_mode);

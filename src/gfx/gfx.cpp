@@ -13,6 +13,7 @@
 #include "utils/general.h"
 #include "utils/log.h"
 #include "windowing/window.h"
+#include "light.h"
 
 static std::unordered_map<tex_id_t, GLuint> tex_id_to_gl_id;
 static std::unordered_map<fb_id_t, GLuint> fb_id_to_gl_id;
@@ -385,6 +386,9 @@ tex_id_t create_texture(unsigned char* data, int tex_slot, int width, int height
   glTexParameteri(gl_meta.tex_target, GL_TEXTURE_WRAP_S, gl_meta.s_wrap_mode);
   glTexParameteri(gl_meta.tex_target, GL_TEXTURE_WRAP_T, gl_meta.t_wrap_mode);
 
+	constexpr float bordercolor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	glTexParameterfv(gl_meta.tex_target, GL_TEXTURE_BORDER_COLOR, bordercolor);
+
 	if (gl_meta.tex_target == GL_TEXTURE_2D) {
 		glGenerateMipmap(gl_meta.tex_target);
 	}
@@ -403,7 +407,7 @@ const texture_t bind_texture(tex_id_t tex_id) {
 	texture_t& tex = textures[tex_id];
 	glActiveTexture(GL_TEXTURE0 + tex.tex_slot);
 	GLuint gl_id = tex_id_to_gl_id[tex_id];
-	glBindTexture(GL_TEXTURE_2D, tex.gl_id);
+	glBindTexture(GL_TEXTURE_2D, gl_id);
 	return tex;
 }
 
@@ -588,7 +592,7 @@ framebuffer_t create_framebuffer(int width, int height, FB_TYPE fb_type) {
 		depth_meta_data.s_wrap_mode = WRAP_MODE::CLAMP_TO_BORDER;
 		depth_meta_data.t_wrap_mode = WRAP_MODE::CLAMP_TO_BORDER;
 		depth_meta_data.tex_type = TEX_TYPE::TEXTURE_2D_ARRAY;
-		fb.depth_att = create_texture(0, 0, width, height, 1, depth_meta_data);
+		fb.depth_att = create_texture(0, 0, width, height, NUM_SM_CASCADES, depth_meta_data);
 		GLuint gl_depth_att = get_internal_tex_gluint(fb.depth_att);
 		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, gl_depth_att, 0);
 #endif
@@ -628,9 +632,13 @@ framebuffer_t create_framebuffer(int width, int height, FB_TYPE fb_type) {
 		meta_data.s_wrap_mode = WRAP_MODE::CLAMP_TO_BORDER;
 		meta_data.t_wrap_mode = WRAP_MODE::CLAMP_TO_BORDER;
 		meta_data.tex_type = TEX_TYPE::TEXTURE_2D_ARRAY;
-		fb.depth_att = create_texture(0, 0, width, height, 1, meta_data);
+		meta_data.input_data_tex_format = TEX_FORMAT::DEPTH;
+		meta_data.tex_format = TEX_FORMAT::DEPTH;
+		meta_data.data_type = TEX_DATA_TYPE::FLOAT;
+
+		fb.depth_att = create_texture(0, 0, width, height, NUM_SM_CASCADES, meta_data);
 		GLuint gl_depth_att = get_internal_tex_gluint(fb.depth_att);
-		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, gl_depth_att, 0);
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, gl_depth_att, 0);
 #endif
 
 		glDrawBuffer(GL_NONE);

@@ -501,7 +501,7 @@ void offline_final_render_pass() {
 
   if (num_dir_lights > 0) {
     // show depth maps 
-    // render_dir_light_shadow_maps(0);
+    render_dir_light_shadow_maps(0);
   }
 }
 
