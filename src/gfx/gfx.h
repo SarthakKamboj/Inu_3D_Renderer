@@ -134,7 +134,6 @@ struct file_texture_t {
 };
 
 tex_id_t create_texture(unsigned char* data, int tex_slot, int width, int height, int depth, tex_creation_meta_t& meta_data);
-GLuint get_internal_tex_gluint(tex_id_t id);
 file_texture_t create_file_texture(const char* img_path, int tex_slot, tex_creation_meta_t& meta_data);
 file_texture_t create_file_texture(const char* img_path, int tex_slot);
 

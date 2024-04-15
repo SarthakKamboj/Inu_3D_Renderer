@@ -39,8 +39,14 @@ const float dir_light_t::SHADOW_MAP_WIDTH = 2048.f;
 const float dir_light_t::SHADOW_MAP_HEIGHT = 2048.f;
 
 shader_t dir_light_t::light_shader;
+
+#if USE_DIR_LIGHT_DEBUG_FBOS
 shader_t dir_light_t::debug_shader;
+#endif
+
+#if DISPLAY_DIR_LIGHT_SHADOW_MAPS
 shader_t dir_light_t::display_shadow_map_shader;
+#endif
 
 extern bool render_dir_orthos;
 
@@ -71,17 +77,21 @@ void init_light_data() {
   sprintf(frag_shader_path, "%s\\shaders\\dir_light.frag", resources_path);
   dir_light_t::light_shader = create_shader(vert_shader_path, geom_shader_path, frag_shader_path);
 
+#if USE_DIR_LIGHT_DEBUG_FBOS
   memset(vert_shader_path, 0, sizeof(vert_shader_path));
   memset(frag_shader_path, 0, sizeof(frag_shader_path));
   sprintf(vert_shader_path, "%s\\shaders\\light.vert", resources_path);
   sprintf(frag_shader_path, "%s\\shaders\\light.frag", resources_path);
   dir_light_t::debug_shader = create_shader(vert_shader_path, frag_shader_path);
+#endif
 
+#if DISPLAY_DIR_LIGHT_SHADOW_MAPS
   memset(vert_shader_path, 0, sizeof(vert_shader_path));
   memset(frag_shader_path, 0, sizeof(frag_shader_path));
   sprintf(vert_shader_path, "%s\\shaders\\dir_shadow_maps.vert", resources_path);
   sprintf(frag_shader_path, "%s\\shaders\\dir_shadow_maps.frag", resources_path);
   dir_light_t::display_shadow_map_shader = create_shader(vert_shader_path, frag_shader_path);
+#endif
 }
 
 int create_spotlight(vec3 pos) {
@@ -157,9 +167,13 @@ int create_dir_light(vec3 dir) {
   dir_light_t light;
   light.dir = normalize(dir);
   light.id = dir_lights.size();
+
+#if USE_DIR_LIGHT_DEBUG_FBOS
   light.debug_light_pass_fbs[0] = create_framebuffer(dir_light_t::SHADOW_MAP_WIDTH, dir_light_t::SHADOW_MAP_HEIGHT, FB_TYPE::TEXTURE_DEPTH_STENCIL);
   light.debug_light_pass_fbs[1] = create_framebuffer(dir_light_t::SHADOW_MAP_WIDTH, dir_light_t::SHADOW_MAP_HEIGHT, FB_TYPE::TEXTURE_DEPTH_STENCIL);
   light.debug_light_pass_fbs[2] = create_framebuffer(dir_light_t::SHADOW_MAP_WIDTH, dir_light_t::SHADOW_MAP_HEIGHT, FB_TYPE::TEXTURE_DEPTH_STENCIL);
+#endif
+
   light.light_pass_fb = create_framebuffer(dir_light_t::SHADOW_MAP_WIDTH, dir_light_t::SHADOW_MAP_HEIGHT, FB_TYPE::NO_COLOR_ATT_MULTIPLE_DEPTH_TEXTURE); 
 
 #if (RENDER_DIR_LIGHT_FRUSTUMS || RENDER_DIR_LIGHT_ORTHOS)
@@ -261,7 +275,7 @@ int create_dir_light(vec3 dir) {
       if (debug_i == 0) {
 #if RENDER_DIR_LIGHT_FRUSTUMS
         attach_name_to_obj(obj_id, std::string("frustum_" + std::to_string(cascade)) );
-        light.debug_obj_ids[cascade] = obj_id;
+        light.debug_frustum_obj_ids[cascade] = obj_id;
         set_obj_as_parent(obj_id);
 #endif
       } else {
@@ -277,6 +291,7 @@ int create_dir_light(vec3 dir) {
   }
 #endif
 
+#if DISPLAY_DIR_LIGHT_SHADOW_MAPS
   light.display_shadow_map_vao = create_vao();
   light.display_shadow_map_vbo = create_dyn_vbo(sizeof(dir_light_shadow_map_vert_t) * 4);
   unsigned int indicies[6] {
@@ -288,6 +303,7 @@ int create_dir_light(vec3 dir) {
   vao_enable_attribute(light.display_shadow_map_vao, light.display_shadow_map_vbo, 0, 2, GL_FLOAT, sizeof(dir_light_shadow_map_vert_t), offsetof(dir_light_shadow_map_vert_t, pos));
   vao_enable_attribute(light.display_shadow_map_vao, light.display_shadow_map_vbo, 1, 2, GL_FLOAT, sizeof(dir_light_shadow_map_vert_t), offsetof(dir_light_shadow_map_vert_t, tex));
   vao_bind_ebo(light.display_shadow_map_vao, light.display_shadow_map_ebo);
+#endif
 
   dir_lights.push_back(light);
   return light.id;
@@ -297,9 +313,55 @@ int get_num_dir_lights() {
   return dir_lights.size();
 }
 
-struct frustum_t {
-  vec3 frustum_corners[NUM_CUBE_CORNERS]{};
-};
+#if RENDER_DIR_LIGHT_ORTHOS
+void update_dir_light_ortho_models(dir_light_t& dir_light, float x_min, float x_max, float y_min, float y_max, float z_min, float z_max) {
+  frustum_t light_ortho_world_frustum;
+  light_ortho_world_frustum.frustum_corners[BTR] = {x_max,y_max,z_min};
+  light_ortho_world_frustum.frustum_corners[FTR] = {x_max,y_max,z_max};
+  light_ortho_world_frustum.frustum_corners[BBR] = {x_max,y_min,z_min};
+  light_ortho_world_frustum.frustum_corners[FBR] = {x_max,y_min,z_max};
+  light_ortho_world_frustum.frustum_corners[BTL] = {x_min,y_max,z_min};
+  light_ortho_world_frustum.frustum_corners[FTL] = {x_min,y_max,z_max};
+  light_ortho_world_frustum.frustum_corners[BBL] = {x_min,y_min,z_min};
+  light_ortho_world_frustum.frustum_corners[FBL] = {x_min,y_min,z_max};
+
+  mat4 inverse_light_view = mat4_inverse(dir_light.light_views[cascade]);
+  for (int corner = 0; corner < NUM_CUBE_CORNERS; corner++) {
+    vec4 corner4(light_ortho_world_frustum.frustum_corners[corner], 1);
+    vec4 world_corner = mat_multiply_vec(inverse_light_view, corner4);
+    world_corner = world_corner / world_corner.w;
+    vec3 wc3 = {world_corner.x, world_corner.y, world_corner.z};
+    light_ortho_world_frustum.frustum_corners[corner] = wc3;
+  }
+
+  int ortho_frustum_obj_id = dir_light.debug_ortho_obj_ids[cascade];
+  vbo_t* vbo = get_obj_vbo(ortho_frustum_obj_id, 0);
+
+  vertex_t ortho_vertices[8];
+  for (int i = 0; i < 8; i++) {
+    vertex_t& v = ortho_vertices[i];
+
+    v.position = light_ortho_world_frustum.frustum_corners[i];
+
+    v.tex0 = {0,0};
+    v.tex1 = {0,0};
+    v.normal = {0,0,0};
+    v.color = {1,0,0};
+
+    v.joints[0] = 0;
+    v.joints[1] = 0;
+    v.joints[2] = 0;
+    v.joints[3] = 0;
+
+    v.weights[0] = 0;
+    v.weights[1] = 0;
+    v.weights[2] = 0;
+    v.weights[3] = 0;
+  }
+
+  update_vbo_data(*vbo, ortho_vertices, sizeof(ortho_vertices));
+}
+#endif
 
 extern bool update_dir_light_frustums;
 void gen_dir_light_matricies(int light_id, camera_t* camera) {
@@ -470,7 +532,7 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
 
     // debug view for dir light frustums
 #if RENDER_DIR_LIGHT_FRUSTUMS
-    int frustum_obj_id = dir_light.debug_obj_ids[cascade];
+    int frustum_obj_id = dir_light.debug_frustum_obj_ids[cascade];
     vbo_t* vbo = get_obj_vbo(frustum_obj_id, 0);
 
     for (int i = 0; i < 8; i++) {
@@ -497,6 +559,9 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
     // debug view for dir light orthos
 #if RENDER_DIR_LIGHT_ORTHOS
 
+#if 1
+    update_dir_light_ortho_models(dir_light, x_min, x_max, y_min, y_max, z_min, z_max);
+#else
     frustum_t light_ortho_world_frustum;
     light_ortho_world_frustum.frustum_corners[BTR] = {x_max,y_max,z_min};
     light_ortho_world_frustum.frustum_corners[FTR] = {x_max,y_max,z_max};
@@ -541,18 +606,8 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
       v.weights[3] = 0;
     }
  
-#if 0
-    ortho_vertices[BTR].position = light_ortho_world_frustum.frustum_corners[BTR];
-    ortho_vertices[FTR].position = light_ortho_world_frustum.frustum_corners[FTR];
-    ortho_vertices[BBR].position = light_ortho_world_frustum.frustum_corners[BBR];
-    ortho_vertices[FBR].position = light_ortho_world_frustum.frustum_corners[FBR];
-    ortho_vertices[BTL].position = light_ortho_world_frustum.frustum_corners[BTL];
-    ortho_vertices[FTL].position = light_ortho_world_frustum.frustum_corners[FTL];
-    ortho_vertices[BBL].position = light_ortho_world_frustum.frustum_corners[BBL];
-    ortho_vertices[FBL].position = light_ortho_world_frustum.frustum_corners[FBL];
-#endif
-
     update_vbo_data(*vbo, ortho_vertices, sizeof(ortho_vertices)); 
+#endif
 #endif
   }
 }
@@ -581,6 +636,7 @@ void remove_dir_light_from_rendering() {
   unbind_framebuffer();
 }
 
+#if USE_DIR_LIGHT_DEBUG_FBOS
 void setup_dir_light_for_rendering_debug(int light_id, camera_t* camera, int cascade) {
   dir_light_t& dir_light = dir_lights[light_id];
 
@@ -599,7 +655,9 @@ void remove_dir_light_from_rendering_debug() {
   unbind_shader();
   unbind_framebuffer();
 }
+#endif
 
+#if DISPLAY_DIR_LIGHT_SHADOW_MAPS
 void render_dir_light_shadow_maps(int dir_light_id) {
   glClear(GL_DEPTH_BUFFER_BIT);
   dir_light_t& dir_light = dir_lights[dir_light_id];
@@ -641,6 +699,7 @@ void render_dir_light_shadow_maps(int dir_light_id) {
   }
 
 }
+#endif
 
 dir_light_t* get_dir_light(int id) {
   return &dir_lights[id];

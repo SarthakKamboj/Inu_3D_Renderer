@@ -508,10 +508,12 @@ void offline_final_render_pass() {
   }
   unbind_shader();
 
+#if DISPLAY_DIR_LIGHT_SHADOW_MAPS
   if (num_dir_lights > 0) {
     // show depth maps 
     render_dir_light_shadow_maps(0);
   }
+#endif
 }
 
 void render_scene() { 

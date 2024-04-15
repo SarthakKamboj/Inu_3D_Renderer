@@ -139,6 +139,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     poll_events();
 
     // UPDATE PASS
+#if RENDER_DIR_LIGHT_ORTHOS
     if (window.input.left_mouse_up) {
       render_dir_orthos = !render_dir_orthos;
       if (RENDER_DIR_LIGHT_ORTHOS) {
@@ -152,6 +153,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         }
       }
     }
+#endif
     //
     if (window.input.right_mouse_up) {
       // update_dir_light_frustums = !update_dir_light_frustums;

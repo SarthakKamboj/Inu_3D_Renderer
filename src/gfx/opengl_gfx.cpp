@@ -28,6 +28,8 @@ static std::vector<file_texture_t> file_textures;
 std::vector<material_t> materials;
 extern window_t window;
 
+GLuint get_internal_tex_gluint(tex_id_t id);
+
 // VBO
 vbo_t create_vbo(const void* vertices, const int data_size) {
 	vbo_t vbo;
