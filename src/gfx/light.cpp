@@ -51,7 +51,7 @@ shader_t dir_light_t::debug_shader;
 shader_t dir_light_t::display_shadow_map_shader;
 #endif
 
-extern bool render_dir_orthos;
+bool render_dir_orthos = true;
 
 void init_light_data() {
   char resources_path[256]{};
@@ -373,6 +373,28 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
 #if (RENDER_DIR_LIGHT_FRUSTUMS || RENDER_DIR_LIGHT_ORTHOS)
   if (window.input.right_mouse_up) {
     update_dir_light_frustums = !update_dir_light_frustums;
+  }
+
+  if (window.input.left_mouse_up) {
+    render_dir_orthos = !render_dir_orthos;
+    dir_light_t* dir = get_dir_light(0);
+    for (int i = 0; i < NUM_SM_CASCADES; i++) {
+#if RENDER_DIR_LIGHT_ORTHOS
+      if (render_dir_orthos && i == LIGHT_ORTHO_CASCADE_TO_VIEW) {
+        set_obj_as_parent(dir_light.debug_ortho_obj_ids[i]);
+      } else {
+        unset_obj_as_parent(dir_light.debug_ortho_obj_ids[i]);
+      }
+#endif
+
+#if RENDER_DIR_LIGHT_FRUSTUMS
+      if (render_dir_orthos) {
+        set_obj_as_parent(dir_light.debug_frustum_obj_ids[i]);
+      } else {
+        unset_obj_as_parent(dir_light.debug_frustum_obj_ids[i]);
+      }
+#endif
+    }
   }
 #endif
 
