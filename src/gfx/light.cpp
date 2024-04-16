@@ -198,8 +198,8 @@ int create_dir_light(vec3 dir) {
     for (int cascade = 0; cascade < NUM_SM_CASCADES; cascade++) {
       model_t frustum_model;
 
-      vertex_t vertices[8];
-      for (int i = 0; i < 8; i++) {
+      vertex_t vertices[NUM_CUBE_CORNERS];
+      for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
         vertex_t& v = vertices[i];
         v.tex0 = {0,0};
         v.tex1 = {0,0};
@@ -341,8 +341,8 @@ void update_dir_light_ortho_models(dir_light_t& dir_light, int cascade, float x_
   int ortho_frustum_obj_id = dir_light.debug_ortho_obj_ids[cascade];
   vbo_t* vbo = get_obj_vbo(ortho_frustum_obj_id, 0);
 
-  vertex_t ortho_vertices[8];
-  for (int i = 0; i < 8; i++) {
+  vertex_t ortho_vertices[NUM_CUBE_CORNERS];
+  for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
     vertex_t& v = ortho_vertices[i];
 
     v.position = light_ortho_world_frustum.frustum_corners[i];
@@ -364,6 +364,33 @@ void update_dir_light_ortho_models(dir_light_t& dir_light, int cascade, float x_
   }
 
   update_vbo_data(*vbo, ortho_vertices, sizeof(ortho_vertices));
+}
+#endif
+
+#if RENDER_DIR_LIGHT_FRUSTUMS
+void update_dir_light_frustum_models(dir_light_t& dir_light, int cascade, vertex_t* vertices) {
+  int frustum_obj_id = dir_light.debug_frustum_obj_ids[cascade];
+  vbo_t* vbo = get_obj_vbo(frustum_obj_id, 0);
+
+  for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
+    vertex_t& v = vertices[i];
+    v.tex0 = {0,0};
+    v.tex1 = {0,0};
+    v.normal = {0,0,0};
+    v.color = {1,0,0};
+
+    v.joints[0] = 0;
+    v.joints[1] = 0;
+    v.joints[2] = 0;
+    v.joints[3] = 0;
+
+    v.weights[0] = 0;
+    v.weights[1] = 0;
+    v.weights[2] = 0;
+    v.weights[3] = 0;
+  }
+
+  update_vbo_data(*vbo, vertices, NUM_CUBE_CORNERS * sizeof(vertex_t));
 }
 #endif
 
@@ -486,7 +513,7 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
       }
     } 
 
-    vertex_t vertices[8];
+    vertex_t vertices[NUM_CUBE_CORNERS];
 
     vertices[BTR].position = world_cascade_frustum.frustum_corners[7];
     vertices[FTR].position = world_cascade_frustum.frustum_corners[6];
@@ -579,82 +606,12 @@ void gen_dir_light_matricies(int light_id, camera_t* camera) {
 
     // debug view for dir light frustums
 #if RENDER_DIR_LIGHT_FRUSTUMS
-    int frustum_obj_id = dir_light.debug_frustum_obj_ids[cascade];
-    vbo_t* vbo = get_obj_vbo(frustum_obj_id, 0);
-
-    for (int i = 0; i < 8; i++) {
-      vertex_t& v = vertices[i];
-      v.tex0 = {0,0};
-      v.tex1 = {0,0};
-      v.normal = {0,0,0};
-      v.color = {1,0,0};
-
-      v.joints[0] = 0;
-      v.joints[1] = 0;
-      v.joints[2] = 0;
-      v.joints[3] = 0;
-
-      v.weights[0] = 0;
-      v.weights[1] = 0;
-      v.weights[2] = 0;
-      v.weights[3] = 0;
-    }
-
-    update_vbo_data(*vbo, vertices, sizeof(vertices));
+    update_dir_light_frustum_models(dir_light, cascade, vertices);
 #endif
 
     // debug view for dir light orthos
 #if RENDER_DIR_LIGHT_ORTHOS
-
-#if 1
     update_dir_light_ortho_models(dir_light, cascade, x_min, x_max, y_min, y_max, z_min, z_max);
-#else
-    frustum_t light_ortho_world_frustum;
-    light_ortho_world_frustum.frustum_corners[BTR] = {x_max,y_max,z_min};
-    light_ortho_world_frustum.frustum_corners[FTR] = {x_max,y_max,z_max};
-    light_ortho_world_frustum.frustum_corners[BBR] = {x_max,y_min,z_min};
-    light_ortho_world_frustum.frustum_corners[FBR] = {x_max,y_min,z_max};
-    light_ortho_world_frustum.frustum_corners[BTL] = {x_min,y_max,z_min};
-    light_ortho_world_frustum.frustum_corners[FTL] = {x_min,y_max,z_max};
-    light_ortho_world_frustum.frustum_corners[BBL] = {x_min,y_min,z_min};
-    light_ortho_world_frustum.frustum_corners[FBL] = {x_min,y_min,z_max};
-
-    mat4 inverse_light_view = mat4_inverse(dir_light.light_views[cascade]);
-    for (int corner = 0; corner < NUM_CUBE_CORNERS; corner++) {
-      vec4 corner4(light_ortho_world_frustum.frustum_corners[corner], 1);
-      vec4 world_corner = mat_multiply_vec(inverse_light_view, corner4);
-      world_corner = world_corner / world_corner.w;
-      vec3 wc3 = {world_corner.x, world_corner.y, world_corner.z};
-      light_ortho_world_frustum.frustum_corners[corner] = wc3;
-    }
-
-    int ortho_frustum_obj_id = dir_light.debug_ortho_obj_ids[cascade];
-    vbo_t* vbo = get_obj_vbo(ortho_frustum_obj_id, 0);
-
-    vertex_t ortho_vertices[8];
-    for (int i = 0; i < 8; i++) {
-      vertex_t& v = ortho_vertices[i];
-
-      v.position = light_ortho_world_frustum.frustum_corners[i];
-
-      v.tex0 = {0,0};
-      v.tex1 = {0,0};
-      v.normal = {0,0,0};
-      v.color = {1,0,0};
-
-      v.joints[0] = 0;
-      v.joints[1] = 0;
-      v.joints[2] = 0;
-      v.joints[3] = 0;
-
-      v.weights[0] = 0;
-      v.weights[1] = 0;
-      v.weights[2] = 0;
-      v.weights[3] = 0;
-    }
- 
-    update_vbo_data(*vbo, ortho_vertices, sizeof(ortho_vertices)); 
-#endif
 #endif
   }
 }

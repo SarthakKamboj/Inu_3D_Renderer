@@ -17,8 +17,6 @@
 static float win_width = 1280.f;
 static float win_height = 960.f;
 
-// bool render_dir_orthos = true;
-
 extern window_t window;
 extern animation_globals_t animation_globals;
 extern framebuffer_t offline_fb;
@@ -148,6 +146,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     update_animations();
 
     // RENDERING PASS
+    
     // offline rendering pass  
     render_scene();
 
@@ -155,7 +154,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     if (RENDER_DEPTH == 0) {
       render_online(offline_fb.color_att, 0);
     } else {
-      // render_online(offline_fb.depth_att);
       tex_id_t depth_att = get_spotlight_fb_depth_tex(0);
       render_online(depth_att, 1);
     }

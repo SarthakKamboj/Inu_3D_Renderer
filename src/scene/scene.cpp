@@ -264,7 +264,8 @@ void render_scene_obj(int obj_id, bool parent, bool light_pass, shader_t& shader
 
 void spotlight_pass() {
   // LIGHT PASS
-  for (int i = 0; i < get_num_spotlights(); i++) {
+  int num_spotlights = get_num_spotlights();
+  for (int i = 0; i < num_spotlights; i++) {
     setup_spotlight_for_rendering(i);
 
     for (int parent_id : scene.parent_objs) {

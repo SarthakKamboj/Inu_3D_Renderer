@@ -14,10 +14,10 @@
 #define HAVE_DIR_LIGHT 1
 #define NUM_CUBE_CORNERS 8
 
-#define RENDER_DIR_LIGHT_FRUSTUMS 0
+#define RENDER_DIR_LIGHT_FRUSTUMS 1
 
 #define RENDER_DIR_LIGHT_ORTHOS 0
-// defined which ortho projection we want to view
+// define which ortho projection we want to view
 #define LIGHT_ORTHO_CASCADE_TO_VIEW 0
 
 #define DISPLAY_DIR_LIGHT_SHADOW_MAPS 0
@@ -130,4 +130,8 @@ void gen_dir_light_matricies(int light_id, camera_t* camera);
 
 #if RENDER_DIR_LIGHT_ORTHOS
 void update_dir_light_ortho_models(dir_light_t& dir_light, int cascade, float x_min, float x_max, float y_min, float y_max, float z_min, float z_max);
+#endif
+
+#if RENDER_DIR_LIGHT_FRUSTUMS
+void update_dir_light_frustum_models(dir_light_t& dir_light, int cascade, vertex_t* vertices);
 #endif
