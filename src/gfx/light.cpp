@@ -196,7 +196,7 @@ int create_dir_light(vec3 dir) {
   // debug_i = 1 is related to dir light orthos and their objects
   for (int debug_i = 0; debug_i <= 1; debug_i++) {
     for (int cascade = 0; cascade < NUM_SM_CASCADES; cascade++) {
-      model_t frustum_model;
+      model_t debug_model;
 
       vertex_t vertices[NUM_CUBE_CORNERS];
       for (int i = 0; i < NUM_CUBE_CORNERS; i++) {
@@ -268,8 +268,8 @@ int create_dir_light(vec3 dir) {
       vao_enable_attribute(mesh.vao, mesh.vbo, 6, 3, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(vertex_t), offsetof(vertex_t, normal));
       vao_bind_ebo(mesh.vao, mesh.ebo);
       
-      frustum_model.meshes.push_back(mesh);
-      int model_id = register_model(frustum_model);
+      debug_model.meshes.push_back(mesh);
+      int model_id = register_model(debug_model);
 
       transform_t t;
       t.scale = {1,1,1};
