@@ -166,20 +166,8 @@ vec3 get_spotlight_pos(int light_id) {
   return spotlights[light_id].transform.pos;
 }
 
-int create_dir_light(vec3 dir) {
-  dir_light_t light;
-  light.dir = normalize(dir);
-  light.id = dir_lights.size();
-
-#if USE_DIR_LIGHT_DEBUG_FBOS
-  light.debug_light_pass_fbs[0] = create_framebuffer(dir_light_t::SHADOW_MAP_WIDTH, dir_light_t::SHADOW_MAP_HEIGHT, FB_TYPE::TEXTURE_DEPTH_STENCIL);
-  light.debug_light_pass_fbs[1] = create_framebuffer(dir_light_t::SHADOW_MAP_WIDTH, dir_light_t::SHADOW_MAP_HEIGHT, FB_TYPE::TEXTURE_DEPTH_STENCIL);
-  light.debug_light_pass_fbs[2] = create_framebuffer(dir_light_t::SHADOW_MAP_WIDTH, dir_light_t::SHADOW_MAP_HEIGHT, FB_TYPE::TEXTURE_DEPTH_STENCIL);
-#endif
-
-  light.light_pass_fb = create_framebuffer(dir_light_t::SHADOW_MAP_WIDTH, dir_light_t::SHADOW_MAP_HEIGHT, FB_TYPE::NO_COLOR_ATT_MULTIPLE_DEPTH_TEXTURE); 
-
 #if (RENDER_DIR_LIGHT_FRUSTUMS || RENDER_DIR_LIGHT_ORTHOS)
+void create_frustum_and_ortho_models(dir_light_t& light) {
   vec4 colors[NUM_SM_CASCADES];
   colors[0] = {1,0,0,1};
   colors[1] = {0,1,0,1};
@@ -194,7 +182,9 @@ int create_dir_light(vec3 dir) {
 
   // debug_i = 0 is related to dir light frustums and their objects
   // debug_i = 1 is related to dir light orthos and their objects
-  for (int debug_i = 0; debug_i <= 1; debug_i++) {
+  const int FRUSTUM_MODEL_CREATION_ITER = 0;
+  const int ORTHO_PROJ_MODEL_CREATION_ITER = 1;
+  for (int debug_i = 0; debug_i <= ORTHO_PROJ_MODEL_CREATION_ITER; debug_i++) {
     for (int cascade = 0; cascade < NUM_SM_CASCADES; cascade++) {
       model_t debug_model;
 
@@ -276,13 +266,13 @@ int create_dir_light(vec3 dir) {
       int obj_id = create_object(t);
       attach_model_to_obj(obj_id, model_id);
 
-      if (debug_i == 0) {
+      if (debug_i == FRUSTUM_MODEL_CREATION_ITER) {
 #if RENDER_DIR_LIGHT_FRUSTUMS
         attach_name_to_obj(obj_id, std::string("frustum_" + std::to_string(cascade)) );
         light.debug_frustum_obj_ids[cascade] = obj_id;
         set_obj_as_parent(obj_id);
 #endif
-      } else {
+      } else if (debug_i == ORTHO_PROJ_MODEL_CREATION_ITER) {
 #if RENDER_DIR_LIGHT_ORTHOS
         attach_name_to_obj(obj_id, std::string("light_ortho_" + std::to_string(cascade)) );
         light.debug_ortho_obj_ids[cascade] = obj_id;
@@ -293,6 +283,24 @@ int create_dir_light(vec3 dir) {
 
     }
   }
+}
+#endif
+
+int create_dir_light(vec3 dir) {
+  dir_light_t light;
+  light.dir = normalize(dir);
+  light.id = dir_lights.size();
+
+#if USE_DIR_LIGHT_DEBUG_FBOS
+  light.debug_light_pass_fbs[0] = create_framebuffer(dir_light_t::SHADOW_MAP_WIDTH, dir_light_t::SHADOW_MAP_HEIGHT, FB_TYPE::TEXTURE_DEPTH_STENCIL);
+  light.debug_light_pass_fbs[1] = create_framebuffer(dir_light_t::SHADOW_MAP_WIDTH, dir_light_t::SHADOW_MAP_HEIGHT, FB_TYPE::TEXTURE_DEPTH_STENCIL);
+  light.debug_light_pass_fbs[2] = create_framebuffer(dir_light_t::SHADOW_MAP_WIDTH, dir_light_t::SHADOW_MAP_HEIGHT, FB_TYPE::TEXTURE_DEPTH_STENCIL);
+#endif
+
+  light.light_pass_fb = create_framebuffer(dir_light_t::SHADOW_MAP_WIDTH, dir_light_t::SHADOW_MAP_HEIGHT, FB_TYPE::NO_COLOR_ATT_MULTIPLE_DEPTH_TEXTURE); 
+
+#if (RENDER_DIR_LIGHT_FRUSTUMS || RENDER_DIR_LIGHT_ORTHOS)
+  create_frustum_and_ortho_models(light);
 #endif
 
 #if DISPLAY_DIR_LIGHT_SHADOW_MAPS
