@@ -129,5 +129,5 @@ dir_light_t* get_dir_light(int id);
 void gen_dir_light_matricies(int light_id, camera_t* camera);
 
 #if RENDER_DIR_LIGHT_ORTHOS
-void update_dir_light_ortho_models(dir_light_t& dir_light, float x_min, float x_max, float y_min, float y_max, float z_min, float z_max);
+void update_dir_light_ortho_models(dir_light_t& dir_light, int cascade, float x_min, float x_max, float y_min, float y_max, float z_min, float z_max);
 #endif

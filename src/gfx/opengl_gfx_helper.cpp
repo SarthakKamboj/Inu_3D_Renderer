@@ -96,6 +96,8 @@ GLenum internal_to_gl_tex_target(TEX_TYPE tex_type) {
 		case TEX_TYPE::TEXTURE_2D: return GL_TEXTURE_2D;
 		case TEX_TYPE::TEXTURE_2D_ARRAY: return GL_TEXTURE_2D_ARRAY;
 	}
+	inu_assert_msg("tex target not found");
+	return GL_NONE;
 }
 
 gl_tex_creation_meta_t internal_to_gl_tex_meta(tex_creation_meta_t& internal) {
@@ -111,4 +113,12 @@ gl_tex_creation_meta_t internal_to_gl_tex_meta(tex_creation_meta_t& internal) {
 	gl_meta.data_type = internal_to_gl_tex_data_type(internal.data_type);
 
 	return gl_meta;
+}
+
+GLenum internal_to_gl_vao_data_type(VAO_ATTR_DATA_TYPE t) {
+	if (t == VAO_ATTR_DATA_TYPE::FLOAT) return GL_FLOAT;
+	if (t == VAO_ATTR_DATA_TYPE::UNSIGNED_INT) return GL_UNSIGNED_INT;
+
+	inu_assert_msg("vao data type not found");
+	return GL_NONE;
 }

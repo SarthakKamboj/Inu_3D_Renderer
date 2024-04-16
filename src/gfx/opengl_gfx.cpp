@@ -18,9 +18,17 @@
 
 static std::unordered_map<tex_id_t, GLuint> tex_id_to_gl_id;
 static std::unordered_map<fb_id_t, GLuint> fb_id_to_gl_id;
+static std::unordered_map<ebo_id_t, GLuint> ebo_id_to_gl_id;
+static std::unordered_map<vbo_id_t, GLuint> vbo_id_to_gl_id;
+static std::unordered_map<vao_id_t, GLuint> vao_id_to_gl_id;
+static std::unordered_map<shader_id_t, GLuint> shader_id_to_gl_id;
 
 static fb_id_t internal_fb_running_id = 1;
 static tex_id_t internal_tex_running_id = 1;
+static ebo_id_t internal_ebo_running_id = 1;
+static vbo_id_t internal_vbo_running_id = 1;
+static vao_id_t internal_vao_running_id = 1;
+static shader_id_t internal_shader_running_id = 1;
 
 static std::vector<texture_t> textures;
 static std::vector<file_texture_t> file_textures;
@@ -33,27 +41,37 @@ GLuint get_internal_tex_gluint(tex_id_t id);
 // VBO
 vbo_t create_vbo(const void* vertices, const int data_size) {
 	vbo_t vbo;
-	glGenBuffers(1, &vbo.id);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo.id);
+	vbo.id = internal_vbo_running_id;
+	internal_vbo_running_id++;
+	GLuint gl_vbo_id;
+	glGenBuffers(1, &gl_vbo_id);
+	vbo_id_to_gl_id[vbo.id] = gl_vbo_id;
+	glBindBuffer(GL_ARRAY_BUFFER, gl_vbo_id);
 	glBufferData(GL_ARRAY_BUFFER, data_size, vertices, GL_STATIC_DRAW);
 	return vbo;
 }
 
 vbo_t create_dyn_vbo(const int data_size) {
 	vbo_t vbo;
-	glGenBuffers(1, &vbo.id);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo.id);
+	vbo.id = internal_vbo_running_id;
+	internal_vbo_running_id++;
+	GLuint gl_vbo_id;
+	glGenBuffers(1, &gl_vbo_id);
+	vbo_id_to_gl_id[vbo.id] = gl_vbo_id;
+	glBindBuffer(GL_ARRAY_BUFFER, gl_vbo_id);
 	glBufferData(GL_ARRAY_BUFFER, data_size, NULL, GL_DYNAMIC_DRAW);
 	return vbo;
 }
 
 void update_vbo_data(const vbo_t& vbo, const void* vertices, const int data_size) {
-	glBindBuffer(GL_ARRAY_BUFFER, vbo.id);
+	GLuint gl_vbo_id = vbo_id_to_gl_id[vbo.id];
+	glBindBuffer(GL_ARRAY_BUFFER, gl_vbo_id);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, data_size, vertices);
 }
 
 void bind_vbo(const vbo_t& vbo) {
-	glBindBuffer(GL_ARRAY_BUFFER, vbo.id);
+	GLuint gl_vbo_id = vbo_id_to_gl_id[vbo.id];
+	glBindBuffer(GL_ARRAY_BUFFER, gl_vbo_id);
 }
 
 void unbind_vbo() {
@@ -61,15 +79,20 @@ void unbind_vbo() {
 }
 
 void delete_vbo(const vbo_t& vbo) {
-	glDeleteBuffers(1, &vbo.id);
+	GLuint gl_vbo_id = vbo_id_to_gl_id[vbo.id];
+	glDeleteBuffers(1, &gl_vbo_id);
 }
 
 // EBO
 ebo_t create_ebo(const unsigned int* indicies, const int size_of_buffer) {
 	ebo_t ebo;
+	ebo.id = internal_ebo_running_id;
+	internal_ebo_running_id++;
 	ebo.num_indicies = size_of_buffer / sizeof(indicies[0]);
-	glGenBuffers(1, &ebo.id);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo.id);
+	GLuint gl_ebo_id;
+	glGenBuffers(1, &gl_ebo_id);
+	ebo_id_to_gl_id[ebo.id] = gl_ebo_id;
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gl_ebo_id);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, size_of_buffer, indicies, GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	return ebo;
@@ -80,7 +103,8 @@ void draw_ebo(const ebo_t& ebo) {
 }
 
 void bind_ebo(const ebo_t& ebo) {
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo.id);
+	GLuint gl_ebo_id = ebo_id_to_gl_id[ebo.id];
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gl_ebo_id);
 }
 
 void unbind_ebo() {
@@ -88,28 +112,36 @@ void unbind_ebo() {
 }
 
 void delete_ebo(const ebo_t& ebo) {
-	glDeleteBuffers(1, &ebo.id);
+	GLuint gl_ebo_id = ebo_id_to_gl_id[ebo.id];
+	glDeleteBuffers(1, &gl_ebo_id);
 }
 
 // VAO
 vao_t create_vao() {
 	vao_t vao;
-	glGenVertexArrays(1, &vao.id);
+	vao.id = internal_vao_running_id;
+	internal_vao_running_id++;
+	GLuint gl_vao_id;
+	glGenVertexArrays(1, &gl_vao_id);
+	vao_id_to_gl_id[vao.id] = gl_vao_id;
 	return vao;
 }
 
 void bind_vao(const vao_t& vao) {
-	glBindVertexArray(vao.id);
+	GLuint gl_vao_id = vao_id_to_gl_id[vao.id];
+	glBindVertexArray(gl_vao_id);
 }
 
 void unbind_vao() {
 	glBindVertexArray(0);
 }
 
-void vao_enable_attribute(vao_t& vao, const vbo_t& vbo, const int attr_id, const int num_values, const int d_type, const int stride, const int offset) {
+// void vao_enable_attribute(vao_t& vao, const vbo_t& vbo, const int attr_id, const int num_values, const int d_type, const int stride, const int offset) {
+void vao_enable_attribute(vao_t& vao, const vbo_t& vbo, const int attr_id, const int num_values, const VAO_ATTR_DATA_TYPE d_type, const int stride, const int offset) {
 	bind_vao(vao);
 	bind_vbo(vbo);
-	glVertexAttribPointer(attr_id, num_values, d_type, GL_FALSE, stride, reinterpret_cast<void*>(offset));
+	GLenum gl_d_type = internal_to_gl_vao_data_type(d_type);
+	glVertexAttribPointer(attr_id, num_values, gl_d_type, GL_FALSE, stride, reinterpret_cast<void*>(offset));
 	glEnableVertexAttribArray(attr_id);
 	unbind_vbo();
 	unbind_vao();
@@ -123,13 +155,19 @@ void vao_bind_ebo(vao_t& vao, ebo_t& ebo) {
 }
 
 void delete_vao(const vao_t& vao) {
-	glDeleteVertexArrays(1, &vao.id);
+	GLuint gl_vao_id = vao_id_to_gl_id[vao.id];
+	glDeleteVertexArrays(1, &gl_vao_id);
 }
 
 // Shaders
 shader_t create_shader(const char* vert_source_path, const char* frag_source_path) {
 	shader_t shader;
-	shader.id = glCreateProgram();
+
+	shader.id = internal_shader_running_id;
+	internal_shader_running_id++;
+
+	GLuint gl_shader_id = glCreateProgram();
+	shader_id_to_gl_id[shader.id] = gl_shader_id;
 
 	GLuint vert = glCreateShader(GL_VERTEX_SHADER);
 	char* vert_source = get_file_contents(vert_source_path);
@@ -159,9 +197,9 @@ shader_t create_shader(const char* vert_source_path, const char* frag_source_pat
 		throw std::runtime_error("ERROR::SHADER::FRAG::COMPILATION_FAILED\n" + std::string(info_log));
 	}
 
-	glAttachShader(shader.id, vert);
-	glAttachShader(shader.id, frag);
-	glLinkProgram(shader.id);
+	glAttachShader(gl_shader_id, vert);
+	glAttachShader(gl_shader_id, frag);
+	glLinkProgram(gl_shader_id);
 
 	glDeleteShader(vert);
 	glDeleteShader(frag);
@@ -177,11 +215,12 @@ shader_t create_shader(const char* vert_source_path, const char* frag_source_pat
 
 shader_t create_shader(const char* vert_source_path, const char* geom_source_path, const char* frag_source_path) {
 	shader_t shader;
-	shader.id = glCreateProgram();
 
-	if (shader.id == 10) {
-		int a = 5;
-	}
+	shader.id = internal_shader_running_id;
+	internal_shader_running_id++;
+
+	GLuint gl_shader_id = glCreateProgram();
+	shader_id_to_gl_id[shader.id] = gl_shader_id;
 
 	GLuint vert = glCreateShader(GL_VERTEX_SHADER);
 	char* vert_source = get_file_contents(vert_source_path);
@@ -242,10 +281,10 @@ shader_t create_shader(const char* vert_source_path, const char* geom_source_pat
 		throw std::runtime_error("ERROR::SHADER::FRAG::COMPILATION_FAILED\n" + std::string(info_log));
 	}
 
-	glAttachShader(shader.id, vert);
-	glAttachShader(shader.id, geom);
-	glAttachShader(shader.id, frag);
-	glLinkProgram(shader.id);
+	glAttachShader(gl_shader_id, vert);
+	glAttachShader(gl_shader_id, geom);
+	glAttachShader(gl_shader_id, frag);
+	glLinkProgram(gl_shader_id);
 
 	glDeleteShader(vert);
 	glDeleteShader(geom);
@@ -263,7 +302,8 @@ shader_t create_shader(const char* vert_source_path, const char* geom_source_pat
 }
 
 void bind_shader(shader_t& shader) {
-	glUseProgram(shader.id);
+	GLuint gl_id = shader_id_to_gl_id[shader.id];
+	glUseProgram(gl_id);
 }
 
 void unbind_shader() {
@@ -271,40 +311,44 @@ void unbind_shader() {
 }
 
 void shader_set_mat4(shader_t& shader, const char* var_name, mat4& mat) {
-	glUseProgram(shader.id);
-	GLint loc = glGetUniformLocation(shader.id, var_name);
+	GLuint gl_id = shader_id_to_gl_id[shader.id];
+	glUseProgram(gl_id);
+	GLint loc = glGetUniformLocation(gl_id, var_name);
   if (loc == -1) {
-      printf("%s does not exist in shader %i\n", var_name, shader.id);
+      printf("%s does not exist in shader %i\n", var_name, gl_id);
   }
 	glUniformMatrix4fv(loc, 1, GL_FALSE, (float*)&mat.cols[0].x);
 	unbind_shader();
 }
 
 void shader_set_int(shader_t& shader, const char* var_name, int val) {
-	glUseProgram(shader.id);
-	GLint loc = glGetUniformLocation(shader.id, var_name);
+	GLuint gl_id = shader_id_to_gl_id[shader.id];
+	glUseProgram(gl_id);
+	GLint loc = glGetUniformLocation(gl_id, var_name);
   if (loc == -1) {
-      printf("%s does not exist in shader %i\n", var_name, shader.id);
+      printf("%s does not exist in shader %i\n", var_name, gl_id);
   }
 	glUniform1i(loc, val);
 	unbind_shader();
 }
 
 void shader_set_float(shader_t& shader, const char* var_name, float val) {
-	glUseProgram(shader.id);
-	GLint loc = glGetUniformLocation(shader.id, var_name);
+	GLuint gl_id = shader_id_to_gl_id[shader.id];
+	glUseProgram(gl_id);
+	GLint loc = glGetUniformLocation(gl_id, var_name);
     if (loc == -1) {
-        printf("%s does not exist in shader %i\n", var_name, shader.id);
+        printf("%s does not exist in shader %i\n", var_name, gl_id);
     }
 	glUniform1f(loc, val);
 	unbind_shader();
 }
 
 void shader_set_vec3(shader_t& shader, const char* var_name, vec3 vec) {
-	glUseProgram(shader.id);
-	GLint loc = glGetUniformLocation(shader.id, var_name);
+	GLuint gl_id = shader_id_to_gl_id[shader.id];
+	glUseProgram(gl_id);
+	GLint loc = glGetUniformLocation(gl_id, var_name);
     if (loc == -1) {
-        printf("%s does not exist in shader %i\n", var_name, shader.id);
+        printf("%s does not exist in shader %i\n", var_name, gl_id);
     }
 	glUniform3fv(loc, 1, (GLfloat*)&vec);
 	unbind_shader();
@@ -682,9 +726,13 @@ void unbind_framebuffer() {
 	glViewport(0, 0, window.window_dim.x, window.window_dim.y);
 }
 
-void clear_framebuffer(framebuffer_t& fb) {
+void clear_framebuffer() {
 	glClearColor(0.f, 0.f, 0.f, 1.f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void clear_framebuffer_depth() {
+  glClear(GL_DEPTH_BUFFER_BIT);
 }
 
 void get_gfx_error() {

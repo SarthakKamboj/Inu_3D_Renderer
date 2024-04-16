@@ -1592,9 +1592,9 @@ void gltf_load_file(const char* filepath) {
       mesh.vbo = create_vbo((void*)mesh.vertices.data(), mesh.vertices.size() * sizeof(vertex_t));
       mesh.ebo = create_ebo(mesh.indicies.data(), mesh.indicies.size() * sizeof(unsigned int));
 
-      vao_enable_attribute(mesh.vao, mesh.vbo, 0, 3, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, position));
-      vao_enable_attribute(mesh.vao, mesh.vbo, 1, 2, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, tex0));
-      vao_enable_attribute(mesh.vao, mesh.vbo, 2, 2, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, tex1));
+      vao_enable_attribute(mesh.vao, mesh.vbo, 0, 3, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(vertex_t), offsetof(vertex_t, position));
+      vao_enable_attribute(mesh.vao, mesh.vbo, 1, 2, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(vertex_t), offsetof(vertex_t, tex0));
+      vao_enable_attribute(mesh.vao, mesh.vbo, 2, 2, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(vertex_t), offsetof(vertex_t, tex1));
 #if 0
       vao_enable_attribute(mesh.vao, mesh.vbo, 3, 2, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, tex2));
       vao_enable_attribute(mesh.vao, mesh.vbo, 4, 2, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, tex3));
@@ -1602,10 +1602,10 @@ void gltf_load_file(const char* filepath) {
       vao_enable_attribute(mesh.vao, mesh.vbo, 6, 4, GL_UNSIGNED_INT, sizeof(vertex_t), offsetof(vertex_t, joints));
       vao_enable_attribute(mesh.vao, mesh.vbo, 7, 4, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, weights));
 #else
-      vao_enable_attribute(mesh.vao, mesh.vbo, 3, 3, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, color));
-      vao_enable_attribute(mesh.vao, mesh.vbo, 4, 4, GL_UNSIGNED_INT, sizeof(vertex_t), offsetof(vertex_t, joints));
-      vao_enable_attribute(mesh.vao, mesh.vbo, 5, 4, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, weights));
-      vao_enable_attribute(mesh.vao, mesh.vbo, 6, 3, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, normal));
+      vao_enable_attribute(mesh.vao, mesh.vbo, 3, 3, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(vertex_t), offsetof(vertex_t, color));
+      vao_enable_attribute(mesh.vao, mesh.vbo, 4, 4, VAO_ATTR_DATA_TYPE::UNSIGNED_INT, sizeof(vertex_t), offsetof(vertex_t, joints));
+      vao_enable_attribute(mesh.vao, mesh.vbo, 5, 4, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(vertex_t), offsetof(vertex_t, weights));
+      vao_enable_attribute(mesh.vao, mesh.vbo, 6, 3, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(vertex_t), offsetof(vertex_t, normal));
 #endif
       vao_bind_ebo(mesh.vao, mesh.ebo);
       

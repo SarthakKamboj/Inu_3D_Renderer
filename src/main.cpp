@@ -142,21 +142,21 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 #if RENDER_DIR_LIGHT_ORTHOS
     if (window.input.left_mouse_up) {
       render_dir_orthos = !render_dir_orthos;
-      if (RENDER_DIR_LIGHT_ORTHOS) {
-        dir_light_t* dir = get_dir_light(0);
-        for (int i = 0; i < NUM_SM_CASCADES; i++) {
-          if (render_dir_orthos && i == LIGHT_ORTHO_CASCADE_TO_VIEW) {
-            set_obj_as_parent(dir->debug_ortho_obj_ids[i]);
-          } else {
-            unset_obj_as_parent(dir->debug_ortho_obj_ids[i]);
-          }
+      dir_light_t* dir = get_dir_light(0);
+      for (int i = 0; i < NUM_SM_CASCADES; i++) {
+        if (render_dir_orthos && i == LIGHT_ORTHO_CASCADE_TO_VIEW) {
+          set_obj_as_parent(dir->debug_ortho_obj_ids[i]);
+        } else {
+          unset_obj_as_parent(dir->debug_ortho_obj_ids[i]);
         }
       }
     }
 #endif
     //
     if (window.input.right_mouse_up) {
-      // update_dir_light_frustums = !update_dir_light_frustums;
+#if (RENDER_DIR_LIGHT_FRUSTUMS || RENDER_DIR_LIGHT_ORTHOS)
+      update_dir_light_frustums = !update_dir_light_frustums;
+#endif
       play_next_anim();
       // RENDER_DEPTH = 1-RENDER_DEPTH;
     }

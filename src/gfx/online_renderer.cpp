@@ -2,6 +2,7 @@
 
 #include "utils/general.h"
 #include "windowing/window.h"
+#include "gfx/gfx.h"
 
 static online_renderer_t online_renderer;
 extern framebuffer_t offline_fb;
@@ -52,8 +53,8 @@ void init_online_renderer() {
 
   offline_to_online_quad.ebo = create_ebo(indicies, sizeof(indicies));
 
-  vao_enable_attribute(offline_to_online_quad.vao, offline_to_online_quad.vbo, 0, 2, GL_FLOAT, sizeof(offline_to_online_vertex_t), offsetof(offline_to_online_vertex_t, position));
-  vao_enable_attribute(offline_to_online_quad.vao, offline_to_online_quad.vbo, 1, 2, GL_FLOAT, sizeof(offline_to_online_vertex_t), offsetof(offline_to_online_vertex_t, tex));
+  vao_enable_attribute(offline_to_online_quad.vao, offline_to_online_quad.vbo, 0, 2, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(offline_to_online_vertex_t), offsetof(offline_to_online_vertex_t, position));
+  vao_enable_attribute(offline_to_online_quad.vao, offline_to_online_quad.vbo, 1, 2, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(offline_to_online_vertex_t), offsetof(offline_to_online_vertex_t, tex));
   vao_bind_ebo(offline_to_online_quad.vao, offline_to_online_quad.ebo);
 }
 
@@ -61,7 +62,6 @@ void init_online_renderer() {
 // void render_online(framebuffer_t& final_offline_fb) {
 void render_online(tex_id_t final_att, int render_depth) {
   unbind_framebuffer();
-  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
   if (online_renderer.first_render || window.resized) {
     online_renderer.first_render = false;
@@ -71,9 +71,10 @@ void render_online(tex_id_t final_att, int render_depth) {
   }
 
   shader_set_int(online_renderer.offline_to_online_shader, "render_depth", render_depth);
+  clear_framebuffer();
+#if 0
   glClearColor(0.f, 0.f, 0.f, 1.f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-#if 0
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, final_att);
 #else

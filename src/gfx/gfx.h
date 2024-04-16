@@ -2,8 +2,6 @@
 
 #include <string>
 
-#include "glew.h"
-
 #include "utils/mats.h"
 #include "utils/vectors.h"
 
@@ -21,9 +19,14 @@
 
 typedef int tex_id_t;
 typedef int fb_id_t;
+typedef int ebo_id_t;
+typedef int vbo_id_t;
+typedef int vao_id_t;
+
+typedef int shader_id_t;
 
 struct ebo_t {
-	GLuint id = 0;
+	ebo_id_t id = 0;
 	int num_indicies = -1;
 };
 ebo_t create_ebo(const unsigned int* indicies, const int size_of_buffer);
@@ -33,7 +36,7 @@ void unbind_ebo();
 void delete_ebo(const ebo_t& ebo);
 
 struct vbo_t {
-	GLuint id = 0;
+	vbo_id_t id = 0;
 };
 vbo_t create_vbo(const void* vertices, const int data_size);
 vbo_t create_dyn_vbo(const int data_size);
@@ -43,17 +46,29 @@ void unbind_vbo();
 void delete_vbo(const vbo_t& vbo);
 
 struct vao_t {
-	GLuint id = 0;
+	vao_id_t id = 0;
 };
+
+#define USE_DT_ENUM 1
+
+enum class VAO_ATTR_DATA_TYPE {
+	FLOAT,
+	UNSIGNED_INT
+};
+
 vao_t create_vao();
 void bind_vao(const vao_t& vao);
 void unbind_vao();
+#if USE_DT_ENUM
+void vao_enable_attribute(vao_t& vao, const vbo_t& vbo, const int attr_id, const int num_values, const VAO_ATTR_DATA_TYPE d_type, const int stride, const int offset);
+#else
 void vao_enable_attribute(vao_t& vao, const vbo_t& vbo, const int attr_id, const int num_values, const int d_type, const int stride, const int offset);
+#endif
 void vao_bind_ebo(vao_t& vao, ebo_t& ebo);
 void delete_vao(const vao_t& vao);
 
 struct shader_t {
-	GLuint id = 0;
+	shader_id_t id = 0;
 	std::string vert_name;
 	std::string geom_name;
 	std::string frag_name;
@@ -221,7 +236,8 @@ struct framebuffer_t {
 };
 framebuffer_t create_framebuffer(int width, int height, FB_TYPE fb_type);
 void bind_framebuffer(framebuffer_t& fb);
-void clear_framebuffer(framebuffer_t& fb);
+void clear_framebuffer();
+void clear_framebuffer_depth();
 void unbind_framebuffer();
 
 void get_gfx_error();

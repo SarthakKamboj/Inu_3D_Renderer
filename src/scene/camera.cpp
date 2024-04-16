@@ -64,7 +64,6 @@ void update_cam() {
   float right = mid * static_cast<float>(window.window_dim.x) / window.window_dim.y;
   cam.proj = ortho_mat(-right, right, -top, top, cam.near_plane, cam.far_plane);
 #endif
-  // cam.proj = proj_mat(60.f, cam.near_plane, cam.far_plane, static_cast<float>(window.window_dim.x) / window.window_dim.y);
 #undef USE_PERS
 }
 

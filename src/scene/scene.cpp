@@ -288,8 +288,6 @@ void dirlight_pass() {
   int num_dir_lights = get_num_dir_lights();
   camera_t* cam = get_cam();
 
-  glCullFace(GL_BACK);
-
   for (int i = 0; i < num_dir_lights; i++) { 
     gen_dir_light_matricies(i, cam); 
     setup_dir_light_for_rendering(i, cam);
@@ -311,9 +309,8 @@ void dirlight_pass() {
 
 void offline_final_render_pass() {
   // OFFLINE RENDER PASS
-  glCullFace(GL_BACK);
   bind_framebuffer(offline_fb);
-  clear_framebuffer(offline_fb);
+  clear_framebuffer();
 
   mat4 proj = get_cam_proj_mat();
   mat4 view = get_cam_view_mat();
