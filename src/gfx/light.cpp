@@ -290,6 +290,7 @@ int create_dir_light(vec3 dir) {
   dir_light_t light;
   light.dir = normalize(dir);
   light.id = dir_lights.size();
+  light.light_pass_fb = create_framebuffer(dir_light_t::SHADOW_MAP_WIDTH, dir_light_t::SHADOW_MAP_HEIGHT, FB_TYPE::NO_COLOR_ATT_MULTIPLE_DEPTH_TEXTURE); 
 
 #if USE_DIR_LIGHT_DEBUG_FBOS
   light.debug_light_pass_fbs[0] = create_framebuffer(dir_light_t::SHADOW_MAP_WIDTH, dir_light_t::SHADOW_MAP_HEIGHT, FB_TYPE::TEXTURE_DEPTH_STENCIL);
@@ -297,24 +298,12 @@ int create_dir_light(vec3 dir) {
   light.debug_light_pass_fbs[2] = create_framebuffer(dir_light_t::SHADOW_MAP_WIDTH, dir_light_t::SHADOW_MAP_HEIGHT, FB_TYPE::TEXTURE_DEPTH_STENCIL);
 #endif
 
-  light.light_pass_fb = create_framebuffer(dir_light_t::SHADOW_MAP_WIDTH, dir_light_t::SHADOW_MAP_HEIGHT, FB_TYPE::NO_COLOR_ATT_MULTIPLE_DEPTH_TEXTURE); 
-
 #if (RENDER_DIR_LIGHT_FRUSTUMS || RENDER_DIR_LIGHT_ORTHOS)
   create_frustum_and_ortho_models(light);
 #endif
 
 #if DISPLAY_DIR_LIGHT_SHADOW_MAPS
-  light.display_shadow_map_vao = create_vao();
-  light.display_shadow_map_vbo = create_dyn_vbo(sizeof(dir_light_shadow_map_vert_t) * 4);
-  unsigned int indicies[6] {
-    0, 2, 1,
-    0, 3, 2
-  };
-  light.display_shadow_map_ebo = create_ebo(indicies, sizeof(indicies));
-
-  vao_enable_attribute(light.display_shadow_map_vao, light.display_shadow_map_vbo, 0, 2, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(dir_light_shadow_map_vert_t), offsetof(dir_light_shadow_map_vert_t, pos));
-  vao_enable_attribute(light.display_shadow_map_vao, light.display_shadow_map_vbo, 1, 2, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(dir_light_shadow_map_vert_t), offsetof(dir_light_shadow_map_vert_t, tex));
-  vao_bind_ebo(light.display_shadow_map_vao, light.display_shadow_map_ebo);
+  create_dir_light_shadow_map_img_buffers(light);
 #endif
 
   dir_lights.push_back(light);
@@ -670,8 +659,21 @@ void remove_dir_light_from_rendering_debug() {
 #endif
 
 #if DISPLAY_DIR_LIGHT_SHADOW_MAPS
+void create_dir_light_shadow_map_img_buffers(dir_light_t& light) {
+  light.display_shadow_map_vao = create_vao();
+  light.display_shadow_map_vbo = create_dyn_vbo(sizeof(dir_light_shadow_map_vert_t) * 4);
+  unsigned int indicies[6] {
+    0, 2, 1,
+    0, 3, 2
+  };
+  light.display_shadow_map_ebo = create_ebo(indicies, sizeof(indicies));
+
+  vao_enable_attribute(light.display_shadow_map_vao, light.display_shadow_map_vbo, 0, 2, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(dir_light_shadow_map_vert_t), offsetof(dir_light_shadow_map_vert_t, pos));
+  vao_enable_attribute(light.display_shadow_map_vao, light.display_shadow_map_vbo, 1, 2, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(dir_light_shadow_map_vert_t), offsetof(dir_light_shadow_map_vert_t, tex));
+  vao_bind_ebo(light.display_shadow_map_vao, light.display_shadow_map_ebo);
+}
+
 void render_dir_light_shadow_maps(int dir_light_id) {
-  // glClear(GL_DEPTH_BUFFER_BIT);
   clear_framebuffer_depth();
   dir_light_t& dir_light = dir_lights[dir_light_id];
 
@@ -701,8 +703,6 @@ void render_dir_light_shadow_maps(int dir_light_id) {
 
     update_vbo_data(dir_light.display_shadow_map_vbo, verts, sizeof(verts));
 
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D_ARRAY, dir_light.light_pass_fb.depth_att);
     bind_texture(dir_light.light_pass_fb.depth_att, 0);
 
     bind_shader(dir_light_t::display_shadow_map_shader);

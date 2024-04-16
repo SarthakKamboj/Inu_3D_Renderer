@@ -14,13 +14,13 @@
 #define HAVE_DIR_LIGHT 1
 #define NUM_CUBE_CORNERS 8
 
-#define RENDER_DIR_LIGHT_FRUSTUMS 1
+#define RENDER_DIR_LIGHT_FRUSTUMS 0
 
 #define RENDER_DIR_LIGHT_ORTHOS 0
 // define which ortho projection we want to view
 #define LIGHT_ORTHO_CASCADE_TO_VIEW 0
 
-#define DISPLAY_DIR_LIGHT_SHADOW_MAPS 0
+#define DISPLAY_DIR_LIGHT_SHADOW_MAPS 1
 
 #define USE_DIR_LIGHT_DEBUG_FBOS 0
 
@@ -121,6 +121,7 @@ void setup_dir_light_for_rendering_debug(int light_id, camera_t* camera, int cas
 void remove_dir_light_from_rendering_debug();
 
 #if DISPLAY_DIR_LIGHT_SHADOW_MAPS
+void create_dir_light_shadow_map_img_buffers(dir_light_t& light);
 void render_dir_light_shadow_maps(int dir_light_id);
 #endif
 
