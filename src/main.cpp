@@ -17,7 +17,6 @@
 static float win_width = 1280.f;
 static float win_height = 960.f;
 
-bool update_dir_light_frustums = true;
 bool render_dir_orthos = true;
 
 extern window_t window;
@@ -27,6 +26,7 @@ extern framebuffer_t offline_fb;
 app_info_t app_info;
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
+
   create_window(hInstance, win_width, win_height);
 
   if (wcscmp(pCmdLine, L"running_in_vs") == 0) {
@@ -152,12 +152,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
       }
     }
 #endif
-    //
+
     if (window.input.right_mouse_up) {
-#if (RENDER_DIR_LIGHT_FRUSTUMS || RENDER_DIR_LIGHT_ORTHOS)
-      update_dir_light_frustums = !update_dir_light_frustums;
-#endif
-      play_next_anim();
+      // play_next_anim();
       // RENDER_DEPTH = 1-RENDER_DEPTH;
     }
     

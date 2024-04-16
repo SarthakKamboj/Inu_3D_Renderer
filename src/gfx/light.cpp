@@ -20,6 +20,8 @@
 
 extern window_t window;
 
+bool update_dir_light_frustums = true;
+
 static std::vector<spotlight_t> spotlights;
 static std::vector<dir_light_t> dir_lights;
 
@@ -365,9 +367,14 @@ void update_dir_light_ortho_models(dir_light_t& dir_light, int cascade, float x_
 }
 #endif
 
-extern bool update_dir_light_frustums;
 void gen_dir_light_matricies(int light_id, camera_t* camera) {
   dir_light_t& dir_light = dir_lights[light_id];
+
+#if (RENDER_DIR_LIGHT_FRUSTUMS || RENDER_DIR_LIGHT_ORTHOS)
+  if (window.input.right_mouse_up) {
+    update_dir_light_frustums = !update_dir_light_frustums;
+  }
+#endif
 
   // calculate camera frustum in world coordinates
   frustum_t cam_frustum_ndc_corners = {

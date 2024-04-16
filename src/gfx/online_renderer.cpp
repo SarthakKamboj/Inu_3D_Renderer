@@ -58,8 +58,6 @@ void init_online_renderer() {
   vao_bind_ebo(offline_to_online_quad.vao, offline_to_online_quad.ebo);
 }
 
-// extern framebuffer_t light_pass_fb;
-// void render_online(framebuffer_t& final_offline_fb) {
 void render_online(tex_id_t final_att, int render_depth) {
   unbind_framebuffer();
 
@@ -67,7 +65,6 @@ void render_online(tex_id_t final_att, int render_depth) {
     online_renderer.first_render = false;
     // need to change this logic to not rely on another fbo but rather just the online fbo and/or window dimensions
     update_online_vertices(offline_fb);
-    // update_online_vertices(light_pass_fb);
   }
 
   shader_set_int(online_renderer.offline_to_online_shader, "render_depth", render_depth);
@@ -78,7 +75,7 @@ void render_online(tex_id_t final_att, int render_depth) {
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, final_att);
 #else
-  bind_texture(final_att);
+  bind_texture(final_att, 0);
 #endif
   bind_shader(online_renderer.offline_to_online_shader);
   bind_vao(online_renderer.offline_to_online_quad.vao);

@@ -44,32 +44,32 @@ void play_next_anim() {
     playing_anim_idx = 0;
   } 
 
-  if (orig != playing_anim_idx) {
-    animation_t& anim = animations[playing_anim_idx];
-    animation_globals.anim_time = 0;
-    animation_globals.anim_end_time = 0;
-#if STEP_BY_STEP_ANIM
-    timestamps_set.clear();
-    timestamps.clear();
-#endif
-    animation_globals.anim_time = 0;
-    animation_globals.anim_end_time = 0;
-    for (int j = 0; j < anim.data_chunk_ids.size(); j++) {
-      int data_chunk_id = anim.data_chunk_ids[j];
-      animation_data_chunk_t& adc = anim_data_chunks[data_chunk_id];
-      int nt = adc.num_timestamps;
-      animation_globals.anim_end_time = adc.timestamps[nt-1];
-#if STEP_BY_STEP_ANIM
-      timestamps_set.insert(adc.timestamps.begin(), adc.timestamps.end());
-#endif
-    }
+  if (orig == playing_anim_idx) return;
 
+  animation_t& anim = animations[playing_anim_idx];
+  animation_globals.anim_time = 0;
+  animation_globals.anim_end_time = 0;
 #if STEP_BY_STEP_ANIM
-    timestamps.insert(timestamps.end(), timestamps_set.begin(), timestamps_set.end());
-    std::sort(timestamps.begin(), timestamps.end());
+  timestamps_set.clear();
+  timestamps.clear();
 #endif
-
+  animation_globals.anim_time = 0;
+  animation_globals.anim_end_time = 0;
+  for (int j = 0; j < anim.data_chunk_ids.size(); j++) {
+    int data_chunk_id = anim.data_chunk_ids[j];
+    animation_data_chunk_t& adc = anim_data_chunks[data_chunk_id];
+    int nt = adc.num_timestamps;
+    animation_globals.anim_end_time = adc.timestamps[nt-1];
+#if STEP_BY_STEP_ANIM
+    timestamps_set.insert(adc.timestamps.begin(), adc.timestamps.end());
+#endif
   }
+
+#if STEP_BY_STEP_ANIM
+  timestamps.insert(timestamps.end(), timestamps_set.begin(), timestamps_set.end());
+  std::sort(timestamps.begin(), timestamps.end());
+#endif
+
 }
 
 animation_data_chunk_t* get_anim_data_chunk(int data_id) {
@@ -138,6 +138,11 @@ int register_anim_data_chunk(animation_data_chunk_t& data) {
 }
 
 void update_animations() {
+
+  if (window.input.right_mouse_up) {
+    play_next_anim();
+  }
+
 #if STEP_BY_STEP_ANIM
   if (window.input.left_mouse_up) {
     frame_idx++;
