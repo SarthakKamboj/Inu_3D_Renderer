@@ -1,6 +1,5 @@
-//#pragma once
-#ifndef INU_MATH_H
-#define INU_MATH_H
+#pragma once
+
 #include "vectors.h"
 
 // LIST OF FUNCTIONS YOU WILL NEED TO CREATE/IMPLEMENT
@@ -23,7 +22,9 @@ struct vec3;
 float dot_product(const vec2& vect1, const vec2& vect2);
 float dot_product(const vec3& vect1, const vec3& vect2);
 
+#if 0
 vec3 cross_product(const vec3& vect1, const vec3& vect2);
+#endif
 
 float magnitude(const vec2& vect);
 float magnitude(const vec3& vect);
@@ -39,4 +40,4 @@ vec3 division(const vec3& vect, float scalar);
 vec2 normalize(const vec2& vect);
 vec3 normalize(const vec3& vect);
 
-#endif // INU_MATH_H
+// #endif // INU_MATH_H

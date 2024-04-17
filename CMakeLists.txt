@@ -19,10 +19,29 @@ function(configure_project)
 
         src/windowing/window.cpp
 
-        src/gfx/gfx.cpp
+        src/gfx/opengl_gfx.cpp
+        src/gfx/opengl_gfx_helper.cpp
         src/gfx/opengl/glew.c
+        src/gfx/online_renderer.cpp
+        src/gfx/light.cpp
 
+        src/model_loading/gltf/gltf.cpp
+        src/model_loading/image/stb_image.cpp
+        src/model_loading/model_internal.cpp
+
+        src/utils/general.cpp
         src/utils/inu_math.cpp
+        src/utils/mats.cpp
+        src/utils/quaternion.cpp
+        src/utils/vectors.cpp
+        src/utils/inu_time.cpp
+        src/utils/transform.cpp
+
+        src/scene/scene.cpp
+        src/scene/camera.cpp
+
+        src/animation/interpolation.cpp
+        src/animation/animation_internal.cpp
     )
 
     add_executable(${PROJECT_NAME} 
@@ -34,6 +53,8 @@ function(configure_project)
         PUBLIC src
         PUBLIC src/gfx/opengl
         PUBLIC src/gfx/opengl/GL
+
+        PUBLIC ext/glm
     )
 
     target_link_libraries(${PROJECT_NAME}

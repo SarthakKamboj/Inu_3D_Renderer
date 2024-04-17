@@ -10,6 +10,7 @@ float dot_product(const vec3& vect1, const vec3& vect2) {
     return vect1.x * vect2.x + vect1.y * vect2.y + vect1.z * vect2.z;
 }
 
+#if 0
 vec3 cross_product(const vec3& vect1, const vec3& vect2) {
     return {
         vect1.y * vect2.z - vect1.z * vect2.y,
@@ -17,6 +18,7 @@ vec3 cross_product(const vec3& vect1, const vec3& vect2) {
         vect1.x * vect2.y - vect1.y * vect2.x
     };
 }
+#endif
 
 float magnitude(const vec2& vect) {
     return std::sqrt(vect.x * vect.x + vect.y * vect.y);

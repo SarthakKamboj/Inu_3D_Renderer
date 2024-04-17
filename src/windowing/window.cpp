@@ -7,8 +7,12 @@
 #include <Windowsx.h>
 #include <wingdi.h>
 #include <winuser.h>
+#include "glew.h"
+#include "wglew.h"
+// #include <utils/wglext.h>
 
 #include "gfx/gfx.h"
+#include "utils/inu_time.h"
 
 #ifndef UNICODE
 #define UNICODE
@@ -106,41 +110,129 @@ void create_window(HINSTANCE h_instance, int width, int height) {
   int pixel_format_idx = ChoosePixelFormat(device_context, &pixel_format);
   SetPixelFormat(device_context, pixel_format_idx, &pixel_format);
 
-  HGLRC gl_render_context = wglCreateContext(device_context);
+  int gl_attribs[] = {
+      WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
+      WGL_CONTEXT_MINOR_VERSION_ARB, 1,
+      WGL_CONTEXT_PROFILE_MASK_ARB,  WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+      0,
+  };
+
+  HGLRC gl_render_context_for_context_func = wglCreateContext(device_context);
+  wglMakeCurrent(device_context, gl_render_context_for_context_func);
+  PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC) wglGetProcAddress("wglCreateContextAttribsARB");
+  HGLRC gl_render_context = wglCreateContextAttribsARB(device_context, nullptr, gl_attribs);
+  wglMakeCurrent(device_context, NULL);
+  wglDeleteContext(gl_render_context_for_context_func);
   wglMakeCurrent(device_context, gl_render_context);
 
   HDC gl_device_context = wglGetCurrentDC();
   inu_assert(gl_device_context == device_context, "opengl device context not the same as the window's\n");
 
   GLenum err = glewInit();
-  inu_assert(err == GLEW_OK, glewGetErrorString(err));
+  inu_assert(err == GLEW_OK, glewGetErrorString(err)); 
 
-  glClearColor(1.f, 0.f, 0.f, 0.f);
+  printf("version: %s\n", glGetString(GL_VERSION));
+  glEnable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  // glFrontFace(GL_CCW);
+  // glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 }
 
 LRESULT CALLBACK window_procedure(HWND h_window, UINT u_msg, WPARAM w_param, LPARAM l_param) {
   switch (u_msg) {
+    case WM_SIZE: {
+      window.resized = true;
+      unsigned int width = LOWORD(l_param);
+      unsigned int height = HIWORD(l_param);
+      glViewport(0, 0, width, height);
+      window.window_dim.x = width;
+      window.window_dim.y = height;
+      break;
+    }
     case WM_DESTROY: {
       window.running = false;
       PostQuitMessage(0);
       return 0;
     }
     case WM_LBUTTONUP: {
-      printf("left button up\n");
+      window.input.left_mouse_up = true;
+      break;
+    }
+    case WM_RBUTTONUP: {
+      window.input.right_mouse_up = true;
       break;
     }
     case WM_MOUSEMOVE: {
       // bottom left should be (0,0)
+      ivec2 orig = {window.input.mouse_pos.x, window.input.mouse_pos.y};
       window.input.mouse_pos.x = GET_X_LPARAM(l_param);
       window.input.mouse_pos.y = window.window_dim.y - GET_Y_LPARAM(l_param);
-      printf("mouse pos: (%i,%i)\n", window.input.mouse_pos.x, window.input.mouse_pos.y);
+      window.input.middle_mouse_down = (w_param & MK_MBUTTON) != 0;
+
+      window.input.mouse_pos_diff.x = window.input.mouse_pos.x - orig.x;
+      window.input.mouse_pos_diff.y = window.input.mouse_pos.y - orig.y;
       break;
+    }
+    case WM_MOUSEWHEEL: {
+      // fwKeys = GET_KEYSTATE_WPARAM(wParam);
+      float scroll_wheel_delta = GET_WHEEL_DELTA_WPARAM(w_param);
+      window.input.scroll_wheel_delta = scroll_wheel_delta / WHEEL_DELTA;
+      return 0;
+    }
+    case WM_KEYUP: {
+      switch (w_param) {
+        case VK_SHIFT: {
+          window.input.shift_down = false;
+          break;
+        }
+        case 0x41: {
+          window.input.a_up = true;
+          break;
+        }
+        case 0x42: {
+          window.input.b_up = true;
+          break;
+        }
+        case 0x43: {
+          window.input.c_up = true;
+          break;
+        }
+      }
+      break; 
+    }
+    case WM_KEYDOWN: {
+      switch (w_param) {
+        case VK_SHIFT: {
+          window.input.shift_down = true;
+          break;
+        }
+      }
+      break; 
+    }
+    case WM_CHAR: {
+      int a = 5;
+      break; 
+    }
+    case WM_SYSKEYUP: {
+      int a = 5;
+      break; 
     }
   }
   return DefWindowProc(h_window, u_msg, w_param, l_param);
 }
 
 void poll_events() {
+  window.resized = false;
+  window.input.scroll_wheel_delta = 0;
+  window.input.middle_mouse_down = false;
+  window.input.mouse_pos_diff = {0,0};
+  window.input.left_mouse_up = false;
+  window.input.right_mouse_up = false;
+
+  window.input.a_up = false;
+  window.input.b_up = false;
+  window.input.c_up = false;
+  // window.input.shift_down = false;
   MSG msg{};
   while (PeekMessage(&msg, window.win32_wnd, 0, 0, 0)) {
     bool quit_msg = (GetMessage(&msg, NULL, 0, 0) == 0);
@@ -151,7 +243,6 @@ void poll_events() {
 }
 
 void swap_buffers() {
-  glClear(GL_COLOR_BUFFER_BIT);
   HDC gl_device_context = wglGetCurrentDC();
   SwapBuffers(gl_device_context);
 }
