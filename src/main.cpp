@@ -13,6 +13,7 @@
 #include "utils/app_info.h"
 #include "utils/mats.h"
 #include "utils/quaternion.h"
+#include "utils/inu_math.h"
 
 static float win_width = 1280.f;
 static float win_height = 960.f;
@@ -163,4 +164,5 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     end_timer(frame_timer);
     app_info.delta_time = frame_timer.elapsed_time_sec;
   }
+// #endif
 }
