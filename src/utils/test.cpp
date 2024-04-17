@@ -81,7 +81,7 @@ void testDivisionVec2() {
         printf("Division (vec2) test failed.\n");
     }
 }
-
+//changed float to int
 void testNormalizationVec3() {
     vec3 a = { 3, 1, 2 };
     vec3 result = normalize(a);
