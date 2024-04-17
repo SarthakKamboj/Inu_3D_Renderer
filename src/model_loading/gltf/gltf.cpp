@@ -1277,21 +1277,22 @@ void* gltf_read_accessor_data(int accessor_idx) {
   return (void*)data;
 }
 
-int gltf_read_texture(int gltf_tex_idx, int tex_slot) {
+file_texture_t gltf_read_texture(int gltf_tex_idx, int tex_slot) {
   inu_assert(gltf_tex_idx < gltf_textures.size());
   gltf_texture_t& gltf_tex = gltf_textures[gltf_tex_idx];
   gltf_image_t& img = gltf_images[gltf_tex.image_source_idx];
   std::string& img_file_name = img.uri;
   char img_full_path[256]{};
   sprintf(img_full_path, "%s\\%s", folder_path, img_file_name.c_str());
-  return create_texture(img_full_path, tex_slot);
+  return create_file_texture(img_full_path, tex_slot);
 }
 
 material_image_t gltf_mat_img_to_internal_mat_img(gltf_mat_image_info_t& gltf_mat_image_info, int tex_slot) {
   int mat_gltf_tex_idx = gltf_mat_image_info.gltf_texture_idx;
-  int tex_handle = -1;
+  tex_id_t tex_handle = -1;
   if (mat_gltf_tex_idx != -1) {
-    tex_handle = gltf_read_texture(mat_gltf_tex_idx, tex_slot);
+    file_texture_t ft = gltf_read_texture(mat_gltf_tex_idx, tex_slot);
+    tex_handle = ft.id;
   }
   material_image_t mat_img;
   mat_img.tex_handle = tex_handle;
@@ -1423,7 +1424,7 @@ void gltf_load_file(const char* filepath) {
         for (int i = 0; i < acc.count; i++) {
           vertex_t& vert = mesh.vertices[i];
           vec3 n = v_normals_data[i];
-          vert.normal = norm_vec3(n);
+          vert.normal = normalize(n);
         }
         free(normals_data);
       } else {
@@ -1591,9 +1592,9 @@ void gltf_load_file(const char* filepath) {
       mesh.vbo = create_vbo((void*)mesh.vertices.data(), mesh.vertices.size() * sizeof(vertex_t));
       mesh.ebo = create_ebo(mesh.indicies.data(), mesh.indicies.size() * sizeof(unsigned int));
 
-      vao_enable_attribute(mesh.vao, mesh.vbo, 0, 3, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, position));
-      vao_enable_attribute(mesh.vao, mesh.vbo, 1, 2, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, tex0));
-      vao_enable_attribute(mesh.vao, mesh.vbo, 2, 2, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, tex1));
+      vao_enable_attribute(mesh.vao, mesh.vbo, 0, 3, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(vertex_t), offsetof(vertex_t, position));
+      vao_enable_attribute(mesh.vao, mesh.vbo, 1, 2, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(vertex_t), offsetof(vertex_t, tex0));
+      vao_enable_attribute(mesh.vao, mesh.vbo, 2, 2, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(vertex_t), offsetof(vertex_t, tex1));
 #if 0
       vao_enable_attribute(mesh.vao, mesh.vbo, 3, 2, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, tex2));
       vao_enable_attribute(mesh.vao, mesh.vbo, 4, 2, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, tex3));
@@ -1601,10 +1602,10 @@ void gltf_load_file(const char* filepath) {
       vao_enable_attribute(mesh.vao, mesh.vbo, 6, 4, GL_UNSIGNED_INT, sizeof(vertex_t), offsetof(vertex_t, joints));
       vao_enable_attribute(mesh.vao, mesh.vbo, 7, 4, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, weights));
 #else
-      vao_enable_attribute(mesh.vao, mesh.vbo, 3, 3, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, color));
-      vao_enable_attribute(mesh.vao, mesh.vbo, 4, 4, GL_UNSIGNED_INT, sizeof(vertex_t), offsetof(vertex_t, joints));
-      vao_enable_attribute(mesh.vao, mesh.vbo, 5, 4, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, weights));
-      vao_enable_attribute(mesh.vao, mesh.vbo, 6, 3, GL_FLOAT, sizeof(vertex_t), offsetof(vertex_t, normal));
+      vao_enable_attribute(mesh.vao, mesh.vbo, 3, 3, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(vertex_t), offsetof(vertex_t, color));
+      vao_enable_attribute(mesh.vao, mesh.vbo, 4, 4, VAO_ATTR_DATA_TYPE::UNSIGNED_INT, sizeof(vertex_t), offsetof(vertex_t, joints));
+      vao_enable_attribute(mesh.vao, mesh.vbo, 5, 4, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(vertex_t), offsetof(vertex_t, weights));
+      vao_enable_attribute(mesh.vao, mesh.vbo, 6, 3, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(vertex_t), offsetof(vertex_t, normal));
 #endif
       vao_bind_ebo(mesh.vao, mesh.ebo);
       

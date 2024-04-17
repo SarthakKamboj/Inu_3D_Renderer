@@ -18,5 +18,5 @@ struct online_renderer_t {
 
 void update_online_vertices(framebuffer_t& final_offline_fb);
 void init_online_renderer();
-void render_online(GLuint final_att, int render_depth = 0);
+void render_online(tex_id_t final_att, int render_depth = 0);
 // void render_online(framebuffer_t& final_offline_fb);

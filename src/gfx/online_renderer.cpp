@@ -2,6 +2,7 @@
 
 #include "utils/general.h"
 #include "windowing/window.h"
+#include "gfx/gfx.h"
 
 static online_renderer_t online_renderer;
 extern framebuffer_t offline_fb;
@@ -52,30 +53,30 @@ void init_online_renderer() {
 
   offline_to_online_quad.ebo = create_ebo(indicies, sizeof(indicies));
 
-  vao_enable_attribute(offline_to_online_quad.vao, offline_to_online_quad.vbo, 0, 2, GL_FLOAT, sizeof(offline_to_online_vertex_t), offsetof(offline_to_online_vertex_t, position));
-  vao_enable_attribute(offline_to_online_quad.vao, offline_to_online_quad.vbo, 1, 2, GL_FLOAT, sizeof(offline_to_online_vertex_t), offsetof(offline_to_online_vertex_t, tex));
+  vao_enable_attribute(offline_to_online_quad.vao, offline_to_online_quad.vbo, 0, 2, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(offline_to_online_vertex_t), offsetof(offline_to_online_vertex_t, position));
+  vao_enable_attribute(offline_to_online_quad.vao, offline_to_online_quad.vbo, 1, 2, VAO_ATTR_DATA_TYPE::FLOAT, sizeof(offline_to_online_vertex_t), offsetof(offline_to_online_vertex_t, tex));
   vao_bind_ebo(offline_to_online_quad.vao, offline_to_online_quad.ebo);
 }
 
-// extern framebuffer_t light_pass_fb;
-// void render_online(framebuffer_t& final_offline_fb) {
-void render_online(GLuint final_att, int render_depth) {
+void render_online(tex_id_t final_att, int render_depth) {
   unbind_framebuffer();
-  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
   if (online_renderer.first_render || window.resized) {
     online_renderer.first_render = false;
     // need to change this logic to not rely on another fbo but rather just the online fbo and/or window dimensions
     update_online_vertices(offline_fb);
-    // update_online_vertices(light_pass_fb);
   }
 
   shader_set_int(online_renderer.offline_to_online_shader, "render_depth", render_depth);
+  clear_framebuffer();
+#if 0
   glClearColor(0.f, 0.f, 0.f, 1.f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, final_att);
-  glTexParameteri (GL_TEXTURE_2D, GL_DEPTH_STENCIL_TEXTURE_MODE, GL_DEPTH_COMPONENT);
+#else
+  bind_texture(final_att, 0);
+#endif
   bind_shader(online_renderer.offline_to_online_shader);
   bind_vao(online_renderer.offline_to_online_quad.vao);
   draw_ebo(online_renderer.offline_to_online_quad.ebo);

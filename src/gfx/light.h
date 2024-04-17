@@ -15,8 +15,14 @@
 #define NUM_CUBE_CORNERS 8
 
 #define RENDER_DIR_LIGHT_FRUSTUMS 0
+
 #define RENDER_DIR_LIGHT_ORTHOS 0
+// define which ortho projection we want to view
 #define LIGHT_ORTHO_CASCADE_TO_VIEW 0
+
+#define DISPLAY_DIR_LIGHT_SHADOW_MAPS 1
+
+#define USE_DIR_LIGHT_DEBUG_FBOS 0
 
 #define BTR 0
 #define FTR 1
@@ -28,7 +34,7 @@
 #define FBL 7
 
 // will hopefully use shadow volumes at some pt
-struct light_t {
+struct spotlight_t {
   int id = -1;
   transform_t transform;
   float radius = 1.f;
@@ -50,19 +56,23 @@ struct light_t {
 };
 
 void init_light_data();
-int create_light(vec3 pos);
-void setup_light_for_rendering(int light_id);
-void remove_light_from_rendering();
-light_t get_light(int light_id);
-int get_num_lights();
-GLuint get_light_fb_depth_tex(int light_id);
-mat4 get_light_proj_mat(int light_id);
-mat4 get_light_view_mat(int light_id);
-vec3 get_light_pos(int light_id);
+int create_spotlight(vec3 pos);
+void setup_spotlight_for_rendering(int light_id);
+void remove_spotlight_from_rendering();
+spotlight_t get_spotlight(int light_id);
+int get_num_spotlights();
+tex_id_t get_spotlight_fb_depth_tex(int light_id);
+mat4 get_spotlight_proj_mat(int light_id);
+mat4 get_spotlight_view_mat(int light_id);
+vec3 get_spotlight_pos(int light_id);
 
 struct dir_light_shadow_map_vert_t {
   vec2 pos;
   vec2 tex;
+};
+
+struct frustum_t {
+  vec3 frustum_corners[NUM_CUBE_CORNERS]{};
 };
 
 // will use cascading shadow maps
@@ -73,19 +83,27 @@ struct dir_light_t {
   vec3 dir;
 
   static shader_t light_shader;
+
+#if USE_DIR_LIGHT_DEBUG_FBOS
   static shader_t debug_shader;
+  framebuffer_t debug_light_pass_fbs[NUM_SM_CASCADES];
+#endif
+
+#if DISPLAY_DIR_LIGHT_SHADOW_MAPS
   static shader_t display_shadow_map_shader;
+
   vao_t display_shadow_map_vao;
   vbo_t display_shadow_map_vbo;
   ebo_t display_shadow_map_ebo;
+#endif
 
-  framebuffer_t debug_light_pass_fbs[NUM_SM_CASCADES];
+#if RENDER_DIR_LIGHT_FRUSTUMS
+  int debug_frustum_obj_ids[NUM_SM_CASCADES];
+#endif
 
-  int debug_obj_ids[NUM_SM_CASCADES];
+#if RENDER_DIR_LIGHT_ORTHOS
   int debug_ortho_obj_ids[NUM_SM_CASCADES];
-
-  // framebuffer_t debug_light_pass_fb1;
-  // framebuffer_t debug_light_pass_fb2;
+#endif
 
   framebuffer_t light_pass_fb;
 
@@ -101,7 +119,25 @@ void remove_dir_light_from_rendering();
 
 void setup_dir_light_for_rendering_debug(int light_id, camera_t* camera, int cascade);
 void remove_dir_light_from_rendering_debug();
-void render_dir_light_shadow_maps(int dir_light_id);
 
+#if DISPLAY_DIR_LIGHT_SHADOW_MAPS
+void create_dir_light_shadow_map_img_buffers(dir_light_t& light);
+void render_dir_light_shadow_maps(int dir_light_id);
+#endif
+
+int get_num_dir_lights();
 dir_light_t* get_dir_light(int id);
 void gen_dir_light_matricies(int light_id, camera_t* camera);
+
+#if (RENDER_DIR_LIGHT_FRUSTUMS || RENDER_DIR_LIGHT_ORTHOS)
+void create_frustum_and_ortho_models(dir_light_t& light);
+
+#if RENDER_DIR_LIGHT_ORTHOS
+void update_dir_light_ortho_models(dir_light_t& dir_light, int cascade, float x_min, float x_max, float y_min, float y_max, float z_min, float z_max);
+#endif
+
+#if RENDER_DIR_LIGHT_FRUSTUMS
+void update_dir_light_frustum_models(dir_light_t& dir_light, int cascade, vertex_t* vertices);
+#endif
+
+#endif

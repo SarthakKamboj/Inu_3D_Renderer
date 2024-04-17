@@ -17,7 +17,7 @@ quaternion_t create_quaternion(float x, float y, float z, float w) {
 
 quaternion_t create_quaternion_w_rot(vec3 axis, float angle) {
   quaternion_t q;
-  vec3 norm_axis = norm_vec3(axis); 
+  vec3 norm_axis = normalize(axis); 
   float radians = (angle / 2.f) * 3.1415926535f / 180.f;
   float s = sin(radians);
   float c = cos(radians);
@@ -86,7 +86,7 @@ vec3 get_rotated_position_raw(vec3& pos, quaternion_t& q) {
  */
 
 mat4 quat_as_mat4(quaternion_t& q) {
-  mat4 m = create_matrix(1.0f);
+  mat4 m(1.0f);
 
   float a = q.x;
   float b = q.y;

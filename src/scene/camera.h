@@ -21,9 +21,5 @@ void cam_zoom(float amount);
 void cam_rotate(float lat_amount, float vert_amount);
 void cam_translate(float lat, float vert);
 
-#if 0
-mat4 get_cam_view_mat(vec3& diff);
-#endif
-
 void update_cam();
 camera_t* get_cam();
