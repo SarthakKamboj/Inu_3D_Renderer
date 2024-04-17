@@ -15,10 +15,6 @@
 // division (make sure not divide by 0)
 // normalize
 
-
-struct vec2;
-struct vec3;
-
 float dot_product(const vec2& vect1, const vec2& vect2);
 float dot_product(const vec3& vect1, const vec3& vect2);
 
