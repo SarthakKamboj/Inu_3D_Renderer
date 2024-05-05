@@ -176,9 +176,25 @@ void create_frustum_and_ortho_models(dir_light_t& light) {
   material_image_t def_mat_image;
 
   int materials[NUM_SM_CASCADES];
+
+  metallic_roughness_param_t met_rough;
+
+  albedo_param_t albedo;
+
+  albedo.base_color = colors[0];
+  materials[0] = create_material(albedo, met_rough);
+
+  albedo.base_color = colors[1];
+  materials[1] = create_material(albedo, met_rough);
+
+  albedo.base_color = colors[2];
+  materials[2] = create_material(albedo, met_rough);
+
+  /*
   materials[0] = create_material(colors[0], def_mat_image);
   materials[1] = create_material(colors[1], def_mat_image);
   materials[2] = create_material(colors[2], def_mat_image);
+  */
 
   // debug_i = 0 is related to dir light frustums and their objects
   // debug_i = 1 is related to dir light orthos and their objects

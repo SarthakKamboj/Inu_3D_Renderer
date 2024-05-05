@@ -318,6 +318,7 @@ void offline_final_render_pass() {
 
   shader_set_float(material_t::associated_shader, "cam_data.near_plane", get_cam_near_plane());
   shader_set_float(material_t::associated_shader, "cam_data.far_plane", get_cam_far_plane());
+  shader_set_vec3(material_t::associated_shader, "cam_data.cam_pos", get_cam_pos());
 
   // spotlights for offline shader
   int num_lights = get_num_spotlights();

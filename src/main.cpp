@@ -64,7 +64,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "avacado\\Avocado.gltf";
   // const char* gltf_file_resources_folder_rel_path = "suzan\\Suzanne.gltf";
   // const char* gltf_file_resources_folder_rel_path = "cartoon_car\\combined.gltf";
-  // const char* gltf_file_resources_folder_rel_path = "stylized_ww1_plane\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "ferrari_enzo\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "buggy\\Buggy.gltf";
   // const char* gltf_file_resources_folder_rel_path = "stylized_mushrooms\\scene.gltf";
@@ -74,15 +73,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "rigged_figure\\RiggedFigure.gltf";
   // const char* gltf_file_resources_folder_rel_path = "rigged_figure\\blender_export.gltf";
   // const char* gltf_file_resources_folder_rel_path = "cesium_man\\CesiumMan.gltf";
-  // const char* gltf_file_resources_folder_rel_path = "brain_stem\\BrainStem.gltf";
-  const char* gltf_file_resources_folder_rel_path = "medieval_fantasy_book\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "shadow_test\\test.gltf";
   // const char* gltf_file_resources_folder_rel_path = "fox\\Fox.gltf";
-  // const char* gltf_file_resources_folder_rel_path = "virtual_city\\VC.gltf";
   // const char* gltf_file_resources_folder_rel_path = "low-poly_truck_car_drifter\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "yusuke_urameshi\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "junkrat\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "reap_the_whirlwind\\scene.gltf";
+
+  const char* gltf_file_resources_folder_rel_path = "medieval_fantasy_book\\scene.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "virtual_city\\VC.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "brain_stem\\BrainStem.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "stylized_ww1_plane\\scene.gltf";
 
   if (strcmp(gltf_file_resources_folder_rel_path, "stylized_ww1_plane\\scene.gltf") == 0
       || strcmp(gltf_file_resources_folder_rel_path, "ferrari_enzo\\scene.gltf") == 0 //) {

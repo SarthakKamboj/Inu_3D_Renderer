@@ -179,25 +179,31 @@ struct emission_param_t {
 };
 
 struct metallic_roughness_param_t {
-	union {
-		struct {
-			float metallic_factor;
-  		float roughness_factor;	
-		};
-		material_image_t met_rough_tex;
+
+	// float variant
+	struct {
+		float metallic_factor;
+  	float roughness_factor;	
 	};
+
+	// image variant
+	material_image_t met_rough_tex;
+
 	MATERIAL_PARAM_VARIANT variant = MATERIAL_PARAM_VARIANT::FLOAT;
+
 	metallic_roughness_param_t();
 };
 
 struct albedo_param_t {	
-	union {
-		vec4 color_factor;
-		struct {
-			vec4 multipliers;
-			material_image_t base_color_img;
-		};
+	// vec4 variant
+	vec4 base_color;
+
+	// mat image variant
+	struct {
+		vec4 multipliers;
+		material_image_t base_color_img;
 	};
+
 	MATERIAL_PARAM_VARIANT variant = MATERIAL_PARAM_VARIANT::VEC4;
 	albedo_param_t();
 };
@@ -206,15 +212,22 @@ struct material_t {
 	static shader_t associated_shader;
 	albedo_param_t albedo;
 	metallic_roughness_param_t metal_rough;
+
+#if 0
+	// will be important later
+	
 	material_image_t normals_tex;
 	material_image_t occlusion_tex;
 	emission_param_t emission;
+#endif
 
 	material_t();
 };
-int create_material(vec4 color, material_image_t base_color_img);
+// int create_material(vec4 color, material_image_t base_color_img);
+int create_material(albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img);
 material_t bind_material(int mat_idx);
 material_t get_material(int mat_idx);
+int get_num_materials();
 
 enum class FB_TYPE {
 	RENDER_BUFFER_DEPTH_STENCIL = 0,

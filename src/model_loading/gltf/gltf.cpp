@@ -1349,10 +1349,25 @@ void gltf_load_file(const char* filepath) {
   for (gltf_material_t& mat : gltf_materials) {
     material_image_t base_color_img = gltf_mat_img_to_internal_mat_img(mat.pbr.base_color_tex_info, ALBEDO_IMG_TEX_SLOT);
 #if SET_MESHES_TO_WHITE == 0
-    create_material(mat.pbr.base_color_factor, base_color_img);
+    // create_material(mat.pbr.base_color_factor, base_color_img);
+
+    albedo_param_t albedo;
+    albedo.base_color_img = base_color_img;
+    albedo.base_color = vec4(1,1,1,1);
+
+    metallic_roughness_param_t met_rough_param;
+
+    create_material(albedo, met_rough_param);
 #else
-    material_image_t d;
-    create_material({1,1,1,1}, d);
+    // material_image_t d;
+
+    albedo_param_t albedo;
+    albedo.base_color = vec4(1,1,1,1);
+
+    metallic_roughness_param_t met_rough_param;
+    
+    // create_material({1,1,1,1}, d);
+    create_material(albedo, met_rough_param);
 #endif
   }
  
@@ -1569,7 +1584,9 @@ void gltf_load_file(const char* filepath) {
       }
 
       if (prim.material_idx != -1) {
+        // TODO: right now works cause we are only loading one model...will need to change this lter for loading multiple models
         mesh.mat_idx = prim.material_idx;
+        // mesh.mat_idx = prim.material_idx + get_num_materials();
       } else {
         vec4 color;
 #if 1
@@ -1584,8 +1601,15 @@ void gltf_load_file(const char* filepath) {
         color.w = 1.f;
 #endif
 
-        material_image_t base_img;
-        mesh.mat_idx = create_material(color, base_img);
+        // material_image_t base_img;
+        // mesh.mat_idx = create_material(color, base_img);
+
+        albedo_param_t albedo;
+        albedo.base_color = color;
+
+        metallic_roughness_param_t met_rough;
+
+        mesh.mat_idx = create_material(albedo, met_rough);
       }
 
       mesh.vao = create_vao();

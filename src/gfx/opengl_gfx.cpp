@@ -161,6 +161,7 @@ void delete_vao(const vao_t& vao) {
 
 // Shaders
 shader_t create_shader(const char* vert_source_path, const char* frag_source_path) {
+	printf("new shader\n\n");
 	shader_t shader;
 
 	shader.id = internal_shader_running_id;
@@ -183,6 +184,7 @@ shader_t create_shader(const char* vert_source_path, const char* frag_source_pat
 		printf("ERROR::SHADER::VERTEX::COMPILATION_FAILED %s\n", info_log);
 		throw std::runtime_error("ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" + std::string(info_log));
 	}
+	get_gfx_error();
 
 	GLuint frag = glCreateShader(GL_FRAGMENT_SHADER);
 	char* frag_source = get_file_contents(frag_source_path);
@@ -196,10 +198,16 @@ shader_t create_shader(const char* vert_source_path, const char* frag_source_pat
 		printf("ERROR::SHADER::FRAG::COMPILATION_FAILED %s\n", info_log);
 		throw std::runtime_error("ERROR::SHADER::FRAG::COMPILATION_FAILED\n" + std::string(info_log));
 	}
+	get_gfx_error();
 
 	glAttachShader(gl_shader_id, vert);
+	get_gfx_error();
 	glAttachShader(gl_shader_id, frag);
+	get_gfx_error();
+
 	glLinkProgram(gl_shader_id);
+
+	get_gfx_error();
 
 	glDeleteShader(vert);
 	glDeleteShader(frag);
@@ -478,18 +486,41 @@ void unbind_texture() {
 // MATERIALS
 shader_t material_t::associated_shader;
 
-metallic_roughness_param_t::metallic_roughness_param_t() {}
+metallic_roughness_param_t::metallic_roughness_param_t() {
+	metallic_factor = 0.0f;
+	roughness_factor = 1.0f;
+}
 
 albedo_param_t::albedo_param_t() {}
 
 material_t::material_t() {}
 
+int get_num_materials() {
+	return materials.size();
+}
+
+#if 0
 int create_material(vec4 color, material_image_t base_color_img) {
 	material_t mat;
 	mat.albedo.base_color_img = base_color_img;
-	mat.albedo.color_factor = color;
-	mat.albedo.color_factor.w = 1;
+	mat.albedo.base_color = color;
+	mat.albedo.base_color.w = 1;
 	materials.push_back(mat);
+	return materials.size()-1;
+}
+#endif
+
+int create_material(albedo_param_t& albedo_param, metallic_roughness_param_t& met_rough_param) {
+	material_t mat;
+
+	inu_assert(albedo_param.variant == MATERIAL_PARAM_VARIANT::VEC4 || albedo_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG, "albedo only has types of mat img and vec4");
+	mat.albedo = albedo_param;
+
+	inu_assert(met_rough_param.variant == MATERIAL_PARAM_VARIANT::FLOAT || met_rough_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG, "metal roughness only has types of mat img and float");
+	mat.metal_rough = met_rough_param;
+
+	materials.push_back(mat);
+
 	return materials.size()-1;
 }
 
@@ -502,19 +533,43 @@ material_t bind_material(int mat_idx) {
 	shader_t& shader = material_t::associated_shader;
 
 	material_t& mat = materials[mat_idx];
-	if (mat.albedo.base_color_img.tex_handle != -1) {
+
+	// set albedo information
+	// if (mat.albedo.base_color_img.tex_handle != -1) {
+	if (mat.albedo.variant == MATERIAL_PARAM_VARIANT::MAT_IMG) {
 		material_image_t& color_tex = mat.albedo.base_color_img;
 		const texture_t& texture = bind_texture(color_tex.tex_handle);
 		inu_assert(texture.tex_slot == ALBEDO_IMG_TEX_SLOT, "albedo texture slot must be 0");
-		shader_set_int(shader, "base_color_tex.samp", texture.tex_slot);
-		shader_set_int(shader, "base_color_tex.tex_id", color_tex.tex_coords_idx);
-		shader_set_int(shader, "use_mesh_color", 0);
+		shader_set_int(shader, "material.base_color_tex.samp", texture.tex_slot);
+		shader_set_int(shader, "material.base_color_tex.tex_id", color_tex.tex_coords_idx);
+		shader_set_int(shader, "material.use_base_color_tex", 1);
+	} else if (mat.albedo.variant == MATERIAL_PARAM_VARIANT::VEC4) {
+		shader_set_int(shader, "material.base_color_tex.samp", 0);
+		shader_set_int(shader, "material.base_color_tex.tex_id", -1);
+		shader_set_int(shader, "material.use_base_color_tex", 0);
+		vec3 c = {mat.albedo.base_color.x, mat.albedo.base_color.y, mat.albedo.base_color.z};
+		shader_set_vec3(shader, "material.mesh_color", c);
 	} else {
-		shader_set_int(shader, "base_color_tex.samp", 0);
-		shader_set_int(shader, "base_color_tex.tex_id", -1);
-		shader_set_int(shader, "use_mesh_color", 1);
-		vec3 c = {mat.albedo.color_factor.x, mat.albedo.color_factor.y, mat.albedo.color_factor.z};
-		shader_set_vec3(shader, "mesh_color", c);
+		inu_assert_msg("this albedo variant is not supported");
+	}
+
+	// set metal roughness information
+	// if (mat.metal_rough.tex_handle != -1) {
+	if (mat.metal_rough.variant == MATERIAL_PARAM_VARIANT::MAT_IMG) {
+		material_image_t& met_rough_tex = mat.metal_rough.met_rough_tex;
+		const texture_t& texture = bind_texture(met_rough_tex.tex_handle);
+		inu_assert(texture.tex_slot == METAL_ROUGH_IMG_TEX_SLOT, "metal roughness texture slot is not correct");
+		shader_set_int(shader, "material.metal_rough_tex.samp", texture.tex_slot);
+		shader_set_int(shader, "material.metal_rough_tex.tex_id", met_rough_tex.tex_coords_idx);
+		shader_set_int(shader, "material.use_metal_rough_tex", 1);
+	} else if (mat.metal_rough.variant == MATERIAL_PARAM_VARIANT::FLOAT) {
+		shader_set_int(shader, "material.metal_rough_tex.samp", 0);
+		shader_set_int(shader, "material.metal_rough_tex.tex_id", -1);
+		shader_set_int(shader, "material.use_metal_rough_tex", 0);
+		shader_set_float(shader, "material.surface_roughness", mat.metal_rough.roughness_factor);
+		shader_set_float(shader, "material.metalness", mat.metal_rough.metallic_factor);
+	} else {
+		inu_assert_msg("this metal-rough variant is not supported");
 	}
 
   bind_shader(shader);
