@@ -25,7 +25,7 @@
 #define VIEW_CASCADE 0
 #define ENABLE_QUANTIZING 0
 
-// float s_rgb_to_linear(float s_rgb);
+float s_rgb_to_linear(float s_rgb);
 float get_roughness();
 float get_metalness();
 
@@ -90,8 +90,6 @@ in vec2 tex_coords[2];
 in vec3 color;
 in vec4 normal;
 
-in vec4 pos;
-
 in vec4 spotlight_rel_screen_pos0;
 in vec4 spotlight_rel_screen_pos1;
 in vec4 spotlight_rel_screen_pos2;
@@ -106,12 +104,13 @@ struct norm_inter_vecs_t {
   vec3 half_vector;
   vec3 to_light_dir;
   vec3 view_dir;
+  vec3 world_pos;
+  vec3 cam_rel_pos;
 };
 
 norm_inter_vecs_t calc_normalized_vectors(vec3 to_light) {
   norm_inter_vecs_t niv;  
 
-  // niv.normal = normalize(normal.xyz / normal.w);
   niv.normal = normalize(normal.xyz);
   niv.to_light_dir = normalize(to_light);
 
@@ -119,6 +118,9 @@ norm_inter_vecs_t calc_normalized_vectors(vec3 to_light) {
   niv.view_dir = normalize(cam_data.cam_pos - normalized_global_pos);
 
   niv.half_vector = normalize(niv.to_light_dir + niv.view_dir);
+
+  niv.world_pos = global.xyz / global.w;
+  niv.cam_rel_pos = cam_rel_pos.xyz / cam_rel_pos.w;
 
   return niv;
 }
@@ -160,7 +162,7 @@ struct is_in_spotlight_info_t {
   vec2 tex_coords;
 };
 
-is_in_spotlight_info_t is_in_spotlight(spotlight_data_t light_data, vec4 light_rel_pos) {
+is_in_spotlight_info_t is_in_spotlight(norm_inter_vecs_t niv, spotlight_data_t light_data, vec4 light_rel_pos) {
   is_in_spotlight_info_t info;
 
   vec2 tex_coords = ((light_rel_pos.xy / light_rel_pos.w) + vec2(1)) / 2;
@@ -199,14 +201,8 @@ is_in_spotlight_info_t is_in_spotlight(spotlight_data_t light_data, vec4 light_r
     }
   }
 
-#if 0
-  info.amount_in_light = min(max(0.0, amount_in_light), 1.0) * light_data.light_active;
-#else
-  vec4 normalized_pos = pos / pos.w;
-  vec4 normal_norm = normal / normal.w;
-  float albedo_factor = max(0, dot(normalize(normal.xyz), normalize(light_data.pos - normalized_pos.xyz)));
+  float albedo_factor = max(0, dot(niv.normal, normalize(light_data.pos - niv.world_pos)));
   info.amount_in_light = amount_in_light * albedo_factor * light_data.light_active;
-#endif
 
   return info;
 }
@@ -319,17 +315,6 @@ dir_light_rel_data_t calc_light_rel_data(dir_light_mat_data_t dir_light_mat_data
   dir_light_rel_data_t rel_data;
   rel_data.highest_precision_cascade = 0;
 
-  vec4 norm_cam_rel_pos = cam_rel_pos / cam_rel_pos.w;
-
-#if 0
-  for (int i = 0; i < NUM_CASCADES; i++) {
-    // looking down -z axis in camera's eye space
-    if (-norm_cam_rel_pos.z >= dir_light_mat_data.cascade_depths[i] && -norm_cam_rel_pos.z <= dir_light_mat_data.cascade_depths[i+1]) {
-      rel_data.highest_precision_cascade = i; 
-      break;
-    }
-  }
-#else
   for (int i = 0; i < NUM_CASCADES; i++) {
     // looking down -z axis in camera's eye space
     mat4 light_projection = dir_light_mat_data.light_projs[i];
@@ -342,7 +327,6 @@ dir_light_rel_data_t calc_light_rel_data(dir_light_mat_data_t dir_light_mat_data
       break;
     }
   }
-#endif
 
   mat4 light_projection = dir_light_mat_data.light_projs[rel_data.highest_precision_cascade];
   mat4 light_view = dir_light_mat_data.light_views[rel_data.highest_precision_cascade];
@@ -471,22 +455,12 @@ vec3 pbr_brdf(norm_inter_vecs_t niv) {
   float amount_in_light = in_dir0.amount_in_light;
 
   float cook = cook_torrance_specular_brdf(niv);
-  // return vec3(cook);
 
   float geom_term = max(dot(niv.normal, niv.to_light_dir), 0.0);
-
-  // return vec3(geom_term);
 
   vec3 diffuse = lambert_diffuse();
 
   vec3 brdf_output = (kd * diffuse / PI) + (ks * cook);
-
-  // return diffuse;
-  // return vec3(cook);
-  // return kd * diffuse;
-  // return ks;
-  // return ks * cook;
-  // return brdf_output;
 
   vec3 pbr = brdf_output * amount_in_light * geom_term;
 
@@ -532,7 +506,7 @@ void main() {
   // frag_color = vec4(normal, 1.0);
   float ambient_factor = 0.2;
 #if 0
-  vec4 normalized_pos = pos / pos.w;
+  vec4 normalized_pos = global / global.w;
   vec4 normal_norm = normal / normal.w;
   float albedo_factor = max(0, dot(normalize(normal.xyz), normalize(spotlights_data[0].pos - normalized_pos.xyz)));
   float multiplier = ambient_factor + (max_in_light * albedo_factor);
