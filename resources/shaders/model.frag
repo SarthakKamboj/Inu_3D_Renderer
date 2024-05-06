@@ -2,7 +2,7 @@
 
 #define NUM_CASCADES 3
 
-#define PI 3.141527
+#define PI 3.14159265359
 
 #define VIEW_AMOUNT_IN_LIGHT 0
 #define VIEW_LIGHT_MULTIPLIER 0
@@ -111,7 +111,8 @@ struct norm_inter_vecs_t {
 norm_inter_vecs_t calc_normalized_vectors(vec3 to_light) {
   norm_inter_vecs_t niv;  
 
-  niv.normal = normalize(normal.xyz / normal.w);
+  // niv.normal = normalize(normal.xyz / normal.w);
+  niv.normal = normalize(normal.xyz);
   niv.to_light_dir = normalize(to_light);
 
   vec3 normalized_global_pos = global.xyz / global.w;
@@ -349,46 +350,59 @@ dir_light_rel_data_t calc_light_rel_data(dir_light_mat_data_t dir_light_mat_data
   return rel_data;
 }
 
-float normal_distrib(vec3 normal, vec3 half_vec, float roughness) {
+// float normal_distrib(vec3 normal, vec3 half_vec, float roughness) {
+float normal_distrib(norm_inter_vecs_t niv, float roughness) {
   float a = roughness * roughness;
   float a2 = a*a;
   float numerator = a2;
-  float d = max(dot(normal, half_vec), 0.0);
-  float denom = PI * pow( pow(d,2) * ( a2-1.0 ) + 1, 2 );
+  float d = max(dot(niv.normal, niv.half_vector), 0.0);
+  float denom = PI * pow( ( pow(d,2) * ( a2-1.0 ) ) + 1, 2 );
   return numerator / denom;
 }
 
-float geom_helper(vec3 normal, vec3 other_vec, float roughness) {
-  float n_o = max(dot(normal, other_vec), 0.0);
+float geom_helper(vec3 niv_normal, vec3 other_vec, float roughness) {
+  float n_o = max(dot(niv_normal, other_vec), 0.0);
   float k = pow(roughness + 1, 2) / 8.0;
   float num = n_o;
   float den = ( n_o*(1-k) ) + k;
   return num / den;
 }
 
-float geom(vec3 normal, vec3 view_vec, vec3 light_vec, float roughness) {
-  float a = geom_helper(normal, view_vec, roughness);
-  float b = geom_helper(normal, light_vec, roughness);
+float geom(norm_inter_vecs_t niv, float roughness) {
+  float a = geom_helper(niv.normal, niv.view_dir, roughness);
+  // return a;
+  float b = geom_helper(niv.normal, niv.to_light_dir, roughness);
+  // return b;
   return a*b;
 }
 
-vec3 fresnel_eq(vec3 half_vec, vec3 view_vec, vec3 F0) {
-  float hv = max(dot(half_vec, view_vec), 0.0);
+vec3 fresnel_eq(norm_inter_vecs_t niv, vec3 F0) {
+  float hv = max(dot(niv.half_vector, niv.view_dir), 0.0);
   float m = pow(clamp(1-hv, 0.0, 1.0), 5);
   vec3 neg_F0 = vec3(1.0) - F0;
   return F0 + (neg_F0 * m);
 }
 
-float cook_torrance_specular_brdf(vec3 light_dir, vec3 view_dir, vec3 half_vector, vec3 normal) {
+float cook_torrance_specular_brdf(norm_inter_vecs_t niv) {
   float roughness = get_roughness();
+  // return roughness;
 
-  float D = normal_distrib(normal, half_vector, roughness);
-  float G = geom(normal, view_dir, light_dir, roughness);
+  // float D = normal_distrib(niv.normal, niv.half_vector, roughness);
+  float D = normal_distrib(niv, roughness); 
+  // return D;
+  float G = geom(niv, roughness);
+  // return G;
 
-  float ln = max(dot(light_dir, normal), 0.0);
-  float vn = max(dot(view_dir, normal), 0.0);
+  float ln = max(dot(niv.to_light_dir, niv.normal), 0.0);
+  float vn = max(dot(niv.view_dir, niv.normal), 0.0);
 
-  return (D * G) / (4 * ln * vn);
+  float denom = (4 * ln * vn) + 0.0001;
+  float num = D * G;
+
+  // if (denom > 0) return 1.0;
+  // else 0.0;
+
+  return num / denom;
 }
 
 vec3 lambert_diffuse() {
@@ -399,6 +413,7 @@ vec3 lambert_diffuse() {
     } else {
       diffuse = vec4(color, 1);
     }
+    diffuse = vec4(0,1,0,1);
   } else {
     diffuse = texture(material.base_color_tex.samp, tex_coords[material.base_color_tex.tex_id]);
     // diffuse.r = s_rgb_to_linear(diffuse.r);
@@ -442,58 +457,54 @@ vec3 get_base_reflectance() {
 }
 
 vec3 pbr_brdf(norm_inter_vecs_t niv) {
-  // vec3 cam_dir = normalize(cam_data.cam_pos - ((global / global.w).xyz));
-  // vec3 to_light_dir = -normalize(dir_light_mat_data.light_dir);
-  // vec3 half_vector = normalize(to_light_dir + cam_dir); 
-
-  // vec4 inter_norm = normal / normal.w;
-  // vec3 norm_normal = normalize(inter_norm.xyz);
-
   vec3 F0 = get_base_reflectance();
-  vec3 ks = fresnel_eq(niv.half_vector, niv.view_dir, F0);
+  vec3 ks = fresnel_eq(niv, F0);
 
   float metalness = get_metalness();
 
   vec3 kd = vec3(1.0) - ks;
   kd *= (1.0 - metalness);
 
-  // return vec3(kd);
-
   dir_light_rel_data_t dir_light_rel_data = calc_light_rel_data(dir_light_mat_data);
   is_in_dir_light_info_t in_dir0 = is_in_dir_light(dir_light_mat_data, dir_light_data, dir_light_rel_data.screen_rel_pos, dir_light_rel_data.highest_precision_cascade);
 
-  float cook = cook_torrance_specular_brdf(niv.to_light_dir, niv.view_dir, niv.half_vector, niv.normal);
+  float amount_in_light = in_dir0.amount_in_light;
+
+  float cook = cook_torrance_specular_brdf(niv);
   // return vec3(cook);
 
   float geom_term = max(dot(niv.normal, niv.to_light_dir), 0.0);
 
   // return vec3(geom_term);
 
-#if 1
   vec3 diffuse = lambert_diffuse();
 
-  vec3 brdf_output = (kd * diffuse) + (ks * cook);
+  vec3 brdf_output = (kd * diffuse / PI) + (ks * cook);
 
-  return diffuse;
+  // return diffuse;
   // return vec3(cook);
-#if 0
-  if (material.use_metal_rough_tex == 1) {
-    return vec3(1, 0, 0);
-  } else {
-    return vec3(0, 1, 0);
-  }
-#endif
+  // return kd * diffuse;
   // return ks;
-  // return (vec3(1.0)-ks);
-  return brdf_output * in_dir0.amount_in_light * geom_term;
-#else
-  return vec3(1,0,0);
-#endif
+  // return ks * cook;
+  // return brdf_output;
+
+  vec3 pbr = brdf_output * amount_in_light * geom_term;
+
+  float ambient_factor = 0.03;
+  vec3 ambient = vec3(ambient_factor) * diffuse;
+
+  vec3 color = pbr + ambient;
+  color = color / (color + vec3(1.0));
+  color = pow(color, vec3(1.0/2.2));
+
+  return color;
 }
 
 void main() {
 
   norm_inter_vecs_t niv = calc_normalized_vectors(-dir_light_mat_data.light_dir);
+  // frag_color = vec4(niv.normal.x, 0, 0, 1.0);
+  // return;
 
 #if 0
   if (base_color_tex.tex_id == -1) {

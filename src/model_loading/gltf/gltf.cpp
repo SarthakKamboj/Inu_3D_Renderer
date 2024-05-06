@@ -1348,23 +1348,27 @@ void gltf_load_file(const char* filepath) {
   // 3. LOAD INTO INTERNAL FORMAT/ LOAD RAW DATA
   for (gltf_material_t& mat : gltf_materials) {
     material_image_t base_color_img = gltf_mat_img_to_internal_mat_img(mat.pbr.base_color_tex_info, ALBEDO_IMG_TEX_SLOT);
-#if SET_MESHES_TO_WHITE == 0
-    // create_material(mat.pbr.base_color_factor, base_color_img);
 
     albedo_param_t albedo;
-    albedo.base_color_img = base_color_img;
-    albedo.base_color = vec4(1,1,1,1);
-
     metallic_roughness_param_t met_rough_param;
+
+#if SET_MESHES_TO_WHITE == 1
+    // create_material(mat.pbr.base_color_factor, base_color_img);
+
+    albedo.base_color = vec4(1,1,1,1);
+    albedo.variant = MATERIAL_PARAM_VARIANT::VEC4;
 
     create_material(albedo, met_rough_param);
 #else
-    // material_image_t d;
 
-    albedo_param_t albedo;
-    albedo.base_color = vec4(1,1,1,1);
-
-    metallic_roughness_param_t met_rough_param;
+    if (base_color_img.tex_handle != -1) {
+      albedo.base_color_img = base_color_img;
+      albedo.multipliers = vec4(1,1,1,1);
+      albedo.variant = MATERIAL_PARAM_VARIANT::MAT_IMG;
+    } else {
+      albedo.base_color = vec4(1,1,1,1);
+      albedo.variant = MATERIAL_PARAM_VARIANT::VEC4;
+    }
     
     // create_material({1,1,1,1}, d);
     create_material(albedo, met_rough_param);
