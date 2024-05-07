@@ -64,23 +64,6 @@ struct spotlight_data_t {
 };
 uniform spotlight_data_t spotlights_data[3];
 
-#if 0
-struct dir_light_mat_data_t {
-  mat4 light_views[NUM_CASCADES];
-  mat4 light_projs[NUM_CASCADES];
-  float cascade_depths[NUM_CASCADES+1];
-  vec3 light_dir;
-};
-
-struct dir_light_data_t {
-  sampler2DArray shadow_map;
-  int light_active;
-};
-
-uniform dir_light_data_t dir_light_data;
-uniform dir_light_mat_data_t dir_light_mat_data;
-#else
-
 struct dir_light_data_t {
   int light_active;
   sampler2DArray shadow_map;
@@ -91,7 +74,6 @@ struct dir_light_data_t {
 };
 
 uniform dir_light_data_t dir_light_data;
-#endif
 
 struct cam_data_t {
   float near_plane;
@@ -231,13 +213,8 @@ struct dir_light_rel_data_t {
 // depth is in z of return value
 vec3 get_cascade_tex_depth_info(int cascade) {
   // looking down -z axis in camera's eye space
-#if 0
-  mat4 light_projection = dir_light_mat_data.light_projs[cascade];
-  mat4 light_view = dir_light_mat_data.light_views[cascade];
-#else
   mat4 light_projection = dir_light_data.light_projs[cascade];
   mat4 light_view = dir_light_data.light_views[cascade];
-#endif
   vec4 screen_rel_pos = light_projection * light_view * global;
   screen_rel_pos /= screen_rel_pos.w;
   vec3 tex_plus_depth_info = (screen_rel_pos.xyz + vec3(1.0)) / 2.0;
@@ -251,11 +228,7 @@ struct is_in_dir_light_info_t {
   vec3 tex_coords;
 };
 
-#if 0
-is_in_dir_light_info_t calc_light_rel_data(dir_light_mat_data_t dir_light_mat_data) {
-#else
 is_in_dir_light_info_t calc_light_rel_data() {
-#endif
 
   is_in_dir_light_info_t in_dir_light_info;
 
@@ -435,11 +408,7 @@ vec3 pbr_brdf(norm_inter_vecs_t niv) {
   vec3 kd = vec3(1.0) - ks;
   kd *= (1.0 - metalness);
 
-#if 0
-  is_in_dir_light_info_t in_dir0 = calc_light_rel_data(dir_light_mat_data);
-#else
   is_in_dir_light_info_t in_dir0 = calc_light_rel_data();
-#endif
 
   float amount_in_light = in_dir0.amount_in_light;
 
@@ -465,11 +434,7 @@ vec3 pbr_brdf(norm_inter_vecs_t niv) {
 
 void main() {
 
-#if 0
-  norm_inter_vecs_t niv = calc_normalized_vectors(-dir_light_mat_data.light_dir);
-#else
   norm_inter_vecs_t niv = calc_normalized_vectors();
-#endif
 
 #if 0
   if (base_color_tex.tex_id == -1) {

@@ -423,7 +423,6 @@ void offline_final_render_pass() {
     for (int j = 0; j < NUM_SM_CASCADES; j++) {
 
       char var_name[64]{};
-      // sprintf(var_name, "dir_light_mat_data.light_views[%i]", j);
       sprintf(var_name, "dir_light_data.light_views[%i]", j);
       if (inactive) {
         shader_set_mat4(material_t::associated_shader, var_name, identity);
@@ -432,7 +431,6 @@ void offline_final_render_pass() {
       }
 
       memset(var_name, 0, sizeof(var_name));
-      // sprintf(var_name, "dir_light_mat_data.light_projs[%i]", j);
       sprintf(var_name, "dir_light_data.light_projs[%i]", j);
       if (inactive) {
         shader_set_mat4(material_t::associated_shader, var_name, identity);
@@ -441,7 +439,6 @@ void offline_final_render_pass() {
       }
 
       memset(var_name, 0, sizeof(var_name));
-      // sprintf(var_name, "dir_light_mat_data.cascade_depths[%i]", j);
       sprintf(var_name, "dir_light_data.cascade_depths[%i]", j);
       if (inactive) {
         shader_set_float(material_t::associated_shader, var_name, 0);
@@ -451,8 +448,6 @@ void offline_final_render_pass() {
     }
     
     char var_name[64]{};
-    memset(var_name, 0, sizeof(var_name));
-    // sprintf(var_name, "dir_light_mat_data.cascade_depths[%i]", NUM_SM_CASCADES);
     sprintf(var_name, "dir_light_data.cascade_depths[%i]", NUM_SM_CASCADES);
     if (inactive) {
       shader_set_float(material_t::associated_shader, var_name, 0);
