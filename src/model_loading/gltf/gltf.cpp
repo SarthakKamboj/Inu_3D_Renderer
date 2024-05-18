@@ -790,7 +790,7 @@ gltf_pbr_metallic_roughness_t gltf_parse_pbr_met_rough() {
     gltf_eat();
     if (key == "baseColorFactor") {
       pbr.base_color_factor = gltf_parse_vec4();
-      pbr.base_color_tex_multiplers = pbr.base_color_factor;
+      // pbr.base_color_tex_multiplers = pbr.base_color_factor;
     } else if (key == "baseColorTexture") {
       pbr.base_color_tex_info = gltf_parse_mat_image_info();
     } else if (key == "metallicFactor") {
@@ -1347,8 +1347,6 @@ void gltf_load_file(const char* filepath) {
 
   // 3. LOAD INTO INTERNAL FORMAT/ LOAD RAW DATA
   for (gltf_material_t& mat : gltf_materials) {
-    material_image_t base_color_img = gltf_mat_img_to_internal_mat_img(mat.pbr.base_color_tex_info, ALBEDO_IMG_TEX_SLOT);
-
     albedo_param_t albedo;
     metallic_roughness_param_t met_rough_param;
 
@@ -1361,17 +1359,20 @@ void gltf_load_file(const char* filepath) {
     create_material(albedo, met_rough_param);
 #else
 
-    if (base_color_img.tex_handle != -1) {
+    if (mat.pbr.base_color_tex_info.gltf_texture_idx != -1) {
+      material_image_t base_color_img = gltf_mat_img_to_internal_mat_img(mat.pbr.base_color_tex_info, ALBEDO_IMG_TEX_SLOT);
+    // if (base_color_img.tex_handle != -1) {
       albedo.base_color_img = base_color_img;
-      albedo.multipliers = vec4(1,1,1,1);
+      albedo.multipliers = mat.pbr.base_color_factor;
       albedo.variant = MATERIAL_PARAM_VARIANT::MAT_IMG;
     } else {
-      albedo.base_color = vec4(1,1,1,1);
+      albedo.base_color = mat.pbr.base_color_factor;
       albedo.variant = MATERIAL_PARAM_VARIANT::VEC4;
     }
+
+
     
-    // create_material({1,1,1,1}, d);
-    create_material(albedo, met_rough_param);
+    create_material(mat.name, albedo, met_rough_param);
 #endif
   }
  
@@ -1592,6 +1593,7 @@ void gltf_load_file(const char* filepath) {
         mesh.mat_idx = prim.material_idx;
         // mesh.mat_idx = prim.material_idx + get_num_materials();
       } else {
+        // default material if mesh doesn't specify material
         vec4 color;
 #if 1
         color.x = 0;
@@ -1613,7 +1615,7 @@ void gltf_load_file(const char* filepath) {
 
         metallic_roughness_param_t met_rough;
 
-        mesh.mat_idx = create_material(albedo, met_rough);
+        mesh.mat_idx = create_material(std::string("default_material"), albedo, met_rough);
       }
 
       mesh.vao = create_vao();

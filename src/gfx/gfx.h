@@ -88,9 +88,10 @@ enum class TEX_FILTER_METHOD {
 };
 
 enum class TEX_FORMAT {
+	SINGLE,
+	RG,
 	RGB,
 	RGBA,
-	SINGLE,
 	DEPTH_STENCIL,
 	DEPTH
 };
@@ -210,6 +211,7 @@ struct albedo_param_t {
 
 struct material_t {
 	static shader_t associated_shader;
+	std::string name;
 	albedo_param_t albedo;
 	metallic_roughness_param_t metal_rough;
 
@@ -224,7 +226,7 @@ struct material_t {
 	material_t();
 };
 // int create_material(vec4 color, material_image_t base_color_img);
-int create_material(albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img);
+int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img);
 material_t bind_material(int mat_idx);
 material_t get_material(int mat_idx);
 int get_num_materials();

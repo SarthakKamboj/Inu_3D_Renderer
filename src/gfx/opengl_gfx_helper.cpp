@@ -20,15 +20,18 @@ GLint internal_to_gl_wrap_mode(WRAP_MODE wrap_mode) {
 
 GLint internal_to_gl_tex_format(TEX_FORMAT tex_format) {	
 	switch (tex_format) {
+		case TEX_FORMAT::SINGLE: {
+			return GL_RED;
+		}
+		case TEX_FORMAT::RG: {
+			return GL_RG;
+		}
 		case TEX_FORMAT::RGB: {
 			return GL_RGB;
 		}
 		case TEX_FORMAT::RGBA: {
 			return GL_RGBA;
-		}
-		case TEX_FORMAT::SINGLE: {
-			return GL_RED;
-		}
+		}	
 		case TEX_FORMAT::DEPTH_STENCIL: {
 			return GL_DEPTH24_STENCIL8;
 		}
@@ -42,15 +45,18 @@ GLint internal_to_gl_tex_format(TEX_FORMAT tex_format) {
 
 GLenum internal_to_gl_input_data_tex_format(TEX_FORMAT tex_format) {	
 	switch (tex_format) {
+		case TEX_FORMAT::SINGLE: {
+			return GL_RED;
+		}
+		case TEX_FORMAT::RG: {
+			return GL_RG;
+		}
 		case TEX_FORMAT::RGB: {
 			return GL_RGB;
 		}
 		case TEX_FORMAT::RGBA: {
 			return GL_RGBA;
-		}
-		case TEX_FORMAT::SINGLE: {
-			return GL_RED;
-		}
+		}	
 		case TEX_FORMAT::DEPTH_STENCIL: {
 			return GL_DEPTH_STENCIL;
 		}

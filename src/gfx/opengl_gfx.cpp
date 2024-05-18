@@ -386,15 +386,18 @@ file_texture_t create_file_texture(const char* img_path, int tex_slot, tex_creat
 	unsigned char* data = stbi_load(img_path, &width, &height, &num_channels, 0);
 	inu_assert(data, "image data not loaded");
 
-	if (num_channels == 3) {
+	if (num_channels == 1) {
+		meta_data.input_data_tex_format = TEX_FORMAT::SINGLE;
+		meta_data.tex_format = TEX_FORMAT::SINGLE;
+	} else if (num_channels == 2) {
+		meta_data.input_data_tex_format = TEX_FORMAT::RG;
+		meta_data.tex_format = TEX_FORMAT::RG;
+	} else if (num_channels == 3) {
 		meta_data.input_data_tex_format = TEX_FORMAT::RGB;
 		meta_data.tex_format = TEX_FORMAT::RGB;
 	} else if (num_channels == 4) {
 		meta_data.input_data_tex_format = TEX_FORMAT::RGBA;
 		meta_data.tex_format = TEX_FORMAT::RGBA;
-	} else if (num_channels == 1) {
-		meta_data.input_data_tex_format = TEX_FORMAT::SINGLE;
-		meta_data.tex_format = TEX_FORMAT::SINGLE;
 	} else {
 		stbi_image_free(data);
 		ft.id = -1;
@@ -405,6 +408,8 @@ file_texture_t create_file_texture(const char* img_path, int tex_slot, tex_creat
 	ft.path = std::string(img_path);
 
 	stbi_image_free(data);
+
+	file_textures.push_back(ft);
 
 	return ft;
 }
@@ -510,7 +515,7 @@ int create_material(vec4 color, material_image_t base_color_img) {
 }
 #endif
 
-int create_material(albedo_param_t& albedo_param, metallic_roughness_param_t& met_rough_param) {
+int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& met_rough_param) {
 	material_t mat;
 
 	inu_assert(albedo_param.variant == MATERIAL_PARAM_VARIANT::VEC4 || albedo_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG, "albedo only has types of mat img and vec4");
@@ -518,6 +523,8 @@ int create_material(albedo_param_t& albedo_param, metallic_roughness_param_t& me
 
 	inu_assert(met_rough_param.variant == MATERIAL_PARAM_VARIANT::FLOAT || met_rough_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG, "metal roughness only has types of mat img and float");
 	mat.metal_rough = met_rough_param;
+
+	mat.name = mat_name;
 
 	materials.push_back(mat);
 
