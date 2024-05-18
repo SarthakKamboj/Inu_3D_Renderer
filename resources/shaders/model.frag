@@ -381,8 +381,8 @@ float get_roughness() {
   float roughness;
   if (material.use_metal_rough_tex == 1) {
     vec4 info = texture(material.metal_rough_tex.samp, tex_coords[material.metal_rough_tex.tex_id]);
-    // roughness = s_rgb_to_linear(info.g);
-    roughness = info.g;
+    roughness = s_rgb_to_linear(info.g);
+    // roughness = info.g;
   } else {
     roughness = material.surface_roughness;
   }
@@ -527,7 +527,7 @@ void main() {
 #elif VIEW_LIGHT2_AMOUNT_IN_LIGHT
   frag_color = vec4(in_spotlight2.amount_in_light,in_spotlight2.amount_in_light,in_spotlight2.amount_in_light,1);
 #elif VIEW_NORMALS
-  frag_color = normal_norm;
+  frag_color = vec4(niv.normal, 1.0);
 #elif VIEW_DIR_LIGHT_CLOSEST_DEPTH
   float v = pow(in_dir0.closest_depth, 2);
   frag_color = vec4(v,v,v,1);

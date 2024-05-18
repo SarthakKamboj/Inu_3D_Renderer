@@ -542,7 +542,6 @@ material_t bind_material(int mat_idx) {
 	material_t& mat = materials[mat_idx];
 
 	// set albedo information
-	// if (mat.albedo.base_color_img.tex_handle != -1) {
 	if (mat.albedo.variant == MATERIAL_PARAM_VARIANT::MAT_IMG) {
 		material_image_t& color_tex = mat.albedo.base_color_img;
 		const texture_t& texture = bind_texture(color_tex.tex_handle);
@@ -561,7 +560,6 @@ material_t bind_material(int mat_idx) {
 	}
 
 	// set metal roughness information
-	// if (mat.metal_rough.tex_handle != -1) {
 	if (mat.metal_rough.variant == MATERIAL_PARAM_VARIANT::MAT_IMG) {
 		material_image_t& met_rough_tex = mat.metal_rough.met_rough_tex;
 		const texture_t& texture = bind_texture(met_rough_tex.tex_handle);

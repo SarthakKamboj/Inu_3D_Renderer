@@ -1359,18 +1359,30 @@ void gltf_load_file(const char* filepath) {
     create_material(albedo, met_rough_param);
 #else
 
+    // base color input is an actual texture
     if (mat.pbr.base_color_tex_info.gltf_texture_idx != -1) {
       material_image_t base_color_img = gltf_mat_img_to_internal_mat_img(mat.pbr.base_color_tex_info, ALBEDO_IMG_TEX_SLOT);
-    // if (base_color_img.tex_handle != -1) {
       albedo.base_color_img = base_color_img;
       albedo.multipliers = mat.pbr.base_color_factor;
       albedo.variant = MATERIAL_PARAM_VARIANT::MAT_IMG;
-    } else {
+    } 
+    // base color input is a solid color
+    else {
       albedo.base_color = mat.pbr.base_color_factor;
       albedo.variant = MATERIAL_PARAM_VARIANT::VEC4;
     }
 
-
+    // metal roughness is represented as a texture
+    if (mat.pbr.metal_rough_tex_info.gltf_texture_idx != -1) {
+      material_image_t rough_met_img = gltf_mat_img_to_internal_mat_img(mat.pbr.metal_rough_tex_info, METAL_ROUGH_IMG_TEX_SLOT);
+      met_rough_param.variant = MATERIAL_PARAM_VARIANT::MAT_IMG;
+    }
+    // metal roughness are floats
+    else {
+      met_rough_param.metallic_factor = mat.pbr.metallic_factor;
+      met_rough_param.roughness_factor = mat.pbr.roughness_factor;
+      met_rough_param.variant = MATERIAL_PARAM_VARIANT::FLOAT;
+    }
     
     create_material(mat.name, albedo, met_rough_param);
 #endif
