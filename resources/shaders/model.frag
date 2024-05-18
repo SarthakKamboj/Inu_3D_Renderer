@@ -97,8 +97,6 @@ out vec4 frag_color;
 
 struct norm_inter_vecs_t {
   vec3 normal;
-  vec3 half_vector;
-  vec3 to_light_dir;
   vec3 view_dir;
   vec3 world_pos;
   vec3 cam_rel_pos;
@@ -108,17 +106,28 @@ norm_inter_vecs_t calc_normalized_vectors() {
   norm_inter_vecs_t niv;  
 
   niv.normal = normalize(normal.xyz);
-  niv.to_light_dir = normalize(-dir_light_data.light_dir);
 
   vec3 normalized_global_pos = global.xyz / global.w;
   niv.view_dir = normalize(cam_data.cam_pos - normalized_global_pos);
-
-  niv.half_vector = normalize(niv.to_light_dir + niv.view_dir);
 
   niv.world_pos = global.xyz / global.w;
   niv.cam_rel_pos = cam_rel_pos.xyz / cam_rel_pos.w;
 
   return niv;
+}
+
+struct pbr_light_data_t {
+  vec3 to_light_dir;
+  vec3 half_vector;
+  float amount_in_light;
+};
+
+pbr_light_data_t create_pbr_light(norm_inter_vecs_t niv, vec3 to_light_dir, float amount_in_light) {
+  pbr_light_data_t data;  
+  data.to_light_dir = normalize(to_light_dir);
+  data.amount_in_light = amount_in_light;
+  data.half_vector = normalize(data.to_light_dir + niv.view_dir);
+  return data;
 }
 
 float linearize_depth(spotlight_data_t light_data, vec4 light_rel_screen_pos) {
@@ -304,11 +313,11 @@ is_in_dir_light_info_t calc_light_rel_data() {
   return in_dir_light_info;
 }
 
-float normal_distrib(norm_inter_vecs_t niv, float roughness) {
+float normal_distrib(norm_inter_vecs_t niv, pbr_light_data_t pbr_light_data, float roughness) {
   float a = roughness * roughness;
   float a2 = a*a;
   float numerator = a2;
-  float d = max(dot(niv.normal, niv.half_vector), 0.0);
+  float d = max(dot(niv.normal, pbr_light_data.half_vector), 0.0);
   float denom = PI * pow( ( pow(d,2) * ( a2-1.0 ) ) + 1, 2 );
   return numerator / denom;
 }
@@ -321,25 +330,25 @@ float geom_helper(vec3 niv_normal, vec3 other_vec, float roughness) {
   return num / den;
 }
 
-float geom(norm_inter_vecs_t niv, float roughness) {
+float geom(norm_inter_vecs_t niv, pbr_light_data_t pbr_light_data, float roughness) {
   float a = geom_helper(niv.normal, niv.view_dir, roughness);
-  float b = geom_helper(niv.normal, niv.to_light_dir, roughness);
+  float b = geom_helper(niv.normal, pbr_light_data.to_light_dir, roughness);
   return a*b;
 }
 
-vec3 fresnel_eq(norm_inter_vecs_t niv, vec3 F0) {
-  float hv = max(dot(niv.half_vector, niv.view_dir), 0.0);
+vec3 fresnel_eq(norm_inter_vecs_t niv, pbr_light_data_t pbr_light_data, vec3 F0) {
+  float hv = max(dot(pbr_light_data.half_vector, niv.view_dir), 0.0);
   float m = pow(clamp(1-hv, 0.0, 1.0), 5);
   vec3 neg_F0 = vec3(1.0) - F0;
   return F0 + (neg_F0 * m);
 }
 
-float cook_torrance_specular_brdf(norm_inter_vecs_t niv) {
+float cook_torrance_specular_brdf(norm_inter_vecs_t niv, pbr_light_data_t pbr_light_data) {
   float roughness = get_roughness();
-  float D = normal_distrib(niv, roughness); 
-  float G = geom(niv, roughness);
+  float D = normal_distrib(niv, pbr_light_data, roughness); 
+  float G = geom(niv, pbr_light_data, roughness);
 
-  float ln = max(dot(niv.to_light_dir, niv.normal), 0.0);
+  float ln = max(dot(pbr_light_data.to_light_dir, niv.normal), 0.0);
   float vn = max(dot(niv.view_dir, niv.normal), 0.0);
 
   float denom = (4 * ln * vn) + 0.0001;
@@ -399,33 +408,49 @@ vec3 get_base_reflectance() {
   return refl;
 }
 
-vec3 pbr_brdf(norm_inter_vecs_t niv) {
+vec3 pbr_for_light(norm_inter_vecs_t niv, pbr_light_data_t pbr_light_data) {
   vec3 F0 = get_base_reflectance();
-  vec3 ks = fresnel_eq(niv, F0);
+  vec3 ks = fresnel_eq(niv, pbr_light_data, F0);
 
   float metalness = get_metalness();
 
   vec3 kd = vec3(1.0) - ks;
-  kd *= (1.0 - metalness);
+  kd *= (1.0 - metalness); 
 
-  is_in_dir_light_info_t in_dir0 = calc_light_rel_data();
-
-  float amount_in_light = in_dir0.amount_in_light;
-
-  float cook = cook_torrance_specular_brdf(niv);
-
-  float geom_term = max(dot(niv.normal, niv.to_light_dir), 0.0);
-
+  float cook = cook_torrance_specular_brdf(niv, pbr_light_data);
   vec3 diffuse = lambert_diffuse();
-
   vec3 brdf_output = (kd * diffuse / PI) + (ks * cook);
 
-  vec3 pbr = brdf_output * amount_in_light * geom_term;
+  float geom_term = max(dot(niv.normal, normalize(pbr_light_data.to_light_dir)), 0.0);
+  vec3 pbr = brdf_output * pbr_light_data.amount_in_light * geom_term;
+  return pbr;
+}
 
+vec3 pbr_brdf(norm_inter_vecs_t niv) {
+
+  // dirlight
+  is_in_dir_light_info_t in_dir0 = calc_light_rel_data();
+
+  // spotlights
+  is_in_spotlight_info_t in_spotlight0 = is_in_spotlight(niv, spotlights_data[0], spotlight_rel_screen_pos0);
+  is_in_spotlight_info_t in_spotlight1 = is_in_spotlight(niv, spotlights_data[1], spotlight_rel_screen_pos1);
+  is_in_spotlight_info_t in_spotlight2 = is_in_spotlight(niv, spotlights_data[2], spotlight_rel_screen_pos2);
+
+  pbr_light_data_t pbr_lights[4];
+  pbr_lights[0] = create_pbr_light(niv, -dir_light_data.light_dir, in_dir0.amount_in_light);
+  pbr_lights[1] = create_pbr_light(niv, spotlights_data[0].pos - niv.world_pos, in_spotlight0.amount_in_light);
+  pbr_lights[2] = create_pbr_light(niv, spotlights_data[1].pos - niv.world_pos, in_spotlight1.amount_in_light);
+  pbr_lights[3] = create_pbr_light(niv, spotlights_data[2].pos - niv.world_pos, in_spotlight2.amount_in_light);
+
+  // ambient light
   float ambient_factor = 0.03;
-  vec3 ambient = vec3(ambient_factor) * diffuse;
+  vec3 diffuse = lambert_diffuse();
+  vec3 color = vec3(ambient_factor) * diffuse;
 
-  vec3 color = pbr + ambient;
+  for (int i = 0; i < 4; i++) {
+    color += pbr_for_light(niv, pbr_lights[i]);
+  }
+
   color = color / (color + vec3(1.0));
   color = pow(color, vec3(1.0/2.2));
 
@@ -436,55 +461,8 @@ void main() {
 
   norm_inter_vecs_t niv = calc_normalized_vectors();
 
-#if 0
-  if (base_color_tex.tex_id == -1) {
-    if (use_mesh_color == 1) {
-      frag_color = vec4(mesh_color, 1);
-    } else {
-      frag_color = vec4(color, 1);
-    }
-  } else {
-    frag_color = texture(base_color_tex.samp, tex_coords[base_color_tex.tex_id]);
-  }
-
-  is_in_spotlight_info_t in_spotlight0 = is_in_spotlight(spotlights_data[0],  spotlight_rel_screen_pos0);
-  is_in_spotlight_info_t in_spotlight1 = is_in_spotlight(spotlights_data[1], spotlight_rel_screen_pos1);
-  is_in_spotlight_info_t in_spotlight2 = is_in_spotlight(spotlights_data[2], spotlight_rel_screen_pos2);
-
-  dir_light_rel_data_t dir_light_rel_data = calc_light_rel_data(dir_light_mat_data);
-  is_in_dir_light_info_t in_dir0 = is_in_dir_light(dir_light_mat_data, dir_light_data, dir_light_rel_data.screen_rel_pos, dir_light_rel_data.highest_precision_cascade);
-
-  float max_in_light = max(max(max(in_spotlight0.amount_in_light, in_spotlight1.amount_in_light), in_spotlight2.amount_in_light), in_dir0.amount_in_light);
-
-  // float shadow_damp_factor = 0.2;
-  // float multiplier = ((1.0 - max_in_light) * shadow_damp_factor) + max_in_light;
-
-  // frag_color = vec4(normal, 1.0);
-  float ambient_factor = 0.2;
-#if 0
-  vec4 normalized_pos = global / global.w;
-  vec4 normal_norm = normal / normal.w;
-  float albedo_factor = max(0, dot(normalize(normal.xyz), normalize(spotlights_data[0].pos - normalized_pos.xyz)));
-  float multiplier = ambient_factor + (max_in_light * albedo_factor);
-#else
-  float multiplier = ambient_factor + max_in_light;
-#endif
-  multiplier = max(0, min(1, multiplier));
-
-  frag_color.x *= multiplier;
-  frag_color.y *= multiplier;
-  frag_color.z *= multiplier; 
-
-#else
-
-#if 1
   vec3 pbr = pbr_brdf(niv);
   frag_color = vec4(pbr, 1.0);
-#endif
-
-#endif
-
-  // frag_color = vec4(1,0,0,1);
 
 #if VIEW_AMOUNT_IN_LIGHT
   frag_color = vec4(max_in_light, max_in_light, max_in_light, 1);
