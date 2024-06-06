@@ -56,6 +56,10 @@ struct material_t {
   vec3 emission_factor;
   shader_tex emission_tex;
   int use_emission_tex;
+
+  // normal info
+  int use_normal_tex;
+  shader_tex normal_tex;
 };
 
 uniform material_t material;
@@ -92,7 +96,9 @@ uniform cam_data_t cam_data;
 
 in vec2 tex_coords[2];
 in vec3 color;
+
 in vec4 normal;
+in mat4 normal_local_to_world;
 
 in vec4 spotlight_rel_screen_pos0;
 in vec4 spotlight_rel_screen_pos1;
@@ -113,7 +119,14 @@ struct norm_inter_vecs_t {
 norm_inter_vecs_t calc_normalized_vectors() {
   norm_inter_vecs_t niv;  
 
-  niv.normal = normalize(normal.xyz);
+  if (material.use_normal_tex == 1) {
+    vec3 normal_from_map = texture(material.normal_tex.samp, tex_coords[material.normal_tex.tex_id]).rgb;
+    vec4 global_normal = normal_local_to_world * vec4(normal_from_map, 0.0);
+    niv.normal = normalize(global_normal.xyz);
+    niv.normal = normalize(normal_from_map);
+  } else {
+    niv.normal = normalize(normal.xyz);
+  }
 
   vec3 normalized_global_pos = global.xyz / global.w;
   niv.view_dir = normalize(cam_data.cam_pos - normalized_global_pos);

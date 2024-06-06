@@ -207,6 +207,12 @@ struct albedo_param_t {
 	albedo_param_t();
 };
 
+struct normals_param_t {
+	material_image_t normal_map;
+	// the VEC3 variant will mean to use vertex normals
+	MATERIAL_PARAM_VARIANT variant = MATERIAL_PARAM_VARIANT::MAT_IMG;
+};
+
 struct material_t {
 	static shader_t associated_shader;
 	std::string name;
@@ -214,11 +220,10 @@ struct material_t {
 	metallic_roughness_param_t metal_rough;
 
 	emission_param_t emission;
+	normals_param_t normals;
 
 #if 0
 	// will be important later
-	
-	material_image_t normals_tex;
 	material_image_t occlusion_tex;
 #endif
 
@@ -226,7 +231,7 @@ struct material_t {
 };
 // int create_material(vec4 color, material_image_t base_color_img);
 int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img);
-int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img, emission_param_t& emission_param);
+int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img, emission_param_t& emission_param, normals_param_t& normals);
 material_t bind_material(int mat_idx);
 material_t get_material(int mat_idx);
 int get_num_materials();

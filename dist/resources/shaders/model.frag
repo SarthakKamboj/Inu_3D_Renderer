@@ -18,7 +18,7 @@
 #define VIEW_LIGHT0_AMOUNT_IN_LIGHT 0
 #define VIEW_LIGHT1_AMOUNT_IN_LIGHT 0
 #define VIEW_LIGHT2_AMOUNT_IN_LIGHT 0
-#define VIEW_NORMALS 0
+#define VIEW_NORMALS 1
 #define VIEW_DIR_LIGHT_CLOSEST_DEPTH 0
 #define VIEW_DIR_LIGHT_DEPTH 0
 #define VIEW_DIR_LIGHT_AMOUNT_IN_LIGHT 0
@@ -56,6 +56,10 @@ struct material_t {
   vec3 emission_factor;
   shader_tex emission_tex;
   int use_emission_tex;
+
+  // normal info
+  int use_normal_tex;
+  shader_tex normal_tex;
 };
 
 uniform material_t material;
@@ -92,7 +96,9 @@ uniform cam_data_t cam_data;
 
 in vec2 tex_coords[2];
 in vec3 color;
+
 in vec4 normal;
+in mat4 normal_local_to_world;
 
 in vec4 spotlight_rel_screen_pos0;
 in vec4 spotlight_rel_screen_pos1;
@@ -113,7 +119,13 @@ struct norm_inter_vecs_t {
 norm_inter_vecs_t calc_normalized_vectors() {
   norm_inter_vecs_t niv;  
 
-  niv.normal = normalize(normal.xyz);
+  if (material.use_normal_tex == 1) {
+    vec3 normal_from_map = texture(material.normal_tex.samp, tex_coords[material.normal_tex.tex_id]).rgb;
+    vec4 global_normal = normal_local_to_world * vec4(normal_from_map, 0.0);
+    niv.normal = normalize(global_normal.xyz);
+  } else {
+    niv.normal = normalize(normal.xyz);
+  }
 
   vec3 normalized_global_pos = global.xyz / global.w;
   niv.view_dir = normalize(cam_data.cam_pos - normalized_global_pos);
@@ -392,9 +404,9 @@ vec3 get_emission_vec() {
     em = vec3(1.0, 1.0, 1.0);
   } else {
     em = texture(material.emission_tex.samp, tex_coords[material.emission_tex.tex_id]).rgb;
-    em.r = s_rgb_to_linear(em.r);
-    em.g = s_rgb_to_linear(em.g);
-    em.b = s_rgb_to_linear(em.b);
+    // em.r = s_rgb_to_linear(em.r);
+    // em.g = s_rgb_to_linear(em.g);
+    // em.b = s_rgb_to_linear(em.b);
   }
   return em * material.emission_factor;
 }
@@ -475,7 +487,6 @@ vec3 pbr_brdf(norm_inter_vecs_t niv) {
     color += pbr_for_light(niv, pbr_lights[i]);
   }
 
-  color = vec3(0,0,0);
   color += get_emission_vec();
 
   color = color / (color + vec3(1.0));

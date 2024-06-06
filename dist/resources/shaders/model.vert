@@ -29,7 +29,9 @@ uniform spotlight_mat_data_t spotlights_mat_data[3];
 
 out vec2 tex_coords[2];
 out vec3 color;
+
 out vec4 normal;
+out mat4 normal_local_to_world;
 
 out vec4 spotlight_rel_screen_pos0;
 out vec4 spotlight_rel_screen_pos1;
@@ -85,7 +87,8 @@ void main() {
   tex_coords[1] = tex1;
   color = vert_color;
   // must convert normal to global version
-  normal = transpose(inverse(final_model)) * vec4(vert_normal, 0.0);
+  normal_local_to_world = transpose(inverse(final_model));
+  normal = normal_local_to_world * vec4(vert_normal, 0.0);
 
   spotlight_rel_screen_pos0 = calc_spotlight_rel_pos(spotlights_mat_data[0].light_projection, spotlights_mat_data[0].light_view, final_model);
   spotlight_rel_screen_pos1 = calc_spotlight_rel_pos(spotlights_mat_data[1].light_projection, spotlights_mat_data[1].light_view, final_model);

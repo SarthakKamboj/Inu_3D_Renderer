@@ -1350,6 +1350,7 @@ void gltf_load_file(const char* filepath) {
     albedo_param_t albedo;
     metallic_roughness_param_t met_rough_param;
 	  emission_param_t emission;
+	  normals_param_t normals;
 
 #if SET_MESHES_TO_WHITE == 1
     // create_material(mat.pbr.base_color_factor, base_color_img);
@@ -1376,6 +1377,7 @@ void gltf_load_file(const char* filepath) {
     // metal roughness is represented as a texture
     if (mat.pbr.metal_rough_tex_info.gltf_texture_idx != -1) {
       material_image_t rough_met_img = gltf_mat_img_to_internal_mat_img(mat.pbr.metal_rough_tex_info, METAL_ROUGH_IMG_TEX_SLOT);
+      met_rough_param.met_rough_tex = rough_met_img;
       met_rough_param.variant = MATERIAL_PARAM_VARIANT::MAT_IMG;
     }
     // metal roughness are floats
@@ -1385,11 +1387,16 @@ void gltf_load_file(const char* filepath) {
       met_rough_param.variant = MATERIAL_PARAM_VARIANT::FLOAT;
     }
 
+    // emission information
     emission.emissive_tex_info = gltf_mat_img_to_internal_mat_img(mat.emissive_tex_info, EMISSION_IMG_TEX_SLOT);
     emission.emission_factor = mat.emissive_factor;
     emission.variant = (emission.emissive_tex_info.tex_handle == -1) ? MATERIAL_PARAM_VARIANT::VEC3 : MATERIAL_PARAM_VARIANT::MAT_IMG;
+
+    // normals information
+    normals.normal_map = gltf_mat_img_to_internal_mat_img(mat.normal_tex_info.tex_info, NORMALS_IMG_TEX_SLOT);
+    normals.variant = (normals.normal_map.tex_handle == -1) ? MATERIAL_PARAM_VARIANT::VEC3 : MATERIAL_PARAM_VARIANT::MAT_IMG;
     
-    create_material(mat.name, albedo, met_rough_param, emission);
+    create_material(mat.name, albedo, met_rough_param, emission, normals);
 #endif
   }
  

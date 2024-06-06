@@ -531,7 +531,7 @@ int create_material(std::string& mat_name, albedo_param_t& albedo_param, metalli
 	return materials.size()-1;
 }
 
-int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& met_rough_param, emission_param_t& emission_param) {
+int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& met_rough_param, emission_param_t& emission_param, normals_param_t& normals_param) {
 	material_t mat;
 
 	inu_assert(albedo_param.variant == MATERIAL_PARAM_VARIANT::VEC4 || albedo_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG, "albedo only has types of mat img and vec4");
@@ -542,6 +542,9 @@ int create_material(std::string& mat_name, albedo_param_t& albedo_param, metalli
 
 	inu_assert(emission_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG || emission_param.variant == MATERIAL_PARAM_VARIANT::VEC3, "emission only has types of mat img and vec3");
 	mat.emission = emission_param;
+
+	inu_assert(normals_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG || normals_param.variant == MATERIAL_PARAM_VARIANT::VEC3, "emission only has types of mat img and vec3");
+	mat.normals = normals_param;
 
 	mat.name = mat_name;
 
@@ -607,6 +610,16 @@ material_t bind_material(int mat_idx) {
 		shader_set_int(shader, "material.emission_tex.tex_id", emission_param.emissive_tex_info.tex_coords_idx);
 	}
 	shader_set_vec3(shader, "material.emission_factor", emission_param.emission_factor);
+
+	// set normals information
+	normals_param_t& normals = mat.normals;
+	shader_set_int(shader, "material.use_normal_tex", normals.variant == MATERIAL_PARAM_VARIANT::MAT_IMG);
+	if (normals.variant == MATERIAL_PARAM_VARIANT::MAT_IMG) {
+		const texture_t& normal_map = bind_texture(normals.normal_map.tex_handle);
+		inu_assert(normal_map.tex_slot == NORMALS_IMG_TEX_SLOT, "normal map slot is not correct");
+		shader_set_int(shader, "material.normal_tex.samp", normal_map.tex_slot);
+		shader_set_int(shader, "material.normal_tex.tex_id", normals.normal_map.tex_coords_idx);
+	}
 
   bind_shader(shader);
   return mat;
