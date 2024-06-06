@@ -531,6 +531,25 @@ int create_material(std::string& mat_name, albedo_param_t& albedo_param, metalli
 	return materials.size()-1;
 }
 
+int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& met_rough_param, emission_param_t& emission_param) {
+	material_t mat;
+
+	inu_assert(albedo_param.variant == MATERIAL_PARAM_VARIANT::VEC4 || albedo_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG, "albedo only has types of mat img and vec4");
+	mat.albedo = albedo_param;
+
+	inu_assert(met_rough_param.variant == MATERIAL_PARAM_VARIANT::FLOAT || met_rough_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG, "metal roughness only has types of mat img and float");
+	mat.metal_rough = met_rough_param;
+
+	inu_assert(emission_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG || emission_param.variant == MATERIAL_PARAM_VARIANT::VEC3, "emission only has types of mat img and vec3");
+	mat.emission = emission_param;
+
+	mat.name = mat_name;
+
+	materials.push_back(mat);
+
+	return materials.size()-1;
+}
+
 material_t get_material(int mat_idx) {
 	return materials[mat_idx];
 }
@@ -576,6 +595,18 @@ material_t bind_material(int mat_idx) {
 	} else {
 		inu_assert_msg("this metal-rough variant is not supported");
 	}
+
+	// set emission information
+	emission_param_t& emission_param = mat.emission;
+	shader_set_int(shader, "material.use_emission_tex", emission_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG);
+
+	if (emission_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG) {
+		const texture_t& emission_texture = bind_texture(emission_param.emissive_tex_info.tex_handle);
+		inu_assert(emission_texture.tex_slot == EMISSION_IMG_TEX_SLOT, "emission texture slot is not correct");
+		shader_set_int(shader, "material.emission_tex.samp", emission_texture.tex_slot);
+		shader_set_int(shader, "material.emission_tex.tex_id", emission_param.emissive_tex_info.tex_coords_idx);
+	}
+	shader_set_vec3(shader, "material.emission_factor", emission_param.emission_factor);
 
   bind_shader(shader);
   return mat;

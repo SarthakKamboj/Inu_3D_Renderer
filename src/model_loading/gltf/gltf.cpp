@@ -1349,6 +1349,7 @@ void gltf_load_file(const char* filepath) {
   for (gltf_material_t& mat : gltf_materials) {
     albedo_param_t albedo;
     metallic_roughness_param_t met_rough_param;
+	  emission_param_t emission;
 
 #if SET_MESHES_TO_WHITE == 1
     // create_material(mat.pbr.base_color_factor, base_color_img);
@@ -1383,8 +1384,12 @@ void gltf_load_file(const char* filepath) {
       met_rough_param.roughness_factor = mat.pbr.roughness_factor;
       met_rough_param.variant = MATERIAL_PARAM_VARIANT::FLOAT;
     }
+
+    emission.emissive_tex_info = gltf_mat_img_to_internal_mat_img(mat.emissive_tex_info, EMISSION_IMG_TEX_SLOT);
+    emission.emission_factor = mat.emissive_factor;
+    emission.variant = (emission.emissive_tex_info.tex_handle == -1) ? MATERIAL_PARAM_VARIANT::VEC3 : MATERIAL_PARAM_VARIANT::MAT_IMG;
     
-    create_material(mat.name, albedo, met_rough_param);
+    create_material(mat.name, albedo, met_rough_param, emission);
 #endif
   }
  

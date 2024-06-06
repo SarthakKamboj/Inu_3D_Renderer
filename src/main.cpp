@@ -106,7 +106,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   play_next_anim();
 
   init_light_data();
-#if 1
+#if 0
   // create_light({2,10,0});
   // create_light({-2,3,0});
   // create_light({-20,30,0});

@@ -172,11 +172,9 @@ struct material_image_t {
 };
 
 struct emission_param_t {
-	union {
-		vec3 emission_factor = {1,1,1};
-		material_image_t emissive_tex_info;
-	};
-	MATERIAL_PARAM_VARIANT variant = MATERIAL_PARAM_VARIANT::VEC3;
+	vec3 emission_factor;
+	material_image_t emissive_tex_info;
+	MATERIAL_PARAM_VARIANT variant = MATERIAL_PARAM_VARIANT::MAT_IMG;
 };
 
 struct metallic_roughness_param_t {
@@ -215,18 +213,20 @@ struct material_t {
 	albedo_param_t albedo;
 	metallic_roughness_param_t metal_rough;
 
+	emission_param_t emission;
+
 #if 0
 	// will be important later
 	
 	material_image_t normals_tex;
 	material_image_t occlusion_tex;
-	emission_param_t emission;
 #endif
 
 	material_t();
 };
 // int create_material(vec4 color, material_image_t base_color_img);
 int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img);
+int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img, emission_param_t& emission_param);
 material_t bind_material(int mat_idx);
 material_t get_material(int mat_idx);
 int get_num_materials();

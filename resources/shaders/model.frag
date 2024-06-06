@@ -28,6 +28,7 @@
 float s_rgb_to_linear(float s_rgb);
 float get_roughness();
 float get_metalness();
+vec3 get_emission_vec();
 
 // https://stackoverflow.com/questions/66469497/gltf-setting-colors-basecolorfactor
 float s_rgb_to_linear(float s_rgb) {
@@ -40,14 +41,21 @@ struct shader_tex {
 };
 
 struct material_t {
+  // base color info
   shader_tex base_color_tex;
   vec3 mesh_color;
   int use_base_color_tex;
 
+  // metal and roughness info
   float surface_roughness;
   float metalness;
   shader_tex metal_rough_tex;
   int use_metal_rough_tex;
+
+  // emission info
+  vec3 emission_factor;
+  shader_tex emission_tex;
+  int use_emission_tex;
 };
 
 uniform material_t material;
@@ -193,6 +201,7 @@ is_in_spotlight_info_t is_in_spotlight(norm_inter_vecs_t niv, spotlight_data_t l
 
       vec2 new_tex_coord = tex_coords + vec2(x_offset / light_data.shadow_map_width, y_offset / light_data.shadow_map_height);
       if (new_tex_coord.x < 0 || new_tex_coord.x > 1 || new_tex_coord.y < 0 || new_tex_coord.y > 1) continue;
+      if (distance(new_tex_coord, vec2(0.5, 0.5)) > 0.5) continue;
 
       // depth buffer stores 0 to 1, for near to far respectively
       // so closest_depth is between 0 to 1
@@ -244,6 +253,7 @@ is_in_dir_light_info_t calc_light_rel_data() {
   int highest_precision_cascade = NUM_CASCADES - 1;
   vec3 highest_prec_tex_plus_depth_info = vec3(0);
 
+  // get the highest precision shadow cascade
   for (int i = 0; i < NUM_CASCADES; i++) {
     vec3 tex_plus_depth_info = get_cascade_tex_depth_info(i);
     bool highest_prec = tex_plus_depth_info.x >= 0 && tex_plus_depth_info.x <= 1 && tex_plus_depth_info.y >= 0 && tex_plus_depth_info.y <= 1;
@@ -267,6 +277,7 @@ is_in_dir_light_info_t calc_light_rel_data() {
 
   int pcf = 3;
 
+  // get the closest depth at that point in the highest precision shadow cascade and see whether this point is in the shadow or not
   ivec2 sm_dim = textureSize(dir_light_data.shadow_map, highest_precision_cascade).xy;
   for (int x_offset = -(pcf/2); x_offset <= (pcf/2); x_offset++) {
     for (int y_offset = -(pcf/2); y_offset <= (pcf/2); y_offset++) {
@@ -375,6 +386,19 @@ vec3 lambert_diffuse() {
   return diffuse.rgb;
 }
 
+vec3 get_emission_vec() {
+  vec3 em;
+  if (material.use_emission_tex == 0) {
+    em = vec3(1.0, 1.0, 1.0);
+  } else {
+    em = texture(material.emission_tex.samp, tex_coords[material.emission_tex.tex_id]).rgb;
+    // em.r = s_rgb_to_linear(em.r);
+    // em.g = s_rgb_to_linear(em.g);
+    // em.b = s_rgb_to_linear(em.b);
+  }
+  return em * material.emission_factor;
+}
+
 float get_metalness() {
   float metalness;
   if (material.use_metal_rough_tex == 1) {
@@ -450,6 +474,8 @@ vec3 pbr_brdf(norm_inter_vecs_t niv) {
   for (int i = 0; i < 4; i++) {
     color += pbr_for_light(niv, pbr_lights[i]);
   }
+
+  color += get_emission_vec();
 
   color = color / (color + vec3(1.0));
   color = pow(color, vec3(1.0/2.2));
