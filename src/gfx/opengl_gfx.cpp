@@ -504,17 +504,6 @@ int get_num_materials() {
 	return materials.size();
 }
 
-#if 0
-int create_material(vec4 color, material_image_t base_color_img) {
-	material_t mat;
-	mat.albedo.base_color_img = base_color_img;
-	mat.albedo.base_color = color;
-	mat.albedo.base_color.w = 1;
-	materials.push_back(mat);
-	return materials.size()-1;
-}
-#endif
-
 int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& met_rough_param) {
 	material_t mat;
 

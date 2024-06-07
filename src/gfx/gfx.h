@@ -231,14 +231,8 @@ struct material_t {
 	normals_param_t normals;
 	occ_param_t occ;
 
-#if 0
-	// will be important later
-	material_image_t occlusion_tex;
-#endif
-
 	material_t();
 };
-// int create_material(vec4 color, material_image_t base_color_img);
 int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img);
 int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img, emission_param_t& emission_param, normals_param_t& normals, occ_param_t& occ);
 material_t bind_material(int mat_idx);
