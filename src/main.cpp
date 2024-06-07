@@ -46,9 +46,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
   char vert_shader_path[256]{};
   sprintf(vert_shader_path, "%s\\shaders\\model.vert", resources_path);
+  char geo_shader_path[256]{};
+  sprintf(geo_shader_path, "%s\\shaders\\model.geo", resources_path);
   char frag_shader_path[256]{};
   sprintf(frag_shader_path, "%s\\shaders\\model.frag", resources_path);
-  material_t::associated_shader = create_shader(vert_shader_path, frag_shader_path); 
+  material_t::associated_shader = create_shader(vert_shader_path, geo_shader_path, frag_shader_path); 
 
   // const char* gltf_file_resources_folder_rel_path =  "box\\Box.gltf";
   // const char* gltf_file_resources_folder_rel_path =  "box_interleaved\\BoxInterleaved.gltf";
