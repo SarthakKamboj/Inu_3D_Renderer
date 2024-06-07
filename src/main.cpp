@@ -33,8 +33,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   }
 
   transform_t t;
-  t.pos.y = 0.3f;
-  t.pos.x = 0.3f;
+  t.pos.y = 2.3f;
+  t.pos.x = 2.3f;
   create_camera(t);
   init_online_renderer();
 
@@ -63,7 +63,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "box_vertex_colors\\BoxVertexColors.gltf";
   // const char* gltf_file_resources_folder_rel_path = "cube_non_smooth_face\\Cube.gltf";
   // const char* gltf_file_resources_folder_rel_path = "duck\\Duck.gltf";
-  const char* gltf_file_resources_folder_rel_path = "avacado\\Avocado.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "avacado\\Avocado.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "sci_fi_helmet\\SciFiHelmet.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "damaged_helmet\\DamagedHelmet.gltf";
+  const char* gltf_file_resources_folder_rel_path = "lantern\\Lantern.gltf";
   // const char* gltf_file_resources_folder_rel_path = "suzan\\Suzanne.gltf";
   // const char* gltf_file_resources_folder_rel_path = "cartoon_car\\combined.gltf";
   // const char* gltf_file_resources_folder_rel_path = "ferrari_enzo\\scene.gltf";

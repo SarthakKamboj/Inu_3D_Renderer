@@ -1351,10 +1351,9 @@ void gltf_load_file(const char* filepath) {
     metallic_roughness_param_t met_rough_param;
 	  emission_param_t emission;
 	  normals_param_t normals;
+    occ_param_t occs;
 
 #if SET_MESHES_TO_WHITE == 1
-    // create_material(mat.pbr.base_color_factor, base_color_img);
-
     albedo.base_color = vec4(1,1,1,1);
     albedo.variant = MATERIAL_PARAM_VARIANT::VEC4;
 
@@ -1395,8 +1394,12 @@ void gltf_load_file(const char* filepath) {
     // normals information
     normals.normal_map = gltf_mat_img_to_internal_mat_img(mat.normal_tex_info.tex_info, NORMALS_IMG_TEX_SLOT);
     normals.variant = (normals.normal_map.tex_handle == -1) ? MATERIAL_PARAM_VARIANT::VEC3 : MATERIAL_PARAM_VARIANT::MAT_IMG;
+
+    // ambient occ information
+    occs.occ_map = gltf_mat_img_to_internal_mat_img(mat.occ_tex_info.tex_info, OCC_IMG_TEX_SLOT);
+    occs.variant = (occs.occ_map.tex_handle == -1) ? MATERIAL_PARAM_VARIANT::NONE : MATERIAL_PARAM_VARIANT::MAT_IMG;
     
-    create_material(mat.name, albedo, met_rough_param, emission, normals);
+    create_material(mat.name, albedo, met_rough_param, emission, normals, occs);
 #endif
   }
  

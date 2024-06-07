@@ -23,12 +23,14 @@
 #define VIEW_DIR_LIGHT_DEPTH 0
 #define VIEW_DIR_LIGHT_AMOUNT_IN_LIGHT 0
 #define VIEW_CASCADE 0
+#define VIEW_OCC 0
 #define ENABLE_QUANTIZING 0
 
 float s_rgb_to_linear(float s_rgb);
 float get_roughness();
 float get_metalness();
 vec3 get_emission_vec();
+vec3 get_occ_rgb();
 
 // https://stackoverflow.com/questions/66469497/gltf-setting-colors-basecolorfactor
 float s_rgb_to_linear(float s_rgb) {
@@ -60,6 +62,10 @@ struct material_t {
   // normal info
   int use_normal_tex;
   shader_tex normal_tex;
+
+  // occ info
+  int use_occ_tex;
+  shader_tex occ_tex;
 };
 
 uniform material_t material;
@@ -399,10 +405,19 @@ vec3 lambert_diffuse() {
   return diffuse.rgb;
 }
 
+vec3 get_occ_rgb() {
+  vec3 occ_rgb = vec3(1.0, 1.0, 1.0);
+  if (material.use_occ_tex == 1) {
+    occ_rgb = texture(material.occ_tex.samp, tex_coords[material.occ_tex.tex_id]).rgb;
+  }
+  return occ_rgb;
+}
+
 vec3 get_emission_vec() {
   vec3 em;
   if (material.use_emission_tex == 0) {
-    em = vec3(1.0, 1.0, 1.0);
+    // em = vec3(1.0, 1.0, 1.0);
+    em = vec3(0);
   } else {
     em = texture(material.emission_tex.samp, tex_coords[material.emission_tex.tex_id]).rgb;
     // em.r = s_rgb_to_linear(em.r);
@@ -480,9 +495,9 @@ vec3 pbr_brdf(norm_inter_vecs_t niv) {
   pbr_lights[3] = create_pbr_light(niv, spotlights_data[2].pos - niv.world_pos, in_spotlight2.amount_in_light);
 
   // ambient light
-  float ambient_factor = 0.03;
+  vec3 ambient_factor = vec3(0.1) * get_occ_rgb();
   vec3 diffuse = lambert_diffuse();
-  vec3 color = vec3(ambient_factor) * diffuse;
+  vec3 color = ambient_factor * diffuse;
 
   for (int i = 0; i < 4; i++) {
     color += pbr_for_light(niv, pbr_lights[i]);
@@ -565,6 +580,9 @@ void main() {
   } else {
     frag_color = vec4(1,1,1,1);
   }
+#elif VIEW_OCC
+  vec3 occ_v = get_occ_rgb();
+  frag_color = vec4(occ_v, 1.0);
 #endif 
 
 #if ENABLE_QUANTIZING

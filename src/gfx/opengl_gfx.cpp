@@ -531,7 +531,7 @@ int create_material(std::string& mat_name, albedo_param_t& albedo_param, metalli
 	return materials.size()-1;
 }
 
-int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& met_rough_param, emission_param_t& emission_param, normals_param_t& normals_param) {
+int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& met_rough_param, emission_param_t& emission_param, normals_param_t& normals_param, occ_param_t& occ_param) {
 	material_t mat;
 
 	inu_assert(albedo_param.variant == MATERIAL_PARAM_VARIANT::VEC4 || albedo_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG, "albedo only has types of mat img and vec4");
@@ -545,6 +545,9 @@ int create_material(std::string& mat_name, albedo_param_t& albedo_param, metalli
 
 	inu_assert(normals_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG || normals_param.variant == MATERIAL_PARAM_VARIANT::VEC3, "emission only has types of mat img and vec3");
 	mat.normals = normals_param;
+
+	inu_assert(occ_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG || occ_param.variant == MATERIAL_PARAM_VARIANT::NONE, "occ map only has types of mat img and none");
+	mat.occ = occ_param;
 
 	mat.name = mat_name;
 
@@ -600,8 +603,14 @@ material_t bind_material(int mat_idx) {
 	}
 
 	// set emission information
+#if 0
+	static bool occ_on = true;
+	if (window.input.right_mouse_up) {
+		occ_on = !occ_on;
+	}
+#endif
 	emission_param_t& emission_param = mat.emission;
-	shader_set_int(shader, "material.use_emission_tex", emission_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG);
+	shader_set_int(shader, "material.use_emission_tex", (emission_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG));
 
 	if (emission_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG) {
 		const texture_t& emission_texture = bind_texture(emission_param.emissive_tex_info.tex_handle);
@@ -619,6 +628,16 @@ material_t bind_material(int mat_idx) {
 		inu_assert(normal_map.tex_slot == NORMALS_IMG_TEX_SLOT, "normal map slot is not correct");
 		shader_set_int(shader, "material.normal_tex.samp", normal_map.tex_slot);
 		shader_set_int(shader, "material.normal_tex.tex_id", normals.normal_map.tex_coords_idx);
+	}
+
+	// ambient occlusion information
+	occ_param_t& occ = mat.occ;
+	shader_set_int(shader, "material.use_occ_tex", (occ.variant == MATERIAL_PARAM_VARIANT::MAT_IMG));
+	if (occ.variant == MATERIAL_PARAM_VARIANT::MAT_IMG) {
+		const texture_t& occ_map = bind_texture(occ.occ_map.tex_handle);
+		inu_assert(occ_map.tex_slot == OCC_IMG_TEX_SLOT, "occ map slot is not correct");
+		shader_set_int(shader, "material.occ_tex.samp", occ_map.tex_slot);
+		shader_set_int(shader, "material.occ_tex.tex_id", occ.occ_map.tex_coords_idx);
 	}
 
   bind_shader(shader);

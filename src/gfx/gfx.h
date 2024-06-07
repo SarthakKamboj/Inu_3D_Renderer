@@ -158,6 +158,7 @@ const texture_t bind_texture(tex_id_t tex_id, int override_slot);
 void unbind_texture();
 
 enum class MATERIAL_PARAM_VARIANT {
+	NONE,
 	FLOAT,
 	VEC3,
 	VEC4,
@@ -213,6 +214,13 @@ struct normals_param_t {
 	MATERIAL_PARAM_VARIANT variant = MATERIAL_PARAM_VARIANT::MAT_IMG;
 };
 
+struct occ_param_t {
+	material_image_t occ_map;
+	// the NONE variant will mean to not use occlusion mapping
+	// the MAT_IMG variant will mean to use occlusion mapping
+	MATERIAL_PARAM_VARIANT variant = MATERIAL_PARAM_VARIANT::MAT_IMG;
+};
+
 struct material_t {
 	static shader_t associated_shader;
 	std::string name;
@@ -221,6 +229,7 @@ struct material_t {
 
 	emission_param_t emission;
 	normals_param_t normals;
+	occ_param_t occ;
 
 #if 0
 	// will be important later
@@ -231,7 +240,7 @@ struct material_t {
 };
 // int create_material(vec4 color, material_image_t base_color_img);
 int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img);
-int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img, emission_param_t& emission_param, normals_param_t& normals);
+int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img, emission_param_t& emission_param, normals_param_t& normals, occ_param_t& occ);
 material_t bind_material(int mat_idx);
 material_t get_material(int mat_idx);
 int get_num_materials();

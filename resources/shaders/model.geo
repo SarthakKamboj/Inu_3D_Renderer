@@ -30,6 +30,10 @@ struct material_t {
   // normal info
   int use_normal_tex;
   shader_tex normal_tex;
+
+  // occ info
+  int use_occ_tex;
+  shader_tex occ_tex;
 };
 
 uniform material_t material;
