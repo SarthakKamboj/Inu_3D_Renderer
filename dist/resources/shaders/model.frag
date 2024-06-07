@@ -18,7 +18,7 @@
 #define VIEW_LIGHT0_AMOUNT_IN_LIGHT 0
 #define VIEW_LIGHT1_AMOUNT_IN_LIGHT 0
 #define VIEW_LIGHT2_AMOUNT_IN_LIGHT 0
-#define VIEW_NORMALS 1
+#define VIEW_NORMALS 0
 #define VIEW_DIR_LIGHT_CLOSEST_DEPTH 0
 #define VIEW_DIR_LIGHT_DEPTH 0
 #define VIEW_DIR_LIGHT_AMOUNT_IN_LIGHT 0
@@ -98,7 +98,7 @@ in vec2 tex_coords[2];
 in vec3 color;
 
 in vec4 normal;
-in mat4 normal_local_to_world;
+in mat4 tbn_mat;
 
 in vec4 spotlight_rel_screen_pos0;
 in vec4 spotlight_rel_screen_pos1;
@@ -121,7 +121,8 @@ norm_inter_vecs_t calc_normalized_vectors() {
 
   if (material.use_normal_tex == 1) {
     vec3 normal_from_map = texture(material.normal_tex.samp, tex_coords[material.normal_tex.tex_id]).rgb;
-    vec4 global_normal = normal_local_to_world * vec4(normal_from_map, 0.0);
+    normal_from_map = (normal_from_map * 2.0) - 1.0;
+    vec4 global_normal = tbn_mat * vec4(normal_from_map, 0.0);
     niv.normal = normalize(global_normal.xyz);
   } else {
     niv.normal = normalize(normal.xyz);
@@ -573,4 +574,5 @@ void main() {
   if (override_color_bool == 1) {
     frag_color = vec4(1,1,1,1);
   }
+
 }

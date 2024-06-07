@@ -33,8 +33,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   }
 
   transform_t t;
-  t.pos.y = 10.f;
-  t.pos.x = 2.f;
+  t.pos.y = 0.3f;
+  t.pos.x = 0.3f;
   create_camera(t);
   init_online_renderer();
 
@@ -102,7 +102,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 #endif
 
   char gltf_full_file_path[256]{};
-  sprintf(gltf_full_file_path, "%s\\%s", resources_path, gltf_file_resources_folder_rel_path);
+  sprintf(gltf_full_file_path, "%s\\models\\%s", resources_path, gltf_file_resources_folder_rel_path);
   gltf_load_file(gltf_full_file_path);
 
   play_next_anim();

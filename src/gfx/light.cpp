@@ -68,7 +68,7 @@ void init_light_data() {
 #if SHOW_LIGHTS
   char light_mesh_full_file_path[256]{};
   // this file pretty much just has a mesh, no nodes
-  sprintf(light_mesh_full_file_path, "%s\\custom_light\\light_mesh.gltf", resources_path);
+  sprintf(light_mesh_full_file_path, "%s\\models\\custom_light\\light_mesh.gltf", resources_path);
   gltf_load_file(light_mesh_full_file_path);
   spotlight_t::LIGHT_MESH_ID = latest_model_id();
 #endif
