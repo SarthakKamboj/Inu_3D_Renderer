@@ -66,7 +66,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "avacado\\Avocado.gltf";
   // const char* gltf_file_resources_folder_rel_path = "sci_fi_helmet\\SciFiHelmet.gltf";
   // const char* gltf_file_resources_folder_rel_path = "damaged_helmet\\DamagedHelmet.gltf";
-  const char* gltf_file_resources_folder_rel_path = "lantern\\Lantern.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "lantern\\Lantern.gltf";
+  const char* gltf_file_resources_folder_rel_path = "water_bottle\\WaterBottle.gltf";
   // const char* gltf_file_resources_folder_rel_path = "suzan\\Suzanne.gltf";
   // const char* gltf_file_resources_folder_rel_path = "cartoon_car\\combined.gltf";
   // const char* gltf_file_resources_folder_rel_path = "ferrari_enzo\\scene.gltf";

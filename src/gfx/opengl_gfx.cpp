@@ -520,7 +520,7 @@ int create_material(std::string& mat_name, albedo_param_t& albedo_param, metalli
 	return materials.size()-1;
 }
 
-int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& met_rough_param, emission_param_t& emission_param, normals_param_t& normals_param, occ_param_t& occ_param) {
+int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& met_rough_param, emission_param_t& emission_param, normals_param_t& normals_param, occ_param_t& occ_param, TRANSPARENCY_MODE transparency_mode) {
 	material_t mat;
 
 	inu_assert(albedo_param.variant == MATERIAL_PARAM_VARIANT::VEC4 || albedo_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG, "albedo only has types of mat img and vec4");
@@ -537,6 +537,8 @@ int create_material(std::string& mat_name, albedo_param_t& albedo_param, metalli
 
 	inu_assert(occ_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG || occ_param.variant == MATERIAL_PARAM_VARIANT::NONE, "occ map only has types of mat img and none");
 	mat.occ = occ_param;
+
+	mat.transparency_mode = transparency_mode;
 
 	mat.name = mat_name;
 

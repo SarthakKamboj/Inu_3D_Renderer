@@ -32,6 +32,7 @@ struct mesh_t {
 struct model_t {
   int id;
   std::vector<mesh_t> meshes;
+  bool is_non_opaque_mesh = false;
 };
 
 int register_model(model_t& model);

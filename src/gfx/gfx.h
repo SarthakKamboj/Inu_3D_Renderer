@@ -221,6 +221,12 @@ struct occ_param_t {
 	MATERIAL_PARAM_VARIANT variant = MATERIAL_PARAM_VARIANT::MAT_IMG;
 };
 
+enum class TRANSPARENCY_MODE {
+	TRANSPARENT,
+	BLEND,
+	OPAQUE
+};
+
 struct material_t {
 	static shader_t associated_shader;
 	std::string name;
@@ -231,10 +237,12 @@ struct material_t {
 	normals_param_t normals;
 	occ_param_t occ;
 
+	TRANSPARENCY_MODE transparency_mode = TRANSPARENCY_MODE::OPAQUE;
+
 	material_t();
 };
 int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img);
-int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img, emission_param_t& emission_param, normals_param_t& normals, occ_param_t& occ);
+int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img, emission_param_t& emission_param, normals_param_t& normals, occ_param_t& occ, TRANSPARENCY_MODE transparency_mode);
 material_t bind_material(int mat_idx);
 material_t get_material(int mat_idx);
 int get_num_materials();

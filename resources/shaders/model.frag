@@ -408,7 +408,8 @@ vec3 lambert_diffuse() {
 vec3 get_occ_rgb() {
   vec3 occ_rgb = vec3(1.0, 1.0, 1.0);
   if (material.use_occ_tex == 1) {
-    occ_rgb = texture(material.occ_tex.samp, tex_coords[material.occ_tex.tex_id]).rgb;
+    float v = texture(material.occ_tex.samp, tex_coords[material.occ_tex.tex_id]).r;
+    occ_rgb = vec3(v,v,v);
   }
   return occ_rgb;
 }
@@ -495,8 +496,8 @@ vec3 pbr_brdf(norm_inter_vecs_t niv) {
   pbr_lights[3] = create_pbr_light(niv, spotlights_data[2].pos - niv.world_pos, in_spotlight2.amount_in_light);
 
   // ambient light
-  vec3 ambient_factor = vec3(0.1) * get_occ_rgb();
   vec3 diffuse = lambert_diffuse();
+  vec3 ambient_factor = vec3(0.1) * get_occ_rgb();
   vec3 color = ambient_factor * diffuse;
 
   for (int i = 0; i < 4; i++) {
