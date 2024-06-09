@@ -372,7 +372,16 @@ file_texture_t create_file_texture(const char* img_path, int tex_slot) {
 file_texture_t create_file_texture(const char* img_path, int tex_slot, tex_creation_meta_t& meta_data) {
 	for (file_texture_t& ft : file_textures) {
 		if (strcmp(img_path, ft.path.c_str()) == 0) {
-			return ft;
+			texture_t& tex = textures[ft.id];
+			if (tex.tex_slot == tex_slot) {
+				return ft;
+			} else {
+				file_texture_t new_ft;
+				new_ft.id = create_texture_from_another_texture(ft.id, tex_slot, meta_data);
+				new_ft.path = std::string(img_path);
+				file_textures.push_back(new_ft);
+				return new_ft;
+			}
 		}
 	}
 
@@ -455,6 +464,29 @@ tex_id_t create_texture(unsigned char* data, int tex_slot, int width, int height
 
 	glBindTexture(gl_meta.tex_target, 0);
 
+	texture.tex_creation_meta = meta_data;
+	texture.gl_tex_creation_meta = static_cast<gl_tex_creation_meta_t*>(malloc(sizeof(gl_tex_creation_meta_t)));
+	*texture.gl_tex_creation_meta = gl_meta;
+
+	textures.push_back(texture);
+	return texture.id;
+}
+
+tex_id_t create_texture_from_another_texture(tex_id_t other, int tex_slot, tex_creation_meta_t& meta_data) {
+
+	texture_t texture;
+	texture.id = internal_tex_running_id;
+	internal_tex_running_id++;
+
+	texture_t& other_tex = textures[other-1];
+
+	texture.tex_slot = tex_slot;
+	texture.width = other_tex.width;
+	texture.height = other_tex.height;
+	texture.depth = other_tex.depth;
+	texture.num_channels = other_tex.num_channels;
+
+	gl_tex_creation_meta_t gl_meta = internal_to_gl_tex_meta(meta_data);
 	texture.tex_creation_meta = meta_data;
 	texture.gl_tex_creation_meta = static_cast<gl_tex_creation_meta_t*>(malloc(sizeof(gl_tex_creation_meta_t)));
 	*texture.gl_tex_creation_meta = gl_meta;

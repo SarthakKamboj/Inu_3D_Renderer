@@ -150,6 +150,7 @@ struct file_texture_t {
 };
 
 tex_id_t create_texture(unsigned char* data, int tex_slot, int width, int height, int depth, tex_creation_meta_t& meta_data);
+tex_id_t create_texture_from_another_texture(tex_id_t other, int tex_slot, tex_creation_meta_t& meta_data);
 file_texture_t create_file_texture(const char* img_path, int tex_slot, tex_creation_meta_t& meta_data);
 file_texture_t create_file_texture(const char* img_path, int tex_slot);
 
@@ -222,9 +223,8 @@ struct occ_param_t {
 };
 
 enum class TRANSPARENCY_MODE {
-	TRANSPARENT,
-	BLEND,
-	OPAQUE
+	TRANSPRNT,
+	OPQUE
 };
 
 struct material_t {
@@ -237,7 +237,7 @@ struct material_t {
 	normals_param_t normals;
 	occ_param_t occ;
 
-	TRANSPARENCY_MODE transparency_mode = TRANSPARENCY_MODE::OPAQUE;
+	TRANSPARENCY_MODE transparency_mode = TRANSPARENCY_MODE::OPQUE;
 
 	material_t();
 };
