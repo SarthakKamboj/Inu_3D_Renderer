@@ -67,7 +67,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "sci_fi_helmet\\SciFiHelmet.gltf";
   // const char* gltf_file_resources_folder_rel_path = "damaged_helmet\\DamagedHelmet.gltf";
   // const char* gltf_file_resources_folder_rel_path = "lantern\\Lantern.gltf";
-  const char* gltf_file_resources_folder_rel_path = "water_bottle\\WaterBottle.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "water_bottle\\WaterBottle.gltf";
   // const char* gltf_file_resources_folder_rel_path = "suzan\\Suzanne.gltf";
   // const char* gltf_file_resources_folder_rel_path = "cartoon_car\\combined.gltf";
   // const char* gltf_file_resources_folder_rel_path = "ferrari_enzo\\scene.gltf";
@@ -89,7 +89,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "medieval_fantasy_book\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "virtual_city\\VC.gltf";
   // const char* gltf_file_resources_folder_rel_path = "brain_stem\\BrainStem.gltf";
-  // const char* gltf_file_resources_folder_rel_path = "stylized_ww1_plane\\scene.gltf";
+  const char* gltf_file_resources_folder_rel_path = "stylized_ww1_plane\\scene.gltf";
 
   if (strcmp(gltf_file_resources_folder_rel_path, "stylized_ww1_plane\\scene.gltf") == 0
       || strcmp(gltf_file_resources_folder_rel_path, "ferrari_enzo\\scene.gltf") == 0 //) {
@@ -133,7 +133,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 #endif
 
 #if HAVE_DIR_LIGHT
-  create_dir_light({-1,-1,0});
+  create_dir_light({1,-1,0});
 #endif
 
   int RENDER_DEPTH = 0;
@@ -152,6 +152,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     
     update_cam();
     update_animations();
+    
+    // update object transforms
+    update_obj_model_mats();
 
     // RENDERING PASS
     
