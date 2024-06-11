@@ -49,6 +49,7 @@ struct vec4 {
   vec4 operator*(float multiplier);
   vec4 operator+(vec4& other);
   float& operator[](int idx);
+  bool operator==(const vec4& v);
 
   float length();
 };

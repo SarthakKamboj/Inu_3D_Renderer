@@ -79,6 +79,7 @@ void bind_shader(shader_t& shader);
 void unbind_shader();
 void shader_set_float(shader_t& shader, const char* var_name, float val);
 void shader_set_vec3(shader_t& shader, const char* var_name, vec3 vec);
+void shader_set_vec4(shader_t& shader, const char* var_name, vec4 vec);
 void shader_set_int(shader_t& shader, const char* var_name, int val);
 void shader_set_mat4(shader_t& shader, const char* var_name, mat4& mat);
 
@@ -157,6 +158,7 @@ file_texture_t create_file_texture(const char* img_path, int tex_slot);
 const texture_t bind_texture(tex_id_t tex_id);
 const texture_t bind_texture(tex_id_t tex_id, int override_slot);
 void unbind_texture();
+void unbind_texture(int slot);
 
 enum class MATERIAL_PARAM_VARIANT {
 	NONE,
@@ -272,3 +274,8 @@ void clear_framebuffer_depth();
 void unbind_framebuffer();
 
 void get_gfx_error();
+
+struct obj_sort_info_t {
+  int obj_id = -1;
+  vec3 pos; 
+};

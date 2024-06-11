@@ -70,3 +70,4 @@ void spotlight_pass();
 void dirlight_pass();
 void offline_final_render_pass();
 void render_scene();
+

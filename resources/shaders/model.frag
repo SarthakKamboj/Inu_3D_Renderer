@@ -26,6 +26,8 @@
 #define VIEW_OCC 0
 #define ENABLE_QUANTIZING 0
 
+#define USE_VEC3 0
+
 float s_rgb_to_linear(float s_rgb);
 float get_roughness();
 float get_metalness();
@@ -45,7 +47,11 @@ struct shader_tex {
 struct material_t {
   // base color info
   shader_tex base_color_tex;
+#if USE_VEC3
   vec3 mesh_color;
+#else
+  vec4 mesh_color;
+#endif
   int use_base_color_tex;
 
   // metal and roughness info
@@ -387,22 +393,25 @@ float cook_torrance_specular_brdf(norm_inter_vecs_t niv, pbr_light_data_t pbr_li
   return num / denom;
 }
 
-vec3 lambert_diffuse() {
+vec4 lambert_diffuse() {
   vec4 diffuse; 
   if (material.base_color_tex.tex_id == -1) {
     if (material.use_base_color_tex == 0) {
+#if USE_VEC3
       diffuse = vec4(material.mesh_color, 1);
+#else
+      diffuse = material.mesh_color;
+#endif
     } else {
       diffuse = vec4(color, 1);
     }
-    diffuse = vec4(0,1,0,1);
   } else {
     diffuse = texture(material.base_color_tex.samp, tex_coords[material.base_color_tex.tex_id]);
     // diffuse.r = s_rgb_to_linear(diffuse.r);
     // diffuse.g = s_rgb_to_linear(diffuse.g);
     // diffuse.b = s_rgb_to_linear(diffuse.b);
   }
-  return diffuse.rgb;
+  return diffuse;
 }
 
 vec3 get_occ_rgb() {
@@ -453,11 +462,11 @@ float get_roughness() {
 
 vec3 get_base_reflectance() {
   vec3 dielectric_F0 = vec3(0.04, 0.04, 0.04);
-  vec3 surface_color = lambert_diffuse();
+  vec4 surface_color = lambert_diffuse();
 
   float metalness = get_metalness();
 
-  vec3 refl = mix(dielectric_F0, surface_color, metalness);
+  vec3 refl = mix(dielectric_F0, surface_color.rgb, metalness);
   return refl;
 }
 
@@ -471,7 +480,7 @@ vec3 pbr_for_light(norm_inter_vecs_t niv, pbr_light_data_t pbr_light_data) {
   kd *= (1.0 - metalness); 
 
   float cook = cook_torrance_specular_brdf(niv, pbr_light_data);
-  vec3 diffuse = lambert_diffuse();
+  vec3 diffuse = lambert_diffuse().rgb;
   vec3 brdf_output = (kd * diffuse / PI) + (ks * cook);
 
   float geom_term = max(dot(niv.normal, normalize(pbr_light_data.to_light_dir)), 0.0);
@@ -479,7 +488,7 @@ vec3 pbr_for_light(norm_inter_vecs_t niv, pbr_light_data_t pbr_light_data) {
   return pbr;
 }
 
-vec3 pbr_brdf(norm_inter_vecs_t niv) {
+vec4 pbr_brdf(norm_inter_vecs_t niv) {
 
   // dirlight
   is_in_dir_light_info_t in_dir0 = calc_light_rel_data();
@@ -495,10 +504,13 @@ vec3 pbr_brdf(norm_inter_vecs_t niv) {
   pbr_lights[2] = create_pbr_light(niv, spotlights_data[1].pos - niv.world_pos, in_spotlight1.amount_in_light);
   pbr_lights[3] = create_pbr_light(niv, spotlights_data[2].pos - niv.world_pos, in_spotlight2.amount_in_light);
 
+  vec4 diffuse = lambert_diffuse();
+  float alpha = diffuse.a;
+
   // ambient light
-  vec3 diffuse = lambert_diffuse();
-  vec3 ambient_factor = vec3(0.1) * get_occ_rgb();
-  vec3 color = ambient_factor * diffuse;
+  vec3 max_ambient_factor = vec3(0.1);
+  vec3 ambient_factor = max_ambient_factor * get_occ_rgb();
+  vec3 color = ambient_factor * diffuse.rgb;
 
   for (int i = 0; i < 4; i++) {
     color += pbr_for_light(niv, pbr_lights[i]);
@@ -509,15 +521,16 @@ vec3 pbr_brdf(norm_inter_vecs_t niv) {
   color = color / (color + vec3(1.0));
   color = pow(color, vec3(1.0/2.2));
 
-  return color;
+  return vec4(color, alpha);
 }
 
 void main() {
 
   norm_inter_vecs_t niv = calc_normalized_vectors();
 
-  vec3 pbr = pbr_brdf(niv);
-  frag_color = vec4(pbr, 1.0);
+  vec4 pbr = pbr_brdf(niv);
+  // frag_color = vec4(pbr, 1.0);
+  frag_color = pbr;
 
 #if VIEW_AMOUNT_IN_LIGHT
   frag_color = vec4(max_in_light, max_in_light, max_in_light, 1);

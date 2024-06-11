@@ -128,3 +128,7 @@ vec4 vec4::operator+(vec4& o) {
   return {x+o.x, y+o.y, z+o.z, w+o.w};
 }
 
+bool vec4::operator==(const vec4& v) {
+  return (x == v.x && y == v.y && z == v.z && w == v.w);
+}
+

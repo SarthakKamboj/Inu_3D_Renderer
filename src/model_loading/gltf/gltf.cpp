@@ -1352,6 +1352,7 @@ void gltf_load_file(const char* filepath) {
 	  emission_param_t emission;
 	  normals_param_t normals;
     occ_param_t occs;
+    TRANSPARENCY_MODE mode;
 
 #if SET_MESHES_TO_WHITE == 1
     albedo.base_color = vec4(1,1,1,1);
@@ -1398,8 +1399,14 @@ void gltf_load_file(const char* filepath) {
     // ambient occ information
     occs.occ_map = gltf_mat_img_to_internal_mat_img(mat.occ_tex_info.tex_info, OCC_IMG_TEX_SLOT);
     occs.variant = (occs.occ_map.tex_handle == -1) ? MATERIAL_PARAM_VARIANT::NONE : MATERIAL_PARAM_VARIANT::MAT_IMG;
-    
-    create_material(mat.name, albedo, met_rough_param, emission, normals, occs);
+
+    if (mat.alpha_mode == ALPHA_MODE::OPQUE) {
+      mode = TRANSPARENCY_MODE::OPQUE;
+    } else {
+      mode = TRANSPARENCY_MODE::TRANSPRNT;
+    }
+
+    create_material(mat.name, albedo, met_rough_param, emission, normals, occs, mode);
 #endif
   }
  
@@ -1409,6 +1416,8 @@ void gltf_load_file(const char* filepath) {
     model_t model;
     
     // each prim could have its own vao, vbo, and ebo
+    // a gltf primitive is the equivalent of a mesh internally
+    // a gltf mesh is the equivalent of a model internally
     for (gltf_primitive_t& prim : gltf_mesh.primitives) {
       inu_assert(prim.mode == GLTF_PRIMITIVE_MODE::TRIANGLES, "meshes right now can only be triangles");
 

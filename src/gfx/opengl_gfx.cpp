@@ -355,10 +355,22 @@ void shader_set_vec3(shader_t& shader, const char* var_name, vec3 vec) {
 	GLuint gl_id = shader_id_to_gl_id[shader.id];
 	glUseProgram(gl_id);
 	GLint loc = glGetUniformLocation(gl_id, var_name);
-    if (loc == -1) {
-        printf("%s does not exist in shader %i\n", var_name, gl_id);
-    }
+  if (loc == -1) {
+      printf("%s does not exist in shader %i\n", var_name, gl_id);
+  }
 	glUniform3fv(loc, 1, (GLfloat*)&vec);
+	unbind_shader();
+}
+
+
+void shader_set_vec4(shader_t& shader, const char* var_name, vec4 vec) {
+	GLuint gl_id = shader_id_to_gl_id[shader.id];
+	glUseProgram(gl_id);
+	GLint loc = glGetUniformLocation(gl_id, var_name);
+  if (loc == -1) {
+      printf("%s does not exist in shader %i\n", var_name, gl_id);
+  }
+	glUniform4fv(loc, 1, (GLfloat*)&vec);
 	unbind_shader();
 }
 
@@ -520,6 +532,12 @@ void unbind_texture() {
 	glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 }
 
+void unbind_texture(int slot) {
+	glActiveTexture(GL_TEXTURE0 + slot);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+}
+
 // MATERIALS
 shader_t material_t::associated_shader;
 
@@ -589,6 +607,10 @@ material_t bind_material(int mat_idx) {
 
 	material_t& mat = materials[mat_idx];
 
+	for (int i = ALBEDO_IMG_TEX_SLOT; i <= EMISSION_IMG_TEX_SLOT; i++) {
+		unbind_texture(i);
+	}
+
 	// set albedo information
 	if (mat.albedo.variant == MATERIAL_PARAM_VARIANT::MAT_IMG) {
 		material_image_t& color_tex = mat.albedo.base_color_img;
@@ -601,8 +623,21 @@ material_t bind_material(int mat_idx) {
 		shader_set_int(shader, "material.base_color_tex.samp", 0);
 		shader_set_int(shader, "material.base_color_tex.tex_id", -1);
 		shader_set_int(shader, "material.use_base_color_tex", 0);
+#if 0
 		vec3 c = {mat.albedo.base_color.x, mat.albedo.base_color.y, mat.albedo.base_color.z};
 		shader_set_vec3(shader, "material.mesh_color", c);
+#else
+
+#if 0
+		vec4 black(0,0,0,1);
+		if (black == mat.albedo.base_color) {
+			int b = 10;
+			// mat.albedo.base_color = vec4(0,0,0,0);
+		}
+#endif
+
+		shader_set_vec4(shader, "material.mesh_color", mat.albedo.base_color);
+#endif
 	} else {
 		inu_assert_msg("this albedo variant is not supported");
 	}

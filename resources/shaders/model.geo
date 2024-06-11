@@ -3,6 +3,8 @@
 layout (triangles) in;
 layout (triangle_strip, max_vertices = 3) out;
 
+#define USE_VEC3 0
+
 mat4 calc_tbn_mat(int idx);
 
 struct shader_tex {
@@ -13,7 +15,11 @@ struct shader_tex {
 struct material_t {
   // base color info
   shader_tex base_color_tex;
+#if USE_VEC3
   vec3 mesh_color;
+#else
+  vec4 mesh_color;
+#endif
   int use_base_color_tex;
 
   // metal and roughness info
