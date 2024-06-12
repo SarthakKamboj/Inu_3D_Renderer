@@ -1330,7 +1330,6 @@ void gltf_load_file(const char* filepath) {
 
   gltf_mesh_id_to_internal_model_id.clear();
 
-
   // 1. PREPROCESS
   gltf_preprocess(filepath);
 
