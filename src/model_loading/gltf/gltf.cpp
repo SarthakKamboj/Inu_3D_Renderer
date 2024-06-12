@@ -1348,11 +1348,7 @@ void gltf_load_file(const char* filepath) {
   // 3. LOAD INTO INTERNAL FORMAT/ LOAD RAW DATA
   for (gltf_material_t& mat : gltf_materials) {
     albedo_param_t albedo;
-    metallic_roughness_param_t met_rough_param;
-	  emission_param_t emission;
-	  normals_param_t normals;
-    occ_param_t occs;
-    TRANSPARENCY_MODE mode;
+    metallic_roughness_param_t met_rough_param; 
 
 #if SET_MESHES_TO_WHITE == 1
     albedo.base_color = vec4(1,1,1,1);
@@ -1360,6 +1356,11 @@ void gltf_load_file(const char* filepath) {
 
     create_material(albedo, met_rough_param);
 #else
+
+    emission_param_t emission;
+	  normals_param_t normals;
+    occ_param_t occs;
+    TRANSPARENCY_MODE mode;
 
     // base color input is an actual texture
     if (mat.pbr.base_color_tex_info.gltf_texture_idx != -1) {
