@@ -570,7 +570,7 @@ int create_material(std::string& mat_name, albedo_param_t& albedo_param, metalli
 	return materials.size()-1;
 }
 
-int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& met_rough_param, emission_param_t& emission_param, normals_param_t& normals_param, occ_param_t& occ_param, TRANSPARENCY_MODE transparency_mode) {
+int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& met_rough_param, emission_param_t& emission_param, normals_param_t& normals_param, occ_param_t& occ_param, TRANSPARENCY_MODE transparency_mode, bool cull_back) {
 	material_t mat;
 
 	inu_assert(albedo_param.variant == MATERIAL_PARAM_VARIANT::VEC4 || albedo_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG, "albedo only has types of mat img and vec4");
@@ -590,6 +590,8 @@ int create_material(std::string& mat_name, albedo_param_t& albedo_param, metalli
 
 	mat.transparency_mode = transparency_mode;
 
+	mat.cull_back = cull_back;
+	
 	mat.name = mat_name;
 
 	materials.push_back(mat);
@@ -696,6 +698,14 @@ material_t bind_material(int mat_idx) {
 		inu_assert(occ_map.tex_slot == OCC_IMG_TEX_SLOT, "occ map slot is not correct");
 		shader_set_int(shader, "material.occ_tex.samp", occ_map.tex_slot);
 		shader_set_int(shader, "material.occ_tex.tex_id", occ.occ_map.tex_coords_idx);
+	}
+
+	// culling information
+	if (mat.cull_back) {
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+	} else {
+		glDisable(GL_CULL_FACE);
 	}
 
   bind_shader(shader);

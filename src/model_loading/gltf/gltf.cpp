@@ -1406,7 +1406,9 @@ void gltf_load_file(const char* filepath) {
       mode = TRANSPARENCY_MODE::TRANSPRNT;
     }
 
-    create_material(mat.name, albedo, met_rough_param, emission, normals, occs, mode);
+    bool cull_back = !mat.double_sided;
+
+    create_material(mat.name, albedo, met_rough_param, emission, normals, occs, mode, cull_back);
 #endif
   }
  
