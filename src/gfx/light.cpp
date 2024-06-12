@@ -35,8 +35,11 @@ extern float fb_height;
 shader_t spotlight_t::light_shader;
 const float spotlight_t::NEAR_PLANE = 0.1f;
 const float spotlight_t::FAR_PLANE = 50.f;
-const float spotlight_t::SHADOW_MAP_WIDTH = fb_width / 4.f;
-const float spotlight_t::SHADOW_MAP_HEIGHT = fb_height / 4.f;
+
+// const float spotlight_t::SHADOW_MAP_WIDTH = fb_width / 4.f;
+// const float spotlight_t::SHADOW_MAP_HEIGHT = fb_height / 4.f;
+const float spotlight_t::SHADOW_MAP_WIDTH = 1280.0f / 4.f;
+const float spotlight_t::SHADOW_MAP_HEIGHT = 1280.0f / 4.f;
 
 const float dir_light_t::SHADOW_MAP_WIDTH = 2048.f;
 const float dir_light_t::SHADOW_MAP_HEIGHT = 2048.f;
@@ -65,7 +68,7 @@ void init_light_data() {
 #if SHOW_LIGHTS
   char light_mesh_full_file_path[256]{};
   // this file pretty much just has a mesh, no nodes
-  sprintf(light_mesh_full_file_path, "%s\\custom_light\\light_mesh.gltf", resources_path);
+  sprintf(light_mesh_full_file_path, "%s\\models\\custom_light\\light_mesh.gltf", resources_path);
   gltf_load_file(light_mesh_full_file_path);
   spotlight_t::LIGHT_MESH_ID = latest_model_id();
 #endif
@@ -176,9 +179,19 @@ void create_frustum_and_ortho_models(dir_light_t& light) {
   material_image_t def_mat_image;
 
   int materials[NUM_SM_CASCADES];
-  materials[0] = create_material(colors[0], def_mat_image);
-  materials[1] = create_material(colors[1], def_mat_image);
-  materials[2] = create_material(colors[2], def_mat_image);
+
+  metallic_roughness_param_t met_rough;
+
+  albedo_param_t albedo;
+
+  albedo.base_color = colors[0];
+  materials[0] = create_material(albedo, met_rough);
+
+  albedo.base_color = colors[1];
+  materials[1] = create_material(albedo, met_rough);
+
+  albedo.base_color = colors[2];
+  materials[2] = create_material(albedo, met_rough);
 
   // debug_i = 0 is related to dir light frustums and their objects
   // debug_i = 1 is related to dir light orthos and their objects

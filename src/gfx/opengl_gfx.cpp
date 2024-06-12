@@ -161,6 +161,7 @@ void delete_vao(const vao_t& vao) {
 
 // Shaders
 shader_t create_shader(const char* vert_source_path, const char* frag_source_path) {
+	printf("new shader\n\n");
 	shader_t shader;
 
 	shader.id = internal_shader_running_id;
@@ -183,6 +184,7 @@ shader_t create_shader(const char* vert_source_path, const char* frag_source_pat
 		printf("ERROR::SHADER::VERTEX::COMPILATION_FAILED %s\n", info_log);
 		throw std::runtime_error("ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" + std::string(info_log));
 	}
+	get_gfx_error();
 
 	GLuint frag = glCreateShader(GL_FRAGMENT_SHADER);
 	char* frag_source = get_file_contents(frag_source_path);
@@ -196,10 +198,16 @@ shader_t create_shader(const char* vert_source_path, const char* frag_source_pat
 		printf("ERROR::SHADER::FRAG::COMPILATION_FAILED %s\n", info_log);
 		throw std::runtime_error("ERROR::SHADER::FRAG::COMPILATION_FAILED\n" + std::string(info_log));
 	}
+	get_gfx_error();
 
 	glAttachShader(gl_shader_id, vert);
+	get_gfx_error();
 	glAttachShader(gl_shader_id, frag);
+	get_gfx_error();
+
 	glLinkProgram(gl_shader_id);
+
+	get_gfx_error();
 
 	glDeleteShader(vert);
 	glDeleteShader(frag);
@@ -347,10 +355,22 @@ void shader_set_vec3(shader_t& shader, const char* var_name, vec3 vec) {
 	GLuint gl_id = shader_id_to_gl_id[shader.id];
 	glUseProgram(gl_id);
 	GLint loc = glGetUniformLocation(gl_id, var_name);
-    if (loc == -1) {
-        printf("%s does not exist in shader %i\n", var_name, gl_id);
-    }
+  if (loc == -1) {
+      printf("%s does not exist in shader %i\n", var_name, gl_id);
+  }
 	glUniform3fv(loc, 1, (GLfloat*)&vec);
+	unbind_shader();
+}
+
+
+void shader_set_vec4(shader_t& shader, const char* var_name, vec4 vec) {
+	GLuint gl_id = shader_id_to_gl_id[shader.id];
+	glUseProgram(gl_id);
+	GLint loc = glGetUniformLocation(gl_id, var_name);
+  if (loc == -1) {
+      printf("%s does not exist in shader %i\n", var_name, gl_id);
+  }
+	glUniform4fv(loc, 1, (GLfloat*)&vec);
 	unbind_shader();
 }
 
@@ -364,7 +384,16 @@ file_texture_t create_file_texture(const char* img_path, int tex_slot) {
 file_texture_t create_file_texture(const char* img_path, int tex_slot, tex_creation_meta_t& meta_data) {
 	for (file_texture_t& ft : file_textures) {
 		if (strcmp(img_path, ft.path.c_str()) == 0) {
-			return ft;
+			texture_t& tex = textures[ft.id];
+			if (tex.tex_slot == tex_slot) {
+				return ft;
+			} else {
+				file_texture_t new_ft;
+				new_ft.id = create_texture_from_another_texture(ft.id, tex_slot, meta_data);
+				new_ft.path = std::string(img_path);
+				file_textures.push_back(new_ft);
+				return new_ft;
+			}
 		}
 	}
 
@@ -378,15 +407,18 @@ file_texture_t create_file_texture(const char* img_path, int tex_slot, tex_creat
 	unsigned char* data = stbi_load(img_path, &width, &height, &num_channels, 0);
 	inu_assert(data, "image data not loaded");
 
-	if (num_channels == 3) {
+	if (num_channels == 1) {
+		meta_data.input_data_tex_format = TEX_FORMAT::SINGLE;
+		meta_data.tex_format = TEX_FORMAT::SINGLE;
+	} else if (num_channels == 2) {
+		meta_data.input_data_tex_format = TEX_FORMAT::RG;
+		meta_data.tex_format = TEX_FORMAT::RG;
+	} else if (num_channels == 3) {
 		meta_data.input_data_tex_format = TEX_FORMAT::RGB;
 		meta_data.tex_format = TEX_FORMAT::RGB;
 	} else if (num_channels == 4) {
 		meta_data.input_data_tex_format = TEX_FORMAT::RGBA;
 		meta_data.tex_format = TEX_FORMAT::RGBA;
-	} else if (num_channels == 1) {
-		meta_data.input_data_tex_format = TEX_FORMAT::SINGLE;
-		meta_data.tex_format = TEX_FORMAT::SINGLE;
 	} else {
 		stbi_image_free(data);
 		ft.id = -1;
@@ -397,6 +429,8 @@ file_texture_t create_file_texture(const char* img_path, int tex_slot, tex_creat
 	ft.path = std::string(img_path);
 
 	stbi_image_free(data);
+
+	file_textures.push_back(ft);
 
 	return ft;
 }
@@ -450,6 +484,29 @@ tex_id_t create_texture(unsigned char* data, int tex_slot, int width, int height
 	return texture.id;
 }
 
+tex_id_t create_texture_from_another_texture(tex_id_t other, int tex_slot, tex_creation_meta_t& meta_data) {
+
+	texture_t texture;
+	texture.id = internal_tex_running_id;
+	internal_tex_running_id++;
+
+	texture_t& other_tex = textures[other-1];
+
+	texture.tex_slot = tex_slot;
+	texture.width = other_tex.width;
+	texture.height = other_tex.height;
+	texture.depth = other_tex.depth;
+	texture.num_channels = other_tex.num_channels;
+
+	gl_tex_creation_meta_t gl_meta = internal_to_gl_tex_meta(meta_data);
+	texture.tex_creation_meta = meta_data;
+	texture.gl_tex_creation_meta = static_cast<gl_tex_creation_meta_t*>(malloc(sizeof(gl_tex_creation_meta_t)));
+	*texture.gl_tex_creation_meta = gl_meta;
+
+	textures.push_back(texture);
+	return texture.id;
+}
+
 GLuint get_internal_tex_gluint(tex_id_t id) {
 	return tex_id_to_gl_id[id];
 }
@@ -475,21 +532,70 @@ void unbind_texture() {
 	glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 }
 
+void unbind_texture(int slot) {
+	glActiveTexture(GL_TEXTURE0 + slot);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+}
+
 // MATERIALS
 shader_t material_t::associated_shader;
 
-metallic_roughness_param_t::metallic_roughness_param_t() {}
+metallic_roughness_param_t::metallic_roughness_param_t() {
+	metallic_factor = 0.0f;
+	roughness_factor = 1.0f;
+}
 
 albedo_param_t::albedo_param_t() {}
 
 material_t::material_t() {}
 
-int create_material(vec4 color, material_image_t base_color_img) {
+int get_num_materials() {
+	return materials.size();
+}
+
+int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& met_rough_param) {
 	material_t mat;
-	mat.albedo.base_color_img = base_color_img;
-	mat.albedo.color_factor = color;
-	mat.albedo.color_factor.w = 1;
+
+	inu_assert(albedo_param.variant == MATERIAL_PARAM_VARIANT::VEC4 || albedo_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG, "albedo only has types of mat img and vec4");
+	mat.albedo = albedo_param;
+
+	inu_assert(met_rough_param.variant == MATERIAL_PARAM_VARIANT::FLOAT || met_rough_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG, "metal roughness only has types of mat img and float");
+	mat.metal_rough = met_rough_param;
+
+	mat.name = mat_name;
+
 	materials.push_back(mat);
+
+	return materials.size()-1;
+}
+
+int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& met_rough_param, emission_param_t& emission_param, normals_param_t& normals_param, occ_param_t& occ_param, TRANSPARENCY_MODE transparency_mode, bool cull_back) {
+	material_t mat;
+
+	inu_assert(albedo_param.variant == MATERIAL_PARAM_VARIANT::VEC4 || albedo_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG, "albedo only has types of mat img and vec4");
+	mat.albedo = albedo_param;
+
+	inu_assert(met_rough_param.variant == MATERIAL_PARAM_VARIANT::FLOAT || met_rough_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG, "metal roughness only has types of mat img and float");
+	mat.metal_rough = met_rough_param;
+
+	inu_assert(emission_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG || emission_param.variant == MATERIAL_PARAM_VARIANT::VEC3, "emission only has types of mat img and vec3");
+	mat.emission = emission_param;
+
+	inu_assert(normals_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG || normals_param.variant == MATERIAL_PARAM_VARIANT::VEC3, "emission only has types of mat img and vec3");
+	mat.normals = normals_param;
+
+	inu_assert(occ_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG || occ_param.variant == MATERIAL_PARAM_VARIANT::NONE, "occ map only has types of mat img and none");
+	mat.occ = occ_param;
+
+	mat.transparency_mode = transparency_mode;
+
+	mat.cull_back = cull_back;
+	
+	mat.name = mat_name;
+
+	materials.push_back(mat);
+
 	return materials.size()-1;
 }
 
@@ -502,19 +608,104 @@ material_t bind_material(int mat_idx) {
 	shader_t& shader = material_t::associated_shader;
 
 	material_t& mat = materials[mat_idx];
-	if (mat.albedo.base_color_img.tex_handle != -1) {
+
+	for (int i = ALBEDO_IMG_TEX_SLOT; i <= EMISSION_IMG_TEX_SLOT; i++) {
+		unbind_texture(i);
+	}
+
+	// set albedo information
+	if (mat.albedo.variant == MATERIAL_PARAM_VARIANT::MAT_IMG) {
 		material_image_t& color_tex = mat.albedo.base_color_img;
 		const texture_t& texture = bind_texture(color_tex.tex_handle);
 		inu_assert(texture.tex_slot == ALBEDO_IMG_TEX_SLOT, "albedo texture slot must be 0");
-		shader_set_int(shader, "base_color_tex.samp", texture.tex_slot);
-		shader_set_int(shader, "base_color_tex.tex_id", color_tex.tex_coords_idx);
-		shader_set_int(shader, "use_mesh_color", 0);
+		shader_set_int(shader, "material.base_color_tex.samp", texture.tex_slot);
+		shader_set_int(shader, "material.base_color_tex.tex_id", color_tex.tex_coords_idx);
+		shader_set_int(shader, "material.use_base_color_tex", 1);
+	} else if (mat.albedo.variant == MATERIAL_PARAM_VARIANT::VEC4) {
+		shader_set_int(shader, "material.base_color_tex.samp", 0);
+		shader_set_int(shader, "material.base_color_tex.tex_id", -1);
+		shader_set_int(shader, "material.use_base_color_tex", 0);
+#if 0
+		vec3 c = {mat.albedo.base_color.x, mat.albedo.base_color.y, mat.albedo.base_color.z};
+		shader_set_vec3(shader, "material.mesh_color", c);
+#else
+
+#if 0
+		vec4 black(0,0,0,1);
+		if (black == mat.albedo.base_color) {
+			int b = 10;
+			// mat.albedo.base_color = vec4(0,0,0,0);
+		}
+#endif
+
+		shader_set_vec4(shader, "material.mesh_color", mat.albedo.base_color);
+#endif
 	} else {
-		shader_set_int(shader, "base_color_tex.samp", 0);
-		shader_set_int(shader, "base_color_tex.tex_id", -1);
-		shader_set_int(shader, "use_mesh_color", 1);
-		vec3 c = {mat.albedo.color_factor.x, mat.albedo.color_factor.y, mat.albedo.color_factor.z};
-		shader_set_vec3(shader, "mesh_color", c);
+		inu_assert_msg("this albedo variant is not supported");
+	}
+
+	// set metal roughness information
+	if (mat.metal_rough.variant == MATERIAL_PARAM_VARIANT::MAT_IMG) {
+		material_image_t& met_rough_tex = mat.metal_rough.met_rough_tex;
+		const texture_t& texture = bind_texture(met_rough_tex.tex_handle);
+		inu_assert(texture.tex_slot == METAL_ROUGH_IMG_TEX_SLOT, "metal roughness texture slot is not correct");
+		shader_set_int(shader, "material.metal_rough_tex.samp", texture.tex_slot);
+		shader_set_int(shader, "material.metal_rough_tex.tex_id", met_rough_tex.tex_coords_idx);
+		shader_set_int(shader, "material.use_metal_rough_tex", 1);
+	} else if (mat.metal_rough.variant == MATERIAL_PARAM_VARIANT::FLOAT) {
+		shader_set_int(shader, "material.metal_rough_tex.samp", 0);
+		shader_set_int(shader, "material.metal_rough_tex.tex_id", -1);
+		shader_set_int(shader, "material.use_metal_rough_tex", 0);
+		shader_set_float(shader, "material.surface_roughness", mat.metal_rough.roughness_factor);
+		shader_set_float(shader, "material.metalness", mat.metal_rough.metallic_factor);
+	} else {
+		inu_assert_msg("this metal-rough variant is not supported");
+	}
+
+	// set emission information
+#if 0
+	static bool occ_on = true;
+	if (window.input.right_mouse_up) {
+		occ_on = !occ_on;
+	}
+#endif
+	emission_param_t& emission_param = mat.emission;
+	shader_set_int(shader, "material.use_emission_tex", (emission_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG));
+
+	if (emission_param.variant == MATERIAL_PARAM_VARIANT::MAT_IMG) {
+		const texture_t& emission_texture = bind_texture(emission_param.emissive_tex_info.tex_handle);
+		inu_assert(emission_texture.tex_slot == EMISSION_IMG_TEX_SLOT, "emission texture slot is not correct");
+		shader_set_int(shader, "material.emission_tex.samp", emission_texture.tex_slot);
+		shader_set_int(shader, "material.emission_tex.tex_id", emission_param.emissive_tex_info.tex_coords_idx);
+	}
+	shader_set_vec3(shader, "material.emission_factor", emission_param.emission_factor);
+
+	// set normals information
+	normals_param_t& normals = mat.normals;
+	shader_set_int(shader, "material.use_normal_tex", normals.variant == MATERIAL_PARAM_VARIANT::MAT_IMG);
+	if (normals.variant == MATERIAL_PARAM_VARIANT::MAT_IMG) {
+		const texture_t& normal_map = bind_texture(normals.normal_map.tex_handle);
+		inu_assert(normal_map.tex_slot == NORMALS_IMG_TEX_SLOT, "normal map slot is not correct");
+		shader_set_int(shader, "material.normal_tex.samp", normal_map.tex_slot);
+		shader_set_int(shader, "material.normal_tex.tex_id", normals.normal_map.tex_coords_idx);
+	}
+
+	// ambient occlusion information
+	occ_param_t& occ = mat.occ;
+	shader_set_int(shader, "material.use_occ_tex", (occ.variant == MATERIAL_PARAM_VARIANT::MAT_IMG));
+	if (occ.variant == MATERIAL_PARAM_VARIANT::MAT_IMG) {
+		const texture_t& occ_map = bind_texture(occ.occ_map.tex_handle);
+		inu_assert(occ_map.tex_slot == OCC_IMG_TEX_SLOT, "occ map slot is not correct");
+		shader_set_int(shader, "material.occ_tex.samp", occ_map.tex_slot);
+		shader_set_int(shader, "material.occ_tex.tex_id", occ.occ_map.tex_coords_idx);
+	}
+
+	// culling information
+	if (mat.cull_back) {
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+	} else {
+		glDisable(GL_CULL_FACE);
 	}
 
   bind_shader(shader);

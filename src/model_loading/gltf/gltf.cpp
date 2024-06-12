@@ -790,7 +790,7 @@ gltf_pbr_metallic_roughness_t gltf_parse_pbr_met_rough() {
     gltf_eat();
     if (key == "baseColorFactor") {
       pbr.base_color_factor = gltf_parse_vec4();
-      pbr.base_color_tex_multiplers = pbr.base_color_factor;
+      // pbr.base_color_tex_multiplers = pbr.base_color_factor;
     } else if (key == "baseColorTexture") {
       pbr.base_color_tex_info = gltf_parse_mat_image_info();
     } else if (key == "metallicFactor") {
@@ -1347,12 +1347,68 @@ void gltf_load_file(const char* filepath) {
 
   // 3. LOAD INTO INTERNAL FORMAT/ LOAD RAW DATA
   for (gltf_material_t& mat : gltf_materials) {
-    material_image_t base_color_img = gltf_mat_img_to_internal_mat_img(mat.pbr.base_color_tex_info, ALBEDO_IMG_TEX_SLOT);
-#if SET_MESHES_TO_WHITE == 0
-    create_material(mat.pbr.base_color_factor, base_color_img);
+    albedo_param_t albedo;
+    metallic_roughness_param_t met_rough_param;
+	  emission_param_t emission;
+	  normals_param_t normals;
+    occ_param_t occs;
+    TRANSPARENCY_MODE mode;
+
+#if SET_MESHES_TO_WHITE == 1
+    albedo.base_color = vec4(1,1,1,1);
+    albedo.variant = MATERIAL_PARAM_VARIANT::VEC4;
+
+    create_material(albedo, met_rough_param);
 #else
-    material_image_t d;
-    create_material({1,1,1,1}, d);
+
+    // base color input is an actual texture
+    if (mat.pbr.base_color_tex_info.gltf_texture_idx != -1) {
+      material_image_t base_color_img = gltf_mat_img_to_internal_mat_img(mat.pbr.base_color_tex_info, ALBEDO_IMG_TEX_SLOT);
+      albedo.base_color_img = base_color_img;
+      albedo.multipliers = mat.pbr.base_color_factor;
+      albedo.variant = MATERIAL_PARAM_VARIANT::MAT_IMG;
+    } 
+    // base color input is a solid color
+    else {
+      albedo.base_color = mat.pbr.base_color_factor;
+      albedo.variant = MATERIAL_PARAM_VARIANT::VEC4;
+    }
+
+    // metal roughness is represented as a texture
+    if (mat.pbr.metal_rough_tex_info.gltf_texture_idx != -1) {
+      material_image_t rough_met_img = gltf_mat_img_to_internal_mat_img(mat.pbr.metal_rough_tex_info, METAL_ROUGH_IMG_TEX_SLOT);
+      met_rough_param.met_rough_tex = rough_met_img;
+      met_rough_param.variant = MATERIAL_PARAM_VARIANT::MAT_IMG;
+    }
+    // metal roughness are floats
+    else {
+      met_rough_param.metallic_factor = mat.pbr.metallic_factor;
+      met_rough_param.roughness_factor = mat.pbr.roughness_factor;
+      met_rough_param.variant = MATERIAL_PARAM_VARIANT::FLOAT;
+    }
+
+    // emission information
+    emission.emissive_tex_info = gltf_mat_img_to_internal_mat_img(mat.emissive_tex_info, EMISSION_IMG_TEX_SLOT);
+    emission.emission_factor = mat.emissive_factor;
+    emission.variant = (emission.emissive_tex_info.tex_handle == -1) ? MATERIAL_PARAM_VARIANT::VEC3 : MATERIAL_PARAM_VARIANT::MAT_IMG;
+
+    // normals information
+    normals.normal_map = gltf_mat_img_to_internal_mat_img(mat.normal_tex_info.tex_info, NORMALS_IMG_TEX_SLOT);
+    normals.variant = (normals.normal_map.tex_handle == -1) ? MATERIAL_PARAM_VARIANT::VEC3 : MATERIAL_PARAM_VARIANT::MAT_IMG;
+
+    // ambient occ information
+    occs.occ_map = gltf_mat_img_to_internal_mat_img(mat.occ_tex_info.tex_info, OCC_IMG_TEX_SLOT);
+    occs.variant = (occs.occ_map.tex_handle == -1) ? MATERIAL_PARAM_VARIANT::NONE : MATERIAL_PARAM_VARIANT::MAT_IMG;
+
+    if (mat.alpha_mode == ALPHA_MODE::OPQUE) {
+      mode = TRANSPARENCY_MODE::OPQUE;
+    } else {
+      mode = TRANSPARENCY_MODE::TRANSPRNT;
+    }
+
+    bool cull_back = !mat.double_sided;
+
+    create_material(mat.name, albedo, met_rough_param, emission, normals, occs, mode, cull_back);
 #endif
   }
  
@@ -1362,6 +1418,8 @@ void gltf_load_file(const char* filepath) {
     model_t model;
     
     // each prim could have its own vao, vbo, and ebo
+    // a gltf primitive is the equivalent of a mesh internally
+    // a gltf mesh is the equivalent of a model internally
     for (gltf_primitive_t& prim : gltf_mesh.primitives) {
       inu_assert(prim.mode == GLTF_PRIMITIVE_MODE::TRIANGLES, "meshes right now can only be triangles");
 
@@ -1569,8 +1627,11 @@ void gltf_load_file(const char* filepath) {
       }
 
       if (prim.material_idx != -1) {
+        // TODO: right now works cause we are only loading one model...will need to change this lter for loading multiple models
         mesh.mat_idx = prim.material_idx;
+        // mesh.mat_idx = prim.material_idx + get_num_materials();
       } else {
+        // default material if mesh doesn't specify material
         vec4 color;
 #if 1
         color.x = 0;
@@ -1584,8 +1645,15 @@ void gltf_load_file(const char* filepath) {
         color.w = 1.f;
 #endif
 
-        material_image_t base_img;
-        mesh.mat_idx = create_material(color, base_img);
+        // material_image_t base_img;
+        // mesh.mat_idx = create_material(color, base_img);
+
+        albedo_param_t albedo;
+        albedo.base_color = color;
+
+        metallic_roughness_param_t met_rough;
+
+        mesh.mat_idx = create_material(std::string("default_material"), albedo, met_rough);
       }
 
       mesh.vao = create_vao();

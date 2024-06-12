@@ -2,6 +2,8 @@
 
 #define NUM_CASCADES 3
 
+#define PI 3.14159265359
+
 #define VIEW_AMOUNT_IN_LIGHT 0
 #define VIEW_LIGHT_MULTIPLIER 0
 #define VIEW_LIGHT0_CLOSEST_DEPTH 0
@@ -21,17 +23,58 @@
 #define VIEW_DIR_LIGHT_DEPTH 0
 #define VIEW_DIR_LIGHT_AMOUNT_IN_LIGHT 0
 #define VIEW_CASCADE 0
+#define VIEW_OCC 0
 #define ENABLE_QUANTIZING 0
+
+#define USE_VEC3 0
+
+float s_rgb_to_linear(float s_rgb);
+float get_roughness();
+float get_metalness();
+vec3 get_emission_vec();
+vec3 get_occ_rgb();
+
+// https://stackoverflow.com/questions/66469497/gltf-setting-colors-basecolorfactor
+float s_rgb_to_linear(float s_rgb) {
+  return pow(s_rgb / 255.0, 2.2);
+}
 
 struct shader_tex {
   sampler2D samp; 
   int tex_id;
 };
 
-uniform shader_tex base_color_tex;
-uniform vec3 mesh_color;
-uniform int use_mesh_color;
+struct material_t {
+  // base color info
+  shader_tex base_color_tex;
+#if USE_VEC3
+  vec3 mesh_color;
+#else
+  vec4 mesh_color;
+#endif
+  int use_base_color_tex;
 
+  // metal and roughness info
+  float surface_roughness;
+  float metalness;
+  shader_tex metal_rough_tex;
+  int use_metal_rough_tex;
+
+  // emission info
+  vec3 emission_factor;
+  shader_tex emission_tex;
+  int use_emission_tex;
+
+  // normal info
+  int use_normal_tex;
+  shader_tex normal_tex;
+
+  // occ info
+  int use_occ_tex;
+  shader_tex occ_tex;
+};
+
+uniform material_t material;
 uniform int override_color_bool;
 
 struct spotlight_data_t {
@@ -43,34 +86,31 @@ struct spotlight_data_t {
   float near_plane;
   float far_plane;
 };
+uniform spotlight_data_t spotlights_data[3];
 
-struct dir_light_mat_data_t {
+struct dir_light_data_t {
+  int light_active;
+  sampler2DArray shadow_map;
   mat4 light_views[NUM_CASCADES];
   mat4 light_projs[NUM_CASCADES];
   float cascade_depths[NUM_CASCADES+1];
   vec3 light_dir;
 };
 
-struct dir_light_data_t {
-  sampler2DArray shadow_map;
-  int light_active;
-};
-
-uniform spotlight_data_t spotlights_data[3];
 uniform dir_light_data_t dir_light_data;
-uniform dir_light_mat_data_t dir_light_mat_data;
 
 struct cam_data_t {
   float near_plane;
   float far_plane;
+  vec3 cam_pos;
 };
 uniform cam_data_t cam_data;
 
 in vec2 tex_coords[2];
 in vec3 color;
-in vec4 normal;
 
-in vec4 pos;
+in vec4 normal;
+in mat4 tbn_mat;
 
 in vec4 spotlight_rel_screen_pos0;
 in vec4 spotlight_rel_screen_pos1;
@@ -80,6 +120,48 @@ in vec4 global;
 in vec4 cam_rel_pos;
 
 out vec4 frag_color;
+
+struct norm_inter_vecs_t {
+  vec3 normal;
+  vec3 view_dir;
+  vec3 world_pos;
+  vec3 cam_rel_pos;
+};
+
+norm_inter_vecs_t calc_normalized_vectors() {
+  norm_inter_vecs_t niv;  
+
+  if (material.use_normal_tex == 1) {
+    vec3 normal_from_map = texture(material.normal_tex.samp, tex_coords[material.normal_tex.tex_id]).rgb;
+    normal_from_map = (normal_from_map * 2.0) - 1.0;
+    vec4 global_normal = tbn_mat * vec4(normal_from_map, 0.0);
+    niv.normal = normalize(global_normal.xyz);
+  } else {
+    niv.normal = normalize(normal.xyz);
+  }
+
+  vec3 normalized_global_pos = global.xyz / global.w;
+  niv.view_dir = normalize(cam_data.cam_pos - normalized_global_pos);
+
+  niv.world_pos = global.xyz / global.w;
+  niv.cam_rel_pos = cam_rel_pos.xyz / cam_rel_pos.w;
+
+  return niv;
+}
+
+struct pbr_light_data_t {
+  vec3 to_light_dir;
+  vec3 half_vector;
+  float amount_in_light;
+};
+
+pbr_light_data_t create_pbr_light(norm_inter_vecs_t niv, vec3 to_light_dir, float amount_in_light) {
+  pbr_light_data_t data;  
+  data.to_light_dir = normalize(to_light_dir);
+  data.amount_in_light = amount_in_light;
+  data.half_vector = normalize(data.to_light_dir + niv.view_dir);
+  return data;
+}
 
 float linearize_depth(spotlight_data_t light_data, vec4 light_rel_screen_pos) {
   // the z_pos is negative since light looks down the negative z axis
@@ -118,7 +200,7 @@ struct is_in_spotlight_info_t {
   vec2 tex_coords;
 };
 
-is_in_spotlight_info_t is_in_spotlight(spotlight_data_t light_data, vec4 light_rel_pos) {
+is_in_spotlight_info_t is_in_spotlight(norm_inter_vecs_t niv, spotlight_data_t light_data, vec4 light_rel_pos) {
   is_in_spotlight_info_t info;
 
   vec2 tex_coords = ((light_rel_pos.xy / light_rel_pos.w) + vec2(1)) / 2;
@@ -144,6 +226,7 @@ is_in_spotlight_info_t is_in_spotlight(spotlight_data_t light_data, vec4 light_r
 
       vec2 new_tex_coord = tex_coords + vec2(x_offset / light_data.shadow_map_width, y_offset / light_data.shadow_map_height);
       if (new_tex_coord.x < 0 || new_tex_coord.x > 1 || new_tex_coord.y < 0 || new_tex_coord.y > 1) continue;
+      if (distance(new_tex_coord, vec2(0.5, 0.5)) > 0.5) continue;
 
       // depth buffer stores 0 to 1, for near to far respectively
       // so closest_depth is between 0 to 1
@@ -157,112 +240,8 @@ is_in_spotlight_info_t is_in_spotlight(spotlight_data_t light_data, vec4 light_r
     }
   }
 
-#if 0
-  info.amount_in_light = min(max(0.0, amount_in_light), 1.0) * light_data.light_active;
-#else
-  vec4 normalized_pos = pos / pos.w;
-  vec4 normal_norm = normal / normal.w;
-  float albedo_factor = max(0, dot(normalize(normal.xyz), normalize(light_data.pos - normalized_pos.xyz)));
+  float albedo_factor = max(0, dot(niv.normal, normalize(light_data.pos - niv.world_pos)));
   info.amount_in_light = amount_in_light * albedo_factor * light_data.light_active;
-#endif
-
-  return info;
-}
-
-struct is_in_dir_light_info_t {
-  float amount_in_light;
-  float closest_depth;
-  float depth;
-  vec3 tex_coords;
-  int out_of_bounds;
-};
-
-is_in_dir_light_info_t is_in_dir_light(dir_light_mat_data_t dir_light_mat_data, dir_light_data_t dir_light_data, vec4 dir_light_rel_screen_pos, int dir_light_layer) {
-  is_in_dir_light_info_t info;
-
-  vec3 adjusted = ((dir_light_rel_screen_pos.xyz / dir_light_rel_screen_pos.w) + vec3(1)) / 2;
-  info.tex_coords = vec3(adjusted.xy, dir_light_layer);
-  info.tex_coords = info.tex_coords * vec3(dir_light_data.light_active, dir_light_data.light_active, dir_light_data.light_active);
-
-  float amount_in_light = 0.0;
-#if 1
-  float bias = 0.0005;
-  bias = 0.00075;
-  bias = 0.001;
-#else
-  vec4 norm_normal4 = normalize(normal);
-  vec3 norm_normal = norm_normal4.xyz / norm_normal4.w;
-  float bias = max(0.05 * (1.0 - dot(norm_normal, -dir_light_mat_data.light_dir)), 0.005);
-  if (dir_light_layer == NUM_CASCADES) {
-      bias *= 1 / (cam_data.far_plane * 0.5f);
-  } else {
-      bias *= 1 / (dir_light_mat_data.cascade_depths[dir_light_layer] * 0.5f);
-  }
-  bias *= 0.001;
-#endif
-
-  info.depth = adjusted.z;
-
-  float in_light_factor = 0.5;
-
-#if 0
-  info.closest_depth = 1;
-  if (info.tex_coords.x >= 0 && info.tex_coords.x <= 1 && info.tex_coords.y >= 0 && info.tex_coords.y <= 1) {
-    float d = texture(dir_light_data.shadow_map, info.tex_coords).r;
-    info.closest_depth = dir_light_data.light_active * d;
-    info.out_of_bounds = 0;
-  } else {
-    info.out_of_bounds = 1;
-  }
-
-  if (info.depth <= (info.closest_depth + bias)) {
-    // light
-    info.amount_in_light = 0.5;
-  } else {
-    info.amount_in_light = 0.1;
-  }
-#else
-  int pcf = 3;
-
-  ivec2 sm_dim = textureSize(dir_light_data.shadow_map, dir_light_layer).xy;
-  for (int x_offset = -(pcf/2); x_offset <= (pcf/2); x_offset++) {
-    for (int y_offset = -(pcf/2); y_offset <= (pcf/2); y_offset++) {
-
-      vec3 new_tex_coord = info.tex_coords + vec3(x_offset / float(sm_dim.x), y_offset / float(sm_dim.y), 0);
-
-      if (new_tex_coord.x < 0 || new_tex_coord.x > 1 || new_tex_coord.y < 0 || new_tex_coord.y > 1) {
-        if (dir_light_layer == NUM_CASCADES-1) continue;
-        int less_precise_layer = dir_light_layer + 1;
-
-        mat4 light_projection = dir_light_mat_data.light_projs[less_precise_layer];
-        mat4 light_view = dir_light_mat_data.light_views[less_precise_layer];
-        vec4 new_screen_rel_pos = light_projection * light_view * global;
-        vec4 normed_info = ((new_screen_rel_pos / new_screen_rel_pos.w) + vec4(1)) / 2;
-        vec3 new_frag_tex_coord = vec3(normed_info.xy, less_precise_layer);
-        float new_frag_depth = normed_info.z;
-
-        float closest_depth = dir_light_data.light_active * texture(dir_light_data.shadow_map, new_frag_tex_coord).r;
-        // z pos is closer to light than the texture sample says
-        if (new_frag_depth <= (closest_depth + bias)) {
-          // light
-          amount_in_light += (in_light_factor / max(0.1, float(pcf * pcf)));
-        }
-      } else {
-
-        // depth buffer stores 0 to 1, for near to far respectively
-        // so closest_depth is between 0 to 1
-        info.closest_depth = dir_light_data.light_active * texture(dir_light_data.shadow_map, new_tex_coord).r;
-
-        // z pos is closer to light than the texture sample says
-        if (info.depth <= (info.closest_depth + bias)) {
-          // light
-          amount_in_light += (in_light_factor / max(0.1, float(pcf * pcf)));
-        }
-      }
-    }
-  }
-  info.amount_in_light = min(max(0.0, amount_in_light), 1.0) * dir_light_data.light_active;
-#endif
 
   return info;
 }
@@ -273,82 +252,285 @@ struct dir_light_rel_data_t {
   int highest_precision_cascade;
 };
 
-dir_light_rel_data_t calc_light_rel_data(dir_light_mat_data_t dir_light_mat_data) {
-  dir_light_rel_data_t rel_data;
-  // rel_data.highest_precision_cascade = -1;
-  rel_data.highest_precision_cascade = 0;
+// texture xy is in xy of return value
+// depth is in z of return value
+vec3 get_cascade_tex_depth_info(int cascade) {
+  // looking down -z axis in camera's eye space
+  mat4 light_projection = dir_light_data.light_projs[cascade];
+  mat4 light_view = dir_light_data.light_views[cascade];
+  vec4 screen_rel_pos = light_projection * light_view * global;
+  screen_rel_pos /= screen_rel_pos.w;
+  vec3 tex_plus_depth_info = (screen_rel_pos.xyz + vec3(1.0)) / 2.0;
+  return tex_plus_depth_info;
+}
 
-  vec4 norm_cam_rel_pos = cam_rel_pos / cam_rel_pos.w;
+struct is_in_dir_light_info_t {
+  float amount_in_light;
+  float closest_depth;
+  float depth;
+  vec3 tex_coords;
+};
 
-#if 0
+is_in_dir_light_info_t calc_light_rel_data() {
+
+  is_in_dir_light_info_t in_dir_light_info;
+
+  int highest_precision_cascade = NUM_CASCADES - 1;
+  vec3 highest_prec_tex_plus_depth_info = vec3(0);
+
+  // get the highest precision shadow cascade
   for (int i = 0; i < NUM_CASCADES; i++) {
-    // looking down -z axis in camera's eye space
-    if (-norm_cam_rel_pos.z >= dir_light_mat_data.cascade_depths[i] && -norm_cam_rel_pos.z <= dir_light_mat_data.cascade_depths[i+1]) {
-      rel_data.highest_precision_cascade = i; 
-      break;
-    }
-  }
-#else
-  for (int i = 0; i < NUM_CASCADES; i++) {
-    // looking down -z axis in camera's eye space
-    mat4 light_projection = dir_light_mat_data.light_projs[i];
-    mat4 light_view = dir_light_mat_data.light_views[i];
-    vec4 screen_rel_pos = light_projection * light_view * global;
-    vec2 tex_coords = ((screen_rel_pos.xy / screen_rel_pos.w) + vec2(1)) / 2;
-    bool highest_prec = tex_coords.x >= 0 && tex_coords.x <= 1 && tex_coords.y >= 0 && tex_coords.y <= 1;
+    vec3 tex_plus_depth_info = get_cascade_tex_depth_info(i);
+    bool highest_prec = tex_plus_depth_info.x >= 0 && tex_plus_depth_info.x <= 1 && tex_plus_depth_info.y >= 0 && tex_plus_depth_info.y <= 1;
     if (highest_prec) {
-      rel_data.highest_precision_cascade = i; 
+      highest_precision_cascade = i; 
+      highest_prec_tex_plus_depth_info = tex_plus_depth_info;
       break;
     }
   }
-#endif
 
-  mat4 light_projection = dir_light_mat_data.light_projs[rel_data.highest_precision_cascade];
-  mat4 light_view = dir_light_mat_data.light_views[rel_data.highest_precision_cascade];
-  rel_data.screen_rel_pos = light_projection * light_view * global;
-  return rel_data;
+  vec3 tex_coords = vec3(highest_prec_tex_plus_depth_info.xy, highest_precision_cascade) * vec3(dir_light_data.light_active);
+  in_dir_light_info.tex_coords = tex_coords;
+
+  float amount_in_light = 0.0;
+
+  float bias = 0.0005;
+  bias = 0.00075;
+  bias = 0.001;
+
+  in_dir_light_info.depth = highest_prec_tex_plus_depth_info.z;
+
+  int pcf = 3;
+
+  // get the closest depth at that point in the highest precision shadow cascade and see whether this point is in the shadow or not
+  ivec2 sm_dim = textureSize(dir_light_data.shadow_map, highest_precision_cascade).xy;
+  for (int x_offset = -(pcf/2); x_offset <= (pcf/2); x_offset++) {
+    for (int y_offset = -(pcf/2); y_offset <= (pcf/2); y_offset++) {
+
+      vec3 new_tex_coord = tex_coords + vec3(x_offset / float(sm_dim.x), y_offset / float(sm_dim.y), 0);
+
+      float depth;
+      float closest_depth;
+      
+      if (new_tex_coord.x < 0 || new_tex_coord.x > 1 || new_tex_coord.y < 0 || new_tex_coord.y > 1) {
+        if (highest_precision_cascade == NUM_CASCADES-1) continue;
+
+        int less_precise_layer = highest_precision_cascade + 1;
+
+        vec3 lesser_cascade_tex_depth_info = get_cascade_tex_depth_info(less_precise_layer);
+
+        depth = lesser_cascade_tex_depth_info.z;
+
+        vec3 new_frag_tex_coord = vec3(lesser_cascade_tex_depth_info.xy, less_precise_layer);
+        closest_depth = dir_light_data.light_active * texture(dir_light_data.shadow_map, new_frag_tex_coord).r;
+      } else {
+        depth = highest_prec_tex_plus_depth_info.z;
+
+        // depth buffer stores 0 to 1, for near to far respectively
+        // so closest_depth is between 0 to 1
+        closest_depth = dir_light_data.light_active * texture(dir_light_data.shadow_map, new_tex_coord).r;
+      }
+
+      // z pos is closer to light than the texture sample says
+      if (depth <= (closest_depth + bias)) {
+        // light
+        amount_in_light += (1.0 / max(0.1, float(pcf * pcf)));
+      }
+
+      if (x_offset == 0 && y_offset == 0) {
+        in_dir_light_info.closest_depth = closest_depth;
+      }
+
+    }
+  } 
+
+  in_dir_light_info.amount_in_light = min(max(0.0, amount_in_light), 1.0) * dir_light_data.light_active;
+
+  return in_dir_light_info;
+}
+
+float normal_distrib(norm_inter_vecs_t niv, pbr_light_data_t pbr_light_data, float roughness) {
+  float a = roughness * roughness;
+  float a2 = a*a;
+  float numerator = a2;
+  float d = max(dot(niv.normal, pbr_light_data.half_vector), 0.0);
+  float denom = PI * pow( ( pow(d,2) * ( a2-1.0 ) ) + 1, 2 );
+  return numerator / denom;
+}
+
+float geom_helper(vec3 niv_normal, vec3 other_vec, float roughness) {
+  float n_o = max(dot(niv_normal, other_vec), 0.0);
+  float k = pow(roughness + 1, 2) / 8.0;
+  float num = n_o;
+  float den = ( n_o*(1-k) ) + k;
+  return num / den;
+}
+
+float geom(norm_inter_vecs_t niv, pbr_light_data_t pbr_light_data, float roughness) {
+  float a = geom_helper(niv.normal, niv.view_dir, roughness);
+  float b = geom_helper(niv.normal, pbr_light_data.to_light_dir, roughness);
+  return a*b;
+}
+
+vec3 fresnel_eq(norm_inter_vecs_t niv, pbr_light_data_t pbr_light_data, vec3 F0) {
+  float hv = max(dot(pbr_light_data.half_vector, niv.view_dir), 0.0);
+  float m = pow(clamp(1-hv, 0.0, 1.0), 5);
+  vec3 neg_F0 = vec3(1.0) - F0;
+  return F0 + (neg_F0 * m);
+}
+
+float cook_torrance_specular_brdf(norm_inter_vecs_t niv, pbr_light_data_t pbr_light_data) {
+  float roughness = get_roughness();
+  float D = normal_distrib(niv, pbr_light_data, roughness); 
+  float G = geom(niv, pbr_light_data, roughness);
+
+  float ln = max(dot(pbr_light_data.to_light_dir, niv.normal), 0.0);
+  float vn = max(dot(niv.view_dir, niv.normal), 0.0);
+
+  float denom = (4 * ln * vn) + 0.0001;
+  float num = D * G;
+
+  return num / denom;
+}
+
+vec4 lambert_diffuse() {
+  vec4 diffuse; 
+  if (material.base_color_tex.tex_id == -1) {
+    if (material.use_base_color_tex == 0) {
+#if USE_VEC3
+      diffuse = vec4(material.mesh_color, 1);
+#else
+      diffuse = material.mesh_color;
+#endif
+    } else {
+      diffuse = vec4(color, 1);
+    }
+  } else {
+    diffuse = texture(material.base_color_tex.samp, tex_coords[material.base_color_tex.tex_id]);
+    // diffuse.r = s_rgb_to_linear(diffuse.r);
+    // diffuse.g = s_rgb_to_linear(diffuse.g);
+    // diffuse.b = s_rgb_to_linear(diffuse.b);
+  }
+  return diffuse;
+}
+
+vec3 get_occ_rgb() {
+  vec3 occ_rgb = vec3(1.0, 1.0, 1.0);
+  if (material.use_occ_tex == 1) {
+    float v = texture(material.occ_tex.samp, tex_coords[material.occ_tex.tex_id]).r;
+    occ_rgb = vec3(v,v,v);
+  }
+  return occ_rgb;
+}
+
+vec3 get_emission_vec() {
+  vec3 em;
+  if (material.use_emission_tex == 0) {
+    // em = vec3(1.0, 1.0, 1.0);
+    em = vec3(0);
+  } else {
+    em = texture(material.emission_tex.samp, tex_coords[material.emission_tex.tex_id]).rgb;
+    // em.r = s_rgb_to_linear(em.r);
+    // em.g = s_rgb_to_linear(em.g);
+    // em.b = s_rgb_to_linear(em.b);
+  }
+  return em * material.emission_factor;
+}
+
+float get_metalness() {
+  float metalness;
+  if (material.use_metal_rough_tex == 1) {
+    vec4 info = texture(material.metal_rough_tex.samp, tex_coords[material.metal_rough_tex.tex_id]);
+    metalness = s_rgb_to_linear(info.b);
+  } else {
+    metalness = material.metalness;
+  }
+  return metalness;
+}
+
+float get_roughness() {
+  float roughness;
+  if (material.use_metal_rough_tex == 1) {
+    vec4 info = texture(material.metal_rough_tex.samp, tex_coords[material.metal_rough_tex.tex_id]);
+    roughness = s_rgb_to_linear(info.g);
+    // roughness = info.g;
+  } else {
+    roughness = material.surface_roughness;
+  }
+  return roughness;
+}
+
+vec3 get_base_reflectance() {
+  vec3 dielectric_F0 = vec3(0.04, 0.04, 0.04);
+  vec4 surface_color = lambert_diffuse();
+
+  float metalness = get_metalness();
+
+  vec3 refl = mix(dielectric_F0, surface_color.rgb, metalness);
+  return refl;
+}
+
+vec3 pbr_for_light(norm_inter_vecs_t niv, pbr_light_data_t pbr_light_data) {
+  vec3 F0 = get_base_reflectance();
+  vec3 ks = fresnel_eq(niv, pbr_light_data, F0);
+
+  float metalness = get_metalness();
+
+  vec3 kd = vec3(1.0) - ks;
+  kd *= (1.0 - metalness); 
+
+  float cook = cook_torrance_specular_brdf(niv, pbr_light_data);
+  vec3 diffuse = lambert_diffuse().rgb;
+  vec3 brdf_output = (kd * diffuse / PI) + (ks * cook);
+
+  float geom_term = max(dot(niv.normal, normalize(pbr_light_data.to_light_dir)), 0.0);
+  vec3 pbr = brdf_output * pbr_light_data.amount_in_light * geom_term;
+  return pbr;
+}
+
+vec4 pbr_brdf(norm_inter_vecs_t niv) {
+
+  // dirlight
+  is_in_dir_light_info_t in_dir0 = calc_light_rel_data();
+
+  // spotlights
+  is_in_spotlight_info_t in_spotlight0 = is_in_spotlight(niv, spotlights_data[0], spotlight_rel_screen_pos0);
+  is_in_spotlight_info_t in_spotlight1 = is_in_spotlight(niv, spotlights_data[1], spotlight_rel_screen_pos1);
+  is_in_spotlight_info_t in_spotlight2 = is_in_spotlight(niv, spotlights_data[2], spotlight_rel_screen_pos2);
+
+  pbr_light_data_t pbr_lights[4];
+  pbr_lights[0] = create_pbr_light(niv, -dir_light_data.light_dir, in_dir0.amount_in_light);
+  pbr_lights[1] = create_pbr_light(niv, spotlights_data[0].pos - niv.world_pos, in_spotlight0.amount_in_light);
+  pbr_lights[2] = create_pbr_light(niv, spotlights_data[1].pos - niv.world_pos, in_spotlight1.amount_in_light);
+  pbr_lights[3] = create_pbr_light(niv, spotlights_data[2].pos - niv.world_pos, in_spotlight2.amount_in_light);
+
+  vec4 diffuse = lambert_diffuse();
+  float alpha = diffuse.a;
+
+  // ambient light
+  vec3 max_ambient_factor = vec3(0.1);
+  vec3 ambient_factor = max_ambient_factor * get_occ_rgb();
+  vec3 color = ambient_factor * diffuse.rgb;
+
+  for (int i = 0; i < 4; i++) {
+    color += pbr_for_light(niv, pbr_lights[i]);
+  }
+
+  color += get_emission_vec();
+
+  color = color / (color + vec3(1.0));
+  color = pow(color, vec3(1.0/2.2));
+
+  return vec4(color, alpha);
 }
 
 void main() {
 
-  if (base_color_tex.tex_id == -1) {
-    if (use_mesh_color == 1) {
-      frag_color = vec4(mesh_color, 1);
-    } else {
-      frag_color = vec4(color, 1);
-    }
-  } else {
-    frag_color = texture(base_color_tex.samp, tex_coords[base_color_tex.tex_id]);
-  }
+  norm_inter_vecs_t niv = calc_normalized_vectors();
 
-  is_in_spotlight_info_t in_spotlight0 = is_in_spotlight(spotlights_data[0],  spotlight_rel_screen_pos0);
-  is_in_spotlight_info_t in_spotlight1 = is_in_spotlight(spotlights_data[1], spotlight_rel_screen_pos1);
-  is_in_spotlight_info_t in_spotlight2 = is_in_spotlight(spotlights_data[2], spotlight_rel_screen_pos2);
-
-  dir_light_rel_data_t dir_light_rel_data = calc_light_rel_data(dir_light_mat_data);
-  is_in_dir_light_info_t in_dir0 = is_in_dir_light(dir_light_mat_data, dir_light_data, dir_light_rel_data.screen_rel_pos, dir_light_rel_data.highest_precision_cascade);
-
-  float max_in_light = max(max(max(in_spotlight0.amount_in_light, in_spotlight1.amount_in_light), in_spotlight2.amount_in_light), in_dir0.amount_in_light);
-
-  // float shadow_damp_factor = 0.2;
-  // float multiplier = ((1.0 - max_in_light) * shadow_damp_factor) + max_in_light;
-
-  // frag_color = vec4(normal, 1.0);
-  float ambient_factor = 0.2;
-#if 0
-  vec4 normalized_pos = pos / pos.w;
-  vec4 normal_norm = normal / normal.w;
-  float albedo_factor = max(0, dot(normalize(normal.xyz), normalize(spotlights_data[0].pos - normalized_pos.xyz)));
-  float multiplier = ambient_factor + (max_in_light * albedo_factor);
-#else
-  float multiplier = ambient_factor + max_in_light;
-#endif
-  multiplier = max(0, min(1, multiplier));
-
-  frag_color.x *= multiplier;
-  frag_color.y *= multiplier;
-  frag_color.z *= multiplier; 
-
+  vec4 pbr = pbr_brdf(niv);
+  // frag_color = vec4(pbr, 1.0);
+  frag_color = pbr;
 
 #if VIEW_AMOUNT_IN_LIGHT
   frag_color = vec4(max_in_light, max_in_light, max_in_light, 1);
@@ -391,7 +573,7 @@ void main() {
 #elif VIEW_LIGHT2_AMOUNT_IN_LIGHT
   frag_color = vec4(in_spotlight2.amount_in_light,in_spotlight2.amount_in_light,in_spotlight2.amount_in_light,1);
 #elif VIEW_NORMALS
-  frag_color = normal_norm;
+  frag_color = vec4(niv.normal, 1.0);
 #elif VIEW_DIR_LIGHT_CLOSEST_DEPTH
   float v = pow(in_dir0.closest_depth, 2);
   frag_color = vec4(v,v,v,1);
@@ -412,6 +594,9 @@ void main() {
   } else {
     frag_color = vec4(1,1,1,1);
   }
+#elif VIEW_OCC
+  vec3 occ_v = get_occ_rgb();
+  frag_color = vec4(occ_v, 1.0);
 #endif 
 
 #if ENABLE_QUANTIZING
@@ -421,4 +606,5 @@ void main() {
   if (override_color_bool == 1) {
     frag_color = vec4(1,1,1,1);
   }
+
 }

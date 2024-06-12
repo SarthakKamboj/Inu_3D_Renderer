@@ -1,6 +1,10 @@
 #include "scene.h"
 
 #include <algorithm>
+#include <vector>
+
+#include "glew.h"
+#include "wglew.h"
 
 #include "utils/mats.h"
 #include "model_loading/model_internal.h"
@@ -10,6 +14,21 @@
 #include "utils/mats.h"
 #include "windowing/window.h"
 #include "scene/camera.h"
+
+void traverse_obj_hierarchy_opaque(int obj_id, bool parent, bool light_pass, shader_t& shader);
+void render_non_opaque_objs(std::vector<obj_sort_info_t>& non_opaque_objs, bool light_pass, shader_t& shader);
+void render_scene_obj(int obj_id, bool light_pass, shader_t& shader);
+
+struct obj_sort_info_comparator_t {
+  bool operator()(obj_sort_info_t a, obj_sort_info_t b) {
+    vec3 cam_pos = get_cam_pos();
+    vec3 diff_a = a.pos - cam_pos;
+    vec3 diff_b = b.pos - cam_pos;
+    float dist_a = diff_a.length();
+    float dist_b = diff_b.length();
+    return dist_a > dist_b;
+  }
+};
 
 std::vector<object_t> objs;
 std::vector<skin_t> skins;
@@ -82,19 +101,16 @@ mat4 get_obj_model_mat(int obj_id) {
 static std::unordered_set<int> updated_idxs;
 void update_obj_model_mats_recursive(int obj_id, mat4& running_model) {
   object_t& obj = objs[obj_id];
-  if (obj.is_joint_obj) {
-      int a = 5;
-  }
   if (isnan(obj.transform.pos.x) || isnan(obj.transform.pos.y) || isnan(obj.transform.pos.z)) {
     inu_assert_msg("obj transform pos is nan");
   }
-  mat4 model = get_model_matrix(objs[obj_id].transform);
+  mat4 local_model_mat = get_model_matrix(objs[obj_id].transform);
   for (int i = 0; i < 16; i++) {
-    if (isnan(model.vals[i])) {
+    if (isnan(local_model_mat.vals[i])) {
       inu_assert_msg("obj model matrix from transform is nan");
     }
   }
-  objs[obj_id].model_mat = running_model * model;
+  objs[obj_id].model_mat = running_model * local_model_mat;
   updated_idxs.insert(obj_id);
   for (int child_id : objs[obj_id].child_objects) {
     update_obj_model_mats_recursive(child_id, objs[obj_id].model_mat);
@@ -110,11 +126,14 @@ object_t* get_obj(int obj_id) {
 //  second pass is : then joints + their children (if not handled in first pass) - (essentially parent bone nodes which have no parents)
 void update_obj_model_mats() {
   updated_idxs.clear();
+
+  // update starting from parent objects in the scene
   for (int parent_id : scene.parent_objs) {
     mat4 running_model_mat(1.0f);
     update_obj_model_mats_recursive(parent_id, running_model_mat);
   }
 
+  // update objects that have not been updates because they are skeletons
   for (object_t& obj : objs) {
     if (updated_idxs.find(obj.id) == updated_idxs.end() && obj.is_joint_obj && obj.parent_obj == -1) {
       mat4 running_model_mat(1.0f);
@@ -122,6 +141,7 @@ void update_obj_model_mats() {
     }
   }
 
+  // make sure all joints for skeletons have been updated
   for (object_t& obj: objs) {
     if (obj.is_joint_obj && updated_idxs.find(obj.id) == updated_idxs.end()) {
       inu_assert_msg("joint was not updated");
@@ -173,93 +193,134 @@ void attach_skin_to_obj(int obj_id, int skin_id) {
   }
 }
 
-void render_scene_obj(int obj_id, bool parent, bool light_pass, shader_t& shader) {
+// all objects here should have a model attached to them
+void render_non_opaque_objs(std::vector<obj_sort_info_t>& non_opaque_objs, bool light_pass, shader_t& shader) {
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  for (obj_sort_info_t& osi : non_opaque_objs) {
+    object_t obj = objs[osi.obj_id];
+    bool not_render_obj = light_pass && obj.model_id == spotlight_t::LIGHT_MESH_ID;
+    if (not_render_obj) continue;
+    render_scene_obj(osi.obj_id, light_pass, shader);
+  }
+}
+
+void traverse_obj_hierarchy_opaque(int obj_id, bool parent, bool light_pass, shader_t& shader) {
   object_t& obj = objs[obj_id];
+
+  bool not_render_obj = (obj.model_id == -1) || (light_pass && obj.model_id == spotlight_t::LIGHT_MESH_ID);
+  if (!not_render_obj) {
+    model_t& model = models[obj.model_id];
+    if (!model.is_non_opaque_mesh) {
+        render_scene_obj(obj_id, light_pass, shader);
+    }
+  }
+
+  for (int child : obj.child_objects) {
+    traverse_obj_hierarchy_opaque(child, false, light_pass, shader);
+  }
+}
+
+void render_scene_obj(int obj_id, bool light_pass, shader_t& shader) {
+  object_t& obj = objs[obj_id];
+
+#if 0
+  // only render obj if it should be...otherwise move onto its children objs
+
 
 #if SHOW_LIGHTS
   bool not_render_obj = (obj.model_id == -1) || (light_pass && obj.model_id == spotlight_t::LIGHT_MESH_ID);
 #else
   bool not_render_obj = obj.model_id == -1;
 #endif
-  if (!not_render_obj) { 
-    model_t& model = models[obj.model_id];
-    if (obj.is_skinned) {
-      skin_t skin = get_skin(obj.skin_id);
-      shader_set_int(shader, "skinned", 1);
-      for (int i = 0; i < skin.num_bones; i++) {
-        char mat4_name[64]{};
-        sprintf(mat4_name, "joint_inverse_bind_mats[%i]", i);
-        shader_set_mat4(shader, mat4_name, skin.inverse_bind_matricies[i]);
+  if (not_render_obj) return;
 
-        memset(mat4_name, 0, sizeof(mat4_name));
-        sprintf(mat4_name, "joint_model_matricies[%i]", i);
-        mat4 joint_model_matrix = get_obj_model_mat(skin.joint_obj_ids[i]);
-        shader_set_mat4(shader, mat4_name, joint_model_matrix);
-      }
+#endif
+  // if (!not_render_obj) { 
+  model_t& model = models[obj.model_id];
 
-      // setting the rest to defaults
-      for (int i = skin.num_bones; i < BONES_PER_SKIN_LIMIT; i++) {
-        mat4 identity(1.0f);
-        char mat4_name[64]{};
-        sprintf(mat4_name, "joint_inverse_bind_mats[%i]", i);
-        shader_set_mat4(shader, mat4_name, identity);
+  if (obj.is_skinned) {
+    skin_t skin = get_skin(obj.skin_id);
+    shader_set_int(shader, "skinned", 1);
+    for (int i = 0; i < skin.num_bones; i++) {
+      char mat4_name[64]{};
+      sprintf(mat4_name, "joint_inverse_bind_mats[%i]", i);
+      shader_set_mat4(shader, mat4_name, skin.inverse_bind_matricies[i]);
 
-        memset(mat4_name, 0, sizeof(mat4_name));
-        sprintf(mat4_name, "joint_model_matricies[%i]", i);
-        shader_set_mat4(shader, mat4_name, identity);
-      }
-    } else {
-      shader_set_int(shader, "skinned", 0);
-      shader_set_mat4(shader, "model", obj.model_mat);
+      memset(mat4_name, 0, sizeof(mat4_name));
+      sprintf(mat4_name, "joint_model_matricies[%i]", i);
+      mat4 joint_model_matrix = get_obj_model_mat(skin.joint_obj_ids[i]);
+      shader_set_mat4(shader, mat4_name, joint_model_matrix);
+    }
 
-      transform_t final_transform = get_transform_from_matrix(obj.model_mat);
-      if (isnan(final_transform.pos.x) || isnan(final_transform.pos.y) || isnan(final_transform.pos.z)) {
-        inu_assert_msg("final transform is nan");
+    // setting the rest to defaults
+    for (int i = skin.num_bones; i < BONES_PER_SKIN_LIMIT; i++) {
+      mat4 identity(1.0f);
+      char mat4_name[64]{};
+      sprintf(mat4_name, "joint_inverse_bind_mats[%i]", i);
+      shader_set_mat4(shader, mat4_name, identity);
+
+      memset(mat4_name, 0, sizeof(mat4_name));
+      sprintf(mat4_name, "joint_model_matricies[%i]", i);
+      shader_set_mat4(shader, mat4_name, identity);
+    }
+  } else {
+    shader_set_int(shader, "skinned", 0);
+    shader_set_mat4(shader, "model", obj.model_mat);
+
+    transform_t final_transform = get_transform_from_matrix(obj.model_mat);
+    if (isnan(final_transform.pos.x) || isnan(final_transform.pos.y) || isnan(final_transform.pos.z)) {
+      inu_assert_msg("final transform is nan");
+    }
+  }
+
+  for (mesh_t& mesh : model.meshes) {
+
+    if (!light_pass) {
+      if (obj.model_id == spotlight_t::LIGHT_MESH_ID) {
+        shader_set_int(material_t::associated_shader, "override_color_bool", 1);
+      } else {
+        shader_set_int(material_t::associated_shader, "override_color_bool", 0);
       }
     }
 
-    for (mesh_t& mesh : model.meshes) {
+    material_t m;
+    if (!light_pass) {
+      m = bind_material(mesh.mat_idx);
+    } else {
+      m = get_material(mesh.mat_idx);
+      bind_shader(shader);
+    }
 
-      if (!light_pass) {
-        if (obj.model_id == spotlight_t::LIGHT_MESH_ID) {
-          shader_set_int(material_t::associated_shader, "override_color_bool", 1);
-        } else {
-          shader_set_int(material_t::associated_shader, "override_color_bool", 0);
-        }
-      }
+    bool rendering_only_if_textured_albedo = app_info.render_only_textured && m.albedo.base_color_img.tex_handle == -1;
+    // bool transparent_mesh = (m.transparency_mode == TRANSPARENCY_MODE::TRANSPARENT);
 
-      material_t m;
-      if (!light_pass) {
-        m = bind_material(mesh.mat_idx);
-      } else {
-        m = get_material(mesh.mat_idx);
-        bind_shader(shader);
-      }
-
-      if (app_info.render_only_textured && m.albedo.base_color_img.tex_handle == -1) {
-        continue;
-      }
+    if (rendering_only_if_textured_albedo) {
+      continue;
+    }
 
 #if SHOW_BONES
-      // only shows bones
-      if (obj.is_joint_obj) {
-        bind_vao(mesh.vao);
-        draw_ebo(mesh.ebo);
-        unbind_vao();
-        unbind_ebo();
-      }
-#else
+    // only shows bones
+    if (obj.is_joint_obj) {
       bind_vao(mesh.vao);
       draw_ebo(mesh.ebo);
       unbind_vao();
       unbind_ebo();
-#endif
     }
+#else
+    bind_vao(mesh.vao);
+    draw_ebo(mesh.ebo);
+    unbind_vao();
+    unbind_ebo();
+#endif
   }
+  // }
 
+#if 0
   for (int child : obj.child_objects) {
     render_scene_obj(child, false, light_pass, shader);
   }
+#endif
 }
 
 void spotlight_pass() {
@@ -269,11 +330,11 @@ void spotlight_pass() {
     setup_spotlight_for_rendering(i);
 
     for (int parent_id : scene.parent_objs) {
-      render_scene_obj(parent_id, true, true, spotlight_t::light_shader);
+      traverse_obj_hierarchy_opaque(parent_id, true, true, spotlight_t::light_shader);
     }
     for (object_t& obj : objs) {
       if (obj.is_skinned) {
-        render_scene_obj(obj.id, false, true, spotlight_t::light_shader);
+        traverse_obj_hierarchy_opaque(obj.id, false, true, spotlight_t::light_shader);
       }
     }
     remove_spotlight_from_rendering();
@@ -292,12 +353,12 @@ void dirlight_pass() {
     setup_dir_light_for_rendering(i, cam);
 
     for (int parent_id : scene.parent_objs) {
-      render_scene_obj(parent_id, true, true, dir_light_t::light_shader);
+      traverse_obj_hierarchy_opaque(parent_id, true, true, dir_light_t::light_shader);
     }
 
     for (object_t& obj : objs) {
       if (obj.is_skinned) {
-        render_scene_obj(obj.id, false, true, dir_light_t::light_shader);
+        traverse_obj_hierarchy_opaque(obj.id, false, true, dir_light_t::light_shader);
       }
     }
 
@@ -318,6 +379,7 @@ void offline_final_render_pass() {
 
   shader_set_float(material_t::associated_shader, "cam_data.near_plane", get_cam_near_plane());
   shader_set_float(material_t::associated_shader, "cam_data.far_plane", get_cam_far_plane());
+  shader_set_vec3(material_t::associated_shader, "cam_data.cam_pos", get_cam_pos());
 
   // spotlights for offline shader
   int num_lights = get_num_spotlights();
@@ -422,7 +484,7 @@ void offline_final_render_pass() {
     for (int j = 0; j < NUM_SM_CASCADES; j++) {
 
       char var_name[64]{};
-      sprintf(var_name, "dir_light_mat_data.light_views[%i]", j);
+      sprintf(var_name, "dir_light_data.light_views[%i]", j);
       if (inactive) {
         shader_set_mat4(material_t::associated_shader, var_name, identity);
       } else {
@@ -430,7 +492,7 @@ void offline_final_render_pass() {
       }
 
       memset(var_name, 0, sizeof(var_name));
-      sprintf(var_name, "dir_light_mat_data.light_projs[%i]", j);
+      sprintf(var_name, "dir_light_data.light_projs[%i]", j);
       if (inactive) {
         shader_set_mat4(material_t::associated_shader, var_name, identity);
       } else {
@@ -438,7 +500,7 @@ void offline_final_render_pass() {
       }
 
       memset(var_name, 0, sizeof(var_name));
-      sprintf(var_name, "dir_light_mat_data.cascade_depths[%i]", j);
+      sprintf(var_name, "dir_light_data.cascade_depths[%i]", j);
       if (inactive) {
         shader_set_float(material_t::associated_shader, var_name, 0);
       } else {
@@ -447,8 +509,7 @@ void offline_final_render_pass() {
     }
     
     char var_name[64]{};
-    memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "dir_light_mat_data.cascade_depths[%i]", NUM_SM_CASCADES);
+    sprintf(var_name, "dir_light_data.cascade_depths[%i]", NUM_SM_CASCADES);
     if (inactive) {
       shader_set_float(material_t::associated_shader, var_name, 0);
     } else {
@@ -456,7 +517,7 @@ void offline_final_render_pass() {
     }
 
     memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "dir_light_mat_data.light_dir");
+    sprintf(var_name, "dir_light_data.light_dir");
     if (inactive) {
       shader_set_vec3(material_t::associated_shader, var_name, {0,0,0});
     } else {
@@ -483,15 +544,41 @@ void offline_final_render_pass() {
 
   }
 
+  // PASS 1 will be of only opaque objects
+
   for (int parent_id : scene.parent_objs) {
-    render_scene_obj(parent_id, true, false, material_t::associated_shader);
+    traverse_obj_hierarchy_opaque(parent_id, true, false, material_t::associated_shader);
   }
+
+  // TODO: need to check but i think this happens because skinned objects are not considered parents 
+  // but are still heads of their own hierarchy?
   for (object_t& obj : objs) {
     if (obj.is_skinned) {
-      render_scene_obj(obj.id, false, false, material_t::associated_shader);
+      traverse_obj_hierarchy_opaque(obj.id, false, false, material_t::associated_shader);
     }
   }
   unbind_shader();
+
+  // PASS 2 will be of only non opaque objects...altho these will need to be sorted and rendered back to front
+  // sort non-opaque objects 
+
+  obj_sort_info_comparator_t obj_sort_info_comparator;  
+  std::vector<obj_sort_info_t> non_opaque_objs;
+  for (object_t& obj : objs) {
+    if (obj.model_id == -1) continue;
+    model_t& model = models[obj.model_id];
+    if (model.is_non_opaque_mesh) {
+      obj_sort_info_t info;
+      transform_t final_transform = get_transform_from_matrix(obj.model_mat);
+      info.obj_id = obj.id;
+      info.pos = final_transform.pos;
+      non_opaque_objs.push_back(info);
+    }
+  }
+
+  std::sort(non_opaque_objs.begin(), non_opaque_objs.end(), obj_sort_info_comparator);
+  render_non_opaque_objs(non_opaque_objs, false, material_t::associated_shader);
+  // int a = 5;
 
 #if DISPLAY_DIR_LIGHT_SHADOW_MAPS
   if (num_dir_lights > 0) {

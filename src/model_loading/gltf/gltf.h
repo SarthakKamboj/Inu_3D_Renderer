@@ -95,7 +95,7 @@ struct gltf_normal_tex_info_t {
 
 struct gltf_occ_tex_info_t {
   gltf_mat_image_info_t tex_info;
-  float strength = -1;
+  float strength = 1;
 };
 
 enum class ALPHA_MODE {

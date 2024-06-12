@@ -33,8 +33,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   }
 
   transform_t t;
-  t.pos.y = 10.f;
-  t.pos.x = 2.f;
+  t.pos.y = 2.3f;
+  t.pos.x = 2.3f;
   create_camera(t);
   init_online_renderer();
 
@@ -46,9 +46,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
   char vert_shader_path[256]{};
   sprintf(vert_shader_path, "%s\\shaders\\model.vert", resources_path);
+  char geo_shader_path[256]{};
+  sprintf(geo_shader_path, "%s\\shaders\\model.geo", resources_path);
   char frag_shader_path[256]{};
   sprintf(frag_shader_path, "%s\\shaders\\model.frag", resources_path);
-  material_t::associated_shader = create_shader(vert_shader_path, frag_shader_path); 
+  material_t::associated_shader = create_shader(vert_shader_path, geo_shader_path, frag_shader_path); 
 
   // const char* gltf_file_resources_folder_rel_path =  "box\\Box.gltf";
   // const char* gltf_file_resources_folder_rel_path =  "box_interleaved\\BoxInterleaved.gltf";
@@ -62,9 +64,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "cube_non_smooth_face\\Cube.gltf";
   // const char* gltf_file_resources_folder_rel_path = "duck\\Duck.gltf";
   // const char* gltf_file_resources_folder_rel_path = "avacado\\Avocado.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "sci_fi_helmet\\SciFiHelmet.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "damaged_helmet\\DamagedHelmet.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "lantern\\Lantern.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "water_bottle\\WaterBottle.gltf";
   // const char* gltf_file_resources_folder_rel_path = "suzan\\Suzanne.gltf";
   // const char* gltf_file_resources_folder_rel_path = "cartoon_car\\combined.gltf";
-  // const char* gltf_file_resources_folder_rel_path = "stylized_ww1_plane\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "ferrari_enzo\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "buggy\\Buggy.gltf";
   // const char* gltf_file_resources_folder_rel_path = "stylized_mushrooms\\scene.gltf";
@@ -74,20 +79,22 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "rigged_figure\\RiggedFigure.gltf";
   // const char* gltf_file_resources_folder_rel_path = "rigged_figure\\blender_export.gltf";
   // const char* gltf_file_resources_folder_rel_path = "cesium_man\\CesiumMan.gltf";
-  // const char* gltf_file_resources_folder_rel_path = "brain_stem\\BrainStem.gltf";
-  const char* gltf_file_resources_folder_rel_path = "medieval_fantasy_book\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "shadow_test\\test.gltf";
   // const char* gltf_file_resources_folder_rel_path = "fox\\Fox.gltf";
-  // const char* gltf_file_resources_folder_rel_path = "virtual_city\\VC.gltf";
   // const char* gltf_file_resources_folder_rel_path = "low-poly_truck_car_drifter\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "yusuke_urameshi\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "junkrat\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "reap_the_whirlwind\\scene.gltf";
 
+  // const char* gltf_file_resources_folder_rel_path = "medieval_fantasy_book\\scene.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "virtual_city\\VC.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "brain_stem\\BrainStem.gltf";
+  const char* gltf_file_resources_folder_rel_path = "stylized_ww1_plane\\scene.gltf";
+
   if (strcmp(gltf_file_resources_folder_rel_path, "stylized_ww1_plane\\scene.gltf") == 0
       || strcmp(gltf_file_resources_folder_rel_path, "ferrari_enzo\\scene.gltf") == 0 //) {
       || strcmp(gltf_file_resources_folder_rel_path, "rigged_figure\\RiggedFigure.gltf") == 0) {
-    app_info.render_only_textured = true;
+    // app_info.render_only_textured = true;
   }
 
 #if SHOW_BONES
@@ -99,17 +106,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 #endif
 
   char gltf_full_file_path[256]{};
-  sprintf(gltf_full_file_path, "%s\\%s", resources_path, gltf_file_resources_folder_rel_path);
+  sprintf(gltf_full_file_path, "%s\\models\\%s", resources_path, gltf_file_resources_folder_rel_path);
   gltf_load_file(gltf_full_file_path);
 
   play_next_anim();
 
   init_light_data();
-#if 1
+#if 0
   // create_light({2,10,0});
   // create_light({-2,3,0});
   // create_light({-20,30,0});
-#if 0
+#if 1
   create_spotlight({2,8,0});
   create_spotlight({-20,10,0});
   create_spotlight({10,5,-5});
@@ -126,7 +133,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 #endif
 
 #if HAVE_DIR_LIGHT
-  create_dir_light({-1,-1,0});
+  create_dir_light({1,-1,0});
 #endif
 
   int RENDER_DEPTH = 0;
@@ -145,6 +152,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     
     update_cam();
     update_animations();
+    
+    // update object transforms
+    update_obj_model_mats();
 
     // RENDERING PASS
     

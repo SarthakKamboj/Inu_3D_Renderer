@@ -4,7 +4,7 @@
 struct camera_t {
   // scale doesn't matter
   transform_t transform;
-  vec3 focal_pt;
+  vec3 focal_pt = {0, 0.02f, 0};
   mat4 view;
   mat4 proj;
   float near_plane;
@@ -14,6 +14,7 @@ struct camera_t {
 void create_camera(transform_t& t);
 float get_cam_near_plane();
 float get_cam_far_plane();
+vec3 get_cam_pos();
 mat4 get_cam_view_mat();
 mat4 get_cam_proj_mat();
 mat4 get_view_mat(vec3 pos, vec3 focal_pt);

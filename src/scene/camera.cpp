@@ -313,3 +313,7 @@ float get_cam_near_plane() {
 float get_cam_far_plane() {
   return cam.far_plane;
 }
+
+vec3 get_cam_pos() {
+  return cam.transform.pos;
+}

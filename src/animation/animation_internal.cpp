@@ -284,7 +284,5 @@ void update_animations() {
     }
   }
 
-  // update object transforms
-  update_obj_model_mats();
 }
 

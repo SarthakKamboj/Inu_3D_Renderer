@@ -79,6 +79,7 @@ void bind_shader(shader_t& shader);
 void unbind_shader();
 void shader_set_float(shader_t& shader, const char* var_name, float val);
 void shader_set_vec3(shader_t& shader, const char* var_name, vec3 vec);
+void shader_set_vec4(shader_t& shader, const char* var_name, vec4 vec);
 void shader_set_int(shader_t& shader, const char* var_name, int val);
 void shader_set_mat4(shader_t& shader, const char* var_name, mat4& mat);
 
@@ -88,9 +89,10 @@ enum class TEX_FILTER_METHOD {
 };
 
 enum class TEX_FORMAT {
+	SINGLE,
+	RG,
 	RGB,
 	RGBA,
-	SINGLE,
 	DEPTH_STENCIL,
 	DEPTH
 };
@@ -149,14 +151,17 @@ struct file_texture_t {
 };
 
 tex_id_t create_texture(unsigned char* data, int tex_slot, int width, int height, int depth, tex_creation_meta_t& meta_data);
+tex_id_t create_texture_from_another_texture(tex_id_t other, int tex_slot, tex_creation_meta_t& meta_data);
 file_texture_t create_file_texture(const char* img_path, int tex_slot, tex_creation_meta_t& meta_data);
 file_texture_t create_file_texture(const char* img_path, int tex_slot);
 
 const texture_t bind_texture(tex_id_t tex_id);
 const texture_t bind_texture(tex_id_t tex_id, int override_slot);
 void unbind_texture();
+void unbind_texture(int slot);
 
 enum class MATERIAL_PARAM_VARIANT {
+	NONE,
 	FLOAT,
 	VEC3,
 	VEC4,
@@ -171,50 +176,80 @@ struct material_image_t {
 };
 
 struct emission_param_t {
-	union {
-		vec3 emission_factor = {1,1,1};
-		material_image_t emissive_tex_info;
-	};
-	MATERIAL_PARAM_VARIANT variant = MATERIAL_PARAM_VARIANT::VEC3;
+	vec3 emission_factor;
+	material_image_t emissive_tex_info;
+	MATERIAL_PARAM_VARIANT variant = MATERIAL_PARAM_VARIANT::MAT_IMG;
 };
 
 struct metallic_roughness_param_t {
-	union {
-		struct {
-			float metallic_factor;
-  		float roughness_factor;	
-		};
-		material_image_t met_rough_tex;
+
+	// float variant
+	struct {
+		float metallic_factor;
+  	float roughness_factor;	
 	};
+
+	// image variant
+	material_image_t met_rough_tex;
+
 	MATERIAL_PARAM_VARIANT variant = MATERIAL_PARAM_VARIANT::FLOAT;
+
 	metallic_roughness_param_t();
 };
 
 struct albedo_param_t {	
-	union {
-		vec4 color_factor;
-		struct {
-			vec4 multipliers;
-			material_image_t base_color_img;
-		};
+	// vec4 variant
+	vec4 base_color;
+
+	// mat image variant
+	struct {
+		vec4 multipliers;
+		material_image_t base_color_img;
 	};
+
 	MATERIAL_PARAM_VARIANT variant = MATERIAL_PARAM_VARIANT::VEC4;
 	albedo_param_t();
 };
 
+struct normals_param_t {
+	material_image_t normal_map;
+	// the VEC3 variant will mean to use vertex normals
+	MATERIAL_PARAM_VARIANT variant = MATERIAL_PARAM_VARIANT::MAT_IMG;
+};
+
+struct occ_param_t {
+	material_image_t occ_map;
+	// the NONE variant will mean to not use occlusion mapping
+	// the MAT_IMG variant will mean to use occlusion mapping
+	MATERIAL_PARAM_VARIANT variant = MATERIAL_PARAM_VARIANT::MAT_IMG;
+};
+
+enum class TRANSPARENCY_MODE {
+	TRANSPRNT,
+	OPQUE
+};
+
 struct material_t {
 	static shader_t associated_shader;
+	std::string name;
 	albedo_param_t albedo;
 	metallic_roughness_param_t metal_rough;
-	material_image_t normals_tex;
-	material_image_t occlusion_tex;
+
 	emission_param_t emission;
+	normals_param_t normals;
+	occ_param_t occ;
+
+	TRANSPARENCY_MODE transparency_mode = TRANSPARENCY_MODE::OPQUE;
+
+	bool cull_back = true;
 
 	material_t();
 };
-int create_material(vec4 color, material_image_t base_color_img);
+int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img);
+int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img, emission_param_t& emission_param, normals_param_t& normals, occ_param_t& occ, TRANSPARENCY_MODE transparency_mode, bool cull_back);
 material_t bind_material(int mat_idx);
 material_t get_material(int mat_idx);
+int get_num_materials();
 
 enum class FB_TYPE {
 	RENDER_BUFFER_DEPTH_STENCIL = 0,
@@ -241,3 +276,8 @@ void clear_framebuffer_depth();
 void unbind_framebuffer();
 
 void get_gfx_error();
+
+struct obj_sort_info_t {
+  int obj_id = -1;
+  vec3 pos; 
+};

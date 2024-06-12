@@ -20,7 +20,7 @@
 // define which ortho projection we want to view
 #define LIGHT_ORTHO_CASCADE_TO_VIEW 0
 
-#define DISPLAY_DIR_LIGHT_SHADOW_MAPS 1
+#define DISPLAY_DIR_LIGHT_SHADOW_MAPS 0
 
 #define USE_DIR_LIGHT_DEBUG_FBOS 0
 
