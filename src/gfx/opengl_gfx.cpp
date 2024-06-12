@@ -384,7 +384,7 @@ file_texture_t create_file_texture(const char* img_path, int tex_slot) {
 file_texture_t create_file_texture(const char* img_path, int tex_slot, tex_creation_meta_t& meta_data) {
 	for (file_texture_t& ft : file_textures) {
 		if (strcmp(img_path, ft.path.c_str()) == 0) {
-			texture_t& tex = textures[ft.id];
+			texture_t& tex = textures[ft.id-1];
 			if (tex.tex_slot == tex_slot) {
 				return ft;
 			} else {

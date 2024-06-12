@@ -70,7 +70,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "water_bottle\\WaterBottle.gltf";
   // const char* gltf_file_resources_folder_rel_path = "suzan\\Suzanne.gltf";
   // const char* gltf_file_resources_folder_rel_path = "cartoon_car\\combined.gltf";
-  // const char* gltf_file_resources_folder_rel_path = "ferrari_enzo\\scene.gltf";
+  const char* gltf_file_resources_folder_rel_path = "ferrari_enzo\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "buggy\\Buggy.gltf";
   // const char* gltf_file_resources_folder_rel_path = "stylized_mushrooms\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "little_chestnut\\scene.gltf";
@@ -89,7 +89,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "medieval_fantasy_book\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "virtual_city\\VC.gltf";
   // const char* gltf_file_resources_folder_rel_path = "brain_stem\\BrainStem.gltf";
-  const char* gltf_file_resources_folder_rel_path = "stylized_ww1_plane\\scene.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "stylized_ww1_plane\\scene.gltf";
 
   if (strcmp(gltf_file_resources_folder_rel_path, "stylized_ww1_plane\\scene.gltf") == 0
       || strcmp(gltf_file_resources_folder_rel_path, "ferrari_enzo\\scene.gltf") == 0 //) {
