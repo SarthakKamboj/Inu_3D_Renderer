@@ -10,6 +10,7 @@
 #include "model_loading/model_internal.h"
 #include "utils/app_info.h"
 #include "gfx/light.h"
+#include "gfx/light_probe.h"
 #include "gfx/gfx.h"
 #include "utils/mats.h"
 #include "windowing/window.h"
@@ -544,8 +545,16 @@ void offline_final_render_pass() {
 
   }
 
-  // PASS 1 will be of only opaque objects
+#if 0
+  shader_set_int(material_t::associated_shader, "light_prob.shape", LIGHT_PROBE_SHAPE::RECT_PLANAR);
+  vec3 color = {0,1,0};
+  shader_set_vec3(material_t::associated_shader, "light_prob.color", color);
+  shader_set_vec3(material_t::associated_shader, "light_prob.world_pos", color);
+#endif
+  set_light_probe_in_shader(1, material_t::associated_shader);
+  
 
+  // PASS 1 will be of only opaque objects
   for (int parent_id : scene.parent_objs) {
     traverse_obj_hierarchy_opaque(parent_id, true, false, material_t::associated_shader);
   }
@@ -578,7 +587,6 @@ void offline_final_render_pass() {
 
   std::sort(non_opaque_objs.begin(), non_opaque_objs.end(), obj_sort_info_comparator);
   render_non_opaque_objs(non_opaque_objs, false, material_t::associated_shader);
-  // int a = 5;
 
 #if DISPLAY_DIR_LIGHT_SHADOW_MAPS
   if (num_dir_lights > 0) {
@@ -592,6 +600,8 @@ void render_scene() {
   spotlight_pass();
   dirlight_pass();
   offline_final_render_pass();
+
+  render_light_probes();
 }
 
 skin_t::skin_t() {

@@ -178,7 +178,7 @@ struct material_image_t {
 struct emission_param_t {
 	vec3 emission_factor;
 	material_image_t emissive_tex_info;
-	MATERIAL_PARAM_VARIANT variant = MATERIAL_PARAM_VARIANT::MAT_IMG;
+	MATERIAL_PARAM_VARIANT variant = MATERIAL_PARAM_VARIANT::NONE;
 };
 
 struct metallic_roughness_param_t {
@@ -214,14 +214,15 @@ struct albedo_param_t {
 struct normals_param_t {
 	material_image_t normal_map;
 	// the VEC3 variant will mean to use vertex normals
-	MATERIAL_PARAM_VARIANT variant = MATERIAL_PARAM_VARIANT::MAT_IMG;
+	// the MAT_IMG variant will mean to use material image
+	MATERIAL_PARAM_VARIANT variant = MATERIAL_PARAM_VARIANT::VEC3;
 };
 
 struct occ_param_t {
 	material_image_t occ_map;
 	// the NONE variant will mean to not use occlusion mapping
 	// the MAT_IMG variant will mean to use occlusion mapping
-	MATERIAL_PARAM_VARIANT variant = MATERIAL_PARAM_VARIANT::MAT_IMG;
+	MATERIAL_PARAM_VARIANT variant = MATERIAL_PARAM_VARIANT::NONE;
 };
 
 enum class TRANSPARENCY_MODE {
