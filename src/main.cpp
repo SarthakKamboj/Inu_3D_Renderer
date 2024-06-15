@@ -108,13 +108,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   char bone_mesh_full_file_path[256]{};
   // this file pretty much just has a mesh, no nodes
   sprintf(bone_mesh_full_file_path, "%s\\bone_mesh\\custom_bone_mesh.gltf", resources_path);
-  gltf_load_file(bone_mesh_full_file_path);
+  gltf_load_file(bone_mesh_full_file_path, false);
   skin_t::BONE_MODEL_ID = latest_model_id();
 #endif
 
   char gltf_full_file_path[256]{};
   sprintf(gltf_full_file_path, "%s\\models\\%s", resources_path, gltf_file_resources_folder_rel_path);
   gltf_load_file(gltf_full_file_path);
+
+  create_basic_models();
 
 #if 0
   char gltf_full_file_path2[256]{};
@@ -132,10 +134,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
   std::string probe_mat_name = "light material";
   int light_probe_mat_idx = create_material(probe_mat_name, albedo, met_rough_param);
-  light_probe_t::LIGHT_PROBE_MODEL_ID = generate_plane(light_probe_mat_idx);
+  // light_probe_t::LIGHT_PROBE_MODEL_ID = generate_plane(light_probe_mat_idx);
+  // light_probe_t::LIGHT_PROBE_MODEL_ID = basic_models_t::PLANE;
 #endif
-
-
 
   play_next_anim();
 
@@ -166,9 +167,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
   transform_t lp_t;
   // lp_t.pos = {0.5f,0.5f,0.2f};
-  lp_t.pos = {-3.0f,0.2,0};
+  // lp_t.pos = {-3.0f,0.2,0};
+  lp_t.pos = {0,0.2f,0};
   lp_t.rot = create_quaternion_w_rot({1,0,0}, 90.f);
-  lp_t.scale = {8,8,8};
+  lp_t.scale = {11,11,11};
+  // lp_t.scale = {1,1,1};
   create_light_probe(lp_t, {0, 1, 0});
 
   transform_t lp_t2;

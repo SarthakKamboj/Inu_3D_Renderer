@@ -275,6 +275,10 @@ void render_scene_obj(int obj_id, bool light_pass, shader_t& shader) {
     }
   }
 
+#if 1
+  render_model(obj.model_id, light_pass, shader);
+#else
+
   model_t& model = models[obj.model_id];
   for (mesh_t& mesh : model.meshes) {
 
@@ -317,12 +321,14 @@ void render_scene_obj(int obj_id, bool light_pass, shader_t& shader) {
 #endif
   }
   // }
+#endif
 
 #if 0
   for (int child : obj.child_objects) {
     render_scene_obj(child, false, light_pass, shader);
   }
 #endif
+
 }
 
 void spotlight_pass() {

@@ -13,7 +13,8 @@ enum class LIGHT_PROBE_SHAPE {
 };
 
 struct light_probe_t {
-  static int LIGHT_PROBE_MODEL_ID;
+  // static int LIGHT_PROBE_MODEL_ID;
+  static int LIGHT_PROBE_MATERIAL;
 
   light_probe_id id = 0;
   transform_t transform;

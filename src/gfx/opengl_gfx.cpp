@@ -599,6 +599,10 @@ int create_material(std::string& mat_name, albedo_param_t& albedo_param, metalli
 	return materials.size()-1;
 }
 
+void set_material_cull_back(int mat_id, bool cull_back) {
+	materials[mat_id].cull_back = cull_back;
+}
+
 material_t get_material(int mat_idx) {
 	return materials[mat_idx];
 }

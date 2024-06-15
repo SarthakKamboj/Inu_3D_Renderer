@@ -248,6 +248,7 @@ struct material_t {
 };
 int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img);
 int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img, emission_param_t& emission_param, normals_param_t& normals, occ_param_t& occ, TRANSPARENCY_MODE transparency_mode, bool cull_back);
+void set_material_cull_back(int mat_id, bool cull_back);
 material_t bind_material(int mat_idx);
 material_t get_material(int mat_idx);
 int get_num_materials();
