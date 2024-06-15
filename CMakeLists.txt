@@ -24,6 +24,7 @@ function(configure_project)
         src/gfx/opengl/glew.c
         src/gfx/online_renderer.cpp
         src/gfx/light.cpp
+        src/gfx/light_probe.cpp
 
         src/model_loading/gltf/gltf.cpp
         src/model_loading/image/stb_image.cpp

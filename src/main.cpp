@@ -91,7 +91,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "virtual_city\\VC.gltf";
   // const char* gltf_file_resources_folder_rel_path = "brain_stem\\BrainStem.gltf";
   // const char* gltf_file_resources_folder_rel_path2 = "stylized_ww1_plane\\scene.gltf";
-  const char* gltf_file_resources_folder_rel_path = "global_illum_test\\global_illum_test.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "global_illum_test\\global_illum_test.gltf";
+  const char* gltf_file_resources_folder_rel_path = "global_illum_test\\global_illum_test_2.gltf";
 
 #if 0
   if (strcmp(gltf_file_resources_folder_rel_path, "stylized_ww1_plane\\scene.gltf") == 0
@@ -163,10 +164,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
   transform_t lp_t;
   // lp_t.pos = {0.5f,0.5f,0.2f};
-  lp_t.pos = {0,0.2,0};
+  lp_t.pos = {-3.0f,0.2,0};
   lp_t.rot = create_quaternion_w_rot({1,0,0}, 90.f);
   lp_t.scale = {8,8,8};
-  create_light_probe(lp_t);
+  create_light_probe(lp_t, {0, 1, 0});
+
+  transform_t lp_t2;
+  lp_t2.pos = {1.5,4.0,0};
+  lp_t2.rot = create_quaternion_w_rot({0,1,0}, 90.f);
+  lp_t2.scale = {6.5f,6.f,8};
+  create_light_probe(lp_t2, {1, 0, 0});
 
   int RENDER_DEPTH = 0;
   while (window.running) {

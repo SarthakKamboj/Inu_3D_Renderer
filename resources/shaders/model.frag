@@ -76,6 +76,7 @@ struct material_t {
 
 uniform material_t material;
 uniform int override_color_bool;
+uniform vec3 override_color;
 
 struct spotlight_data_t {
   sampler2D depth_tex;
@@ -114,7 +115,7 @@ struct light_probe_t {
   vec3 world_pos;
   int shape;
 };
-uniform light_probe_t light_probe;
+uniform light_probe_t light_probes[2];
 
 in vec2 tex_coords[2];
 in vec3 color;
@@ -498,10 +499,12 @@ vec3 pbr_for_light(norm_inter_vecs_t niv, pbr_light_data_t pbr_light_data) {
   return pbr;
 }
 
-vec3 calc_global_illum(norm_inter_vecs_t niv) {
+vec3 calc_global_illum(norm_inter_vecs_t niv, int light_probe_i) {
   // return vec3(1);
   // return niv.world_pos;
   // return light_probe.world_pos;
+
+  light_probe_t light_probe = light_probes[light_probe_i];
 
   // transform world position of this fragment to local space of the light probe
   vec4 pos_rel_to_lp4 = inverse(light_probe.model) * vec4(niv.world_pos, 1.0);
@@ -512,7 +515,7 @@ vec3 calc_global_illum(norm_inter_vecs_t niv) {
 
   // return vec3(ceil(pos_rel_to_lp.x));
 
-  if (pos_rel_to_lp.z >= 0) return vec3(0.2);
+  if (pos_rel_to_lp.z >= 0) return vec3(0);
   // return vec3(1,0,0);
   
 #if 0
@@ -558,8 +561,8 @@ vec3 calc_global_illum(norm_inter_vecs_t niv) {
 #endif
   // return vec3(power_xy);
   // return vec3(power_z);
+  // return vec3(power_xy * power_z);
   return light_probe.color * vec3(power_xy * power_z);
-  // return vec3(power_xy * power_z,0,0);
 }
 
 vec4 pbr_brdf(norm_inter_vecs_t niv) {
@@ -586,7 +589,9 @@ vec4 pbr_brdf(norm_inter_vecs_t niv) {
   vec3 ambient_factor = max_ambient_factor * get_occ_rgb();
   vec3 color = ambient_factor * diffuse.rgb;
 
-  color += calc_global_illum(niv) * vec3(0.1);
+  for (int i = 0; i < 2; i++) {
+    color += calc_global_illum(niv, i) * vec3(0.1);
+  }
 
   for (int i = 0; i < 4; i++) {
     color += pbr_for_light(niv, pbr_lights[i]);
@@ -679,10 +684,10 @@ void main() {
   frag_color = quantize_color(frag_color);
 #endif 
 
-  // frag_color = vec4(calc_global_illum(niv), 1);
+  // frag_color = vec4(calc_global_illum(niv, 0), 1);
 
   if (override_color_bool == 1) {
-    frag_color = vec4(1,1,1,1);
+    frag_color = vec4(override_color,1);
   }
 
 }

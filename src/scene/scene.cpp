@@ -551,7 +551,10 @@ void offline_final_render_pass() {
   shader_set_vec3(material_t::associated_shader, "light_prob.color", color);
   shader_set_vec3(material_t::associated_shader, "light_prob.world_pos", color);
 #endif
-  set_light_probe_in_shader(1, material_t::associated_shader);
+  set_light_probe_in_shader(1, 0, material_t::associated_shader);
+  set_light_probe_in_shader(2, 1, material_t::associated_shader);
+
+  // set_light_probe_in_shader(1, 0, material_t::associated_shader);
   
 
   // PASS 1 will be of only opaque objects
