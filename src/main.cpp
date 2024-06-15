@@ -53,6 +53,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   sprintf(frag_shader_path, "%s\\shaders\\model.frag", resources_path);
   material_t::associated_shader = create_shader(vert_shader_path, geo_shader_path, frag_shader_path); 
 
+  init_selection();
+
   // const char* gltf_file_resources_folder_rel_path =  "box\\Box.gltf";
   // const char* gltf_file_resources_folder_rel_path =  "box_interleaved\\BoxInterleaved.gltf";
   // const char* gltf_file_resources_folder_rel_path = "box_textured\\BoxTextured.gltf";

@@ -55,6 +55,7 @@ int create_object(transform_t& transform) {
   static int i = 0;
   obj.id = i++;
   memcpy(&obj.transform, &transform, sizeof(transform_t));
+  obj.sel_id = create_selectable_element();
   objs.push_back(obj);
   return obj.id;
 }
@@ -238,7 +239,6 @@ void render_scene_obj(int obj_id, bool light_pass, shader_t& shader) {
 
 #endif
   // if (!not_render_obj) { 
-  model_t& model = models[obj.model_id];
 
   if (obj.is_skinned) {
     skin_t skin = get_skin(obj.skin_id);
@@ -275,6 +275,7 @@ void render_scene_obj(int obj_id, bool light_pass, shader_t& shader) {
     }
   }
 
+  model_t& model = models[obj.model_id];
   for (mesh_t& mesh : model.meshes) {
 
     if (!light_pass) {

@@ -8,6 +8,7 @@
 #include "utils/mats.h"
 #include "utils/transform.h"
 #include "animation/animation_internal.h"
+#include "editor/pixel_perfect_sel.h"
 
 #define BONES_PER_SKIN_LIMIT 80
 #define SHOW_BONES 0
@@ -40,6 +41,7 @@ struct object_t {
   bool is_joint_obj = false;
   bool is_skinned = false;
   int skin_id = -1;
+  selectable_id sel_id = -1;
 };
 
 struct scene_t {
