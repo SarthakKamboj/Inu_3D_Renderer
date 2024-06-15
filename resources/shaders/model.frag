@@ -76,6 +76,7 @@ struct material_t {
 
 uniform material_t material;
 uniform int override_color_bool;
+uniform vec3 override_color;
 
 struct spotlight_data_t {
   sampler2D depth_tex;
@@ -105,6 +106,16 @@ struct cam_data_t {
   vec3 cam_pos;
 };
 uniform cam_data_t cam_data;
+
+#define LP_REC_SHAPE 1
+
+struct light_probe_t {
+  vec3 color;
+  mat4 model;
+  vec3 world_pos;
+  int shape;
+};
+uniform light_probe_t light_probes[2];
 
 in vec2 tex_coords[2];
 in vec3 color;
@@ -488,6 +499,72 @@ vec3 pbr_for_light(norm_inter_vecs_t niv, pbr_light_data_t pbr_light_data) {
   return pbr;
 }
 
+vec3 calc_global_illum(norm_inter_vecs_t niv, int light_probe_i) {
+  // return vec3(1);
+  // return niv.world_pos;
+  // return light_probe.world_pos;
+
+  light_probe_t light_probe = light_probes[light_probe_i];
+
+  // transform world position of this fragment to local space of the light probe
+  vec4 pos_rel_to_lp4 = inverse(light_probe.model) * vec4(niv.world_pos, 1.0);
+  vec3 pos_rel_to_lp = pos_rel_to_lp4.xyz / pos_rel_to_lp4.w;
+
+  // return light_probe.world_pos;
+  // return pos_rel_to_lp;
+
+  // return vec3(ceil(pos_rel_to_lp.x));
+
+  if (pos_rel_to_lp.z >= 0) return vec3(0);
+  // return vec3(1,0,0);
+  
+#if 0
+  // pixel above the light probe
+  if (abs(pos_rel_to_lp.x) <= 0.5 && abs(pos_rel_to_lp.y) <= 0.5) {
+    // return vec3(1);
+    float distance = -pos_rel_to_lp.z;
+    return vec3(power,0,0);
+  } else {
+    // pixel not above light_probe
+    return vec3(0.5);
+  }
+#else
+  float distance = -pos_rel_to_lp.z;
+  float power_z = pow(max(1.0 - distance, 0.0), 4);
+  float power_xy; 
+  // pixel above the light probe
+  if (abs(pos_rel_to_lp.x) <= 0.5 && abs(pos_rel_to_lp.y) <= 0.5) {
+    // float distance = -pos_rel_to_lp.z;
+    // return vec3(power,0,0);
+    power_xy = 1.0;
+  } else {
+    // pixel not above light_probe
+
+    // return vec3(0.5);
+    float power_x = 0;
+    float power_y = 0;
+
+    float dist_x = clamp(abs(pos_rel_to_lp.x) - 0.5, 0, 0.5);
+    float dist_y = clamp(abs(pos_rel_to_lp.y) - 0.5, 0, 0.5);
+
+    if (abs(pos_rel_to_lp.x) <= 0.5) power_x = 1.0;
+    else power_x = 1 - (2 * dist_x);
+    
+    if (abs(pos_rel_to_lp.y) <= 0.5) power_y = 1.0;
+    else power_y = 1 - (2 * dist_y);
+    
+    // float power_x = abs(pos_rel_to_lp.x) - 0.5;
+    // float power_y = abs(pos_rel_to_lp.y) - 0.5;
+
+    power_xy = pow(power_x, 2.0) * pow(power_y, 2.0);
+  }
+#endif
+  // return vec3(power_xy);
+  // return vec3(power_z);
+  // return vec3(power_xy * power_z);
+  return light_probe.color * vec3(power_xy * power_z);
+}
+
 vec4 pbr_brdf(norm_inter_vecs_t niv) {
 
   // dirlight
@@ -511,6 +588,10 @@ vec4 pbr_brdf(norm_inter_vecs_t niv) {
   vec3 max_ambient_factor = vec3(0.1);
   vec3 ambient_factor = max_ambient_factor * get_occ_rgb();
   vec3 color = ambient_factor * diffuse.rgb;
+
+  for (int i = 0; i < 2; i++) {
+    color += calc_global_illum(niv, i) * vec3(0.1);
+  }
 
   for (int i = 0; i < 4; i++) {
     color += pbr_for_light(niv, pbr_lights[i]);
@@ -603,8 +684,10 @@ void main() {
   frag_color = quantize_color(frag_color);
 #endif 
 
+  // frag_color = vec4(calc_global_illum(niv, 0), 1);
+
   if (override_color_bool == 1) {
-    frag_color = vec4(1,1,1,1);
+    frag_color = vec4(override_color,1);
   }
 
 }

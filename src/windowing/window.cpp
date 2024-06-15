@@ -135,7 +135,7 @@ void create_window(HINSTANCE h_instance, int width, int height) {
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  // glFrontFace(GL_CCW);
+  glFrontFace(GL_CCW);
   // glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 }
 

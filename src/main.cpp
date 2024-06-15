@@ -6,6 +6,7 @@
 #include "gfx/gfx.h"
 #include "gfx/online_renderer.h"
 #include "gfx/light.h"
+#include "gfx/light_probe.h"
 #include "scene/scene.h"
 #include "scene/camera.h"
 #include "utils/transform.h"
@@ -89,13 +90,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "medieval_fantasy_book\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "virtual_city\\VC.gltf";
   // const char* gltf_file_resources_folder_rel_path = "brain_stem\\BrainStem.gltf";
-  const char* gltf_file_resources_folder_rel_path = "stylized_ww1_plane\\scene.gltf";
+  // const char* gltf_file_resources_folder_rel_path2 = "stylized_ww1_plane\\scene.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "global_illum_test\\global_illum_test.gltf";
+  const char* gltf_file_resources_folder_rel_path = "global_illum_test\\global_illum_test_2.gltf";
 
+#if 0
   if (strcmp(gltf_file_resources_folder_rel_path, "stylized_ww1_plane\\scene.gltf") == 0
       || strcmp(gltf_file_resources_folder_rel_path, "ferrari_enzo\\scene.gltf") == 0 //) {
       || strcmp(gltf_file_resources_folder_rel_path, "rigged_figure\\RiggedFigure.gltf") == 0) {
     // app_info.render_only_textured = true;
   }
+#endif
 
 #if SHOW_BONES
   char bone_mesh_full_file_path[256]{};
@@ -108,6 +113,27 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   char gltf_full_file_path[256]{};
   sprintf(gltf_full_file_path, "%s\\models\\%s", resources_path, gltf_file_resources_folder_rel_path);
   gltf_load_file(gltf_full_file_path);
+
+#if 0
+  char gltf_full_file_path2[256]{};
+  sprintf(gltf_full_file_path2, "%s\\models\\%s", resources_path, gltf_file_resources_folder_rel_path2);
+  gltf_load_file(gltf_full_file_path2);
+#endif
+
+#if SHOW_LIGHT_PROBES == 1
+  albedo_param_t albedo;
+  albedo.base_color = {0,1,0,1};
+
+  metallic_roughness_param_t met_rough_param;
+  met_rough_param.roughness_factor = 1.f;
+  met_rough_param.metallic_factor = 0.f;
+
+  std::string probe_mat_name = "light material";
+  int light_probe_mat_idx = create_material(probe_mat_name, albedo, met_rough_param);
+  light_probe_t::LIGHT_PROBE_MODEL_ID = generate_plane(light_probe_mat_idx);
+#endif
+
+
 
   play_next_anim();
 
@@ -135,6 +161,19 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 #if HAVE_DIR_LIGHT
   create_dir_light({1,-1,0});
 #endif
+
+  transform_t lp_t;
+  // lp_t.pos = {0.5f,0.5f,0.2f};
+  lp_t.pos = {-3.0f,0.2,0};
+  lp_t.rot = create_quaternion_w_rot({1,0,0}, 90.f);
+  lp_t.scale = {8,8,8};
+  create_light_probe(lp_t, {0, 1, 0});
+
+  transform_t lp_t2;
+  lp_t2.pos = {1.5,4.0,0};
+  lp_t2.rot = create_quaternion_w_rot({0,1,0}, 90.f);
+  lp_t2.scale = {6.5f,6.f,8};
+  create_light_probe(lp_t2, {1, 0, 0});
 
   int RENDER_DEPTH = 0;
   while (window.running) {

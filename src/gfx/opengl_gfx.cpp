@@ -384,7 +384,7 @@ file_texture_t create_file_texture(const char* img_path, int tex_slot) {
 file_texture_t create_file_texture(const char* img_path, int tex_slot, tex_creation_meta_t& meta_data) {
 	for (file_texture_t& ft : file_textures) {
 		if (strcmp(img_path, ft.path.c_str()) == 0) {
-			texture_t& tex = textures[ft.id];
+			texture_t& tex = textures[ft.id-1];
 			if (tex.tex_slot == tex_slot) {
 				return ft;
 			} else {
@@ -677,8 +677,13 @@ material_t bind_material(int mat_idx) {
 		inu_assert(emission_texture.tex_slot == EMISSION_IMG_TEX_SLOT, "emission texture slot is not correct");
 		shader_set_int(shader, "material.emission_tex.samp", emission_texture.tex_slot);
 		shader_set_int(shader, "material.emission_tex.tex_id", emission_param.emissive_tex_info.tex_coords_idx);
+		shader_set_vec3(shader, "material.emission_factor", emission_param.emission_factor);
+	} else {
+		shader_set_int(shader, "material.emission_tex.samp", 0);
+		shader_set_int(shader, "material.emission_tex.tex_id", 0);
+		vec3 zero;
+		shader_set_vec3(shader, "material.emission_factor", zero);
 	}
-	shader_set_vec3(shader, "material.emission_factor", emission_param.emission_factor);
 
 	// set normals information
 	normals_param_t& normals = mat.normals;
