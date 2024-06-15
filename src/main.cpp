@@ -162,9 +162,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 #endif
 
   transform_t lp_t;
-  lp_t.pos = {0,0.25f,0};
+  // lp_t.pos = {0.5f,0.5f,0.2f};
+  lp_t.pos = {0,0.2,0};
   lp_t.rot = create_quaternion_w_rot({1,0,0}, 90.f);
-  lp_t.scale = {3,3,3};
+  lp_t.scale = {8,8,8};
   create_light_probe(lp_t);
 
   int RENDER_DEPTH = 0;

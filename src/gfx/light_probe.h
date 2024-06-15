@@ -22,5 +22,5 @@ struct light_probe_t {
 };
 
 void create_light_probe(transform_t& t);
-void set_light_probe_in_shader(int id, shader_t& shader);
+void set_light_probe_in_shader(int id, int shader_probe_idx, shader_t& shader);
 void render_light_probes();

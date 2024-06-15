@@ -44,13 +44,17 @@ void render_light_probes() {
   }
 }
 
-void set_light_probe_in_shader(int id, shader_t& shader) {
+void set_light_probe_in_shader(int id, int shader_probe_idx, shader_t& shader) {
   light_probe_t& lp = light_probes[id-1];
-  shader_set_int(shader, "light_prob.shape", (int)lp.shape);
+
+  // char shader_arg[64]{};
+  // sprintf(shader_arg, "light_probe[%i].shape", shader_probe_idx);
+
+  shader_set_int(shader, "light_probe.shape", (int)lp.shape);
   vec3 color = {0,1,0};
-  shader_set_vec3(shader, "light_prob.color", color);
-  shader_set_vec3(shader, "light_prob.world_pos", lp.transform.pos);
+  shader_set_vec3(shader, "light_probe.color", color);
+  shader_set_vec3(shader, "light_probe.world_pos", lp.transform.pos);
   mat4 m = get_model_matrix(lp.transform);
-  shader_set_mat4(shader, "light_prob.model", m);
-  
+  shader_set_mat4(shader, "light_probe.model", m);
+ 
 }

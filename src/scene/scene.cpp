@@ -601,7 +601,7 @@ void render_scene() {
   dirlight_pass();
   offline_final_render_pass();
 
-  render_light_probes();
+  // render_light_probes();
 }
 
 skin_t::skin_t() {
