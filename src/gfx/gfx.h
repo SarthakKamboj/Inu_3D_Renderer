@@ -119,7 +119,7 @@ struct tex_creation_meta_t {
 	TEX_FILTER_METHOD min_filter = TEX_FILTER_METHOD::NEAREST;
 	TEX_FILTER_METHOD mag_filter = TEX_FILTER_METHOD::NEAREST;
 	TEX_FORMAT input_data_tex_format = TEX_FORMAT::RGB;
-	TEX_FORMAT tex_format = TEX_FORMAT::RGB;
+	TEX_FORMAT tex_format = TEX_FORMAT::RGBA;
 	WRAP_MODE s_wrap_mode = WRAP_MODE::REPEAT;
 	WRAP_MODE t_wrap_mode = WRAP_MODE::REPEAT;
 	TEX_DATA_TYPE data_type = TEX_DATA_TYPE::UNSIGNED_BYTE;

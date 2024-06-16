@@ -323,7 +323,7 @@ void shader_set_mat4(shader_t& shader, const char* var_name, mat4& mat) {
 	glUseProgram(gl_id);
 	GLint loc = glGetUniformLocation(gl_id, var_name);
   if (loc == -1) {
-      printf("%s does not exist in shader %i\n", var_name, gl_id);
+      // printf("%s does not exist in shader %i\n", var_name, gl_id);
   }
 	glUniformMatrix4fv(loc, 1, GL_FALSE, (float*)&mat.cols[0].x);
 	unbind_shader();
@@ -334,7 +334,7 @@ void shader_set_int(shader_t& shader, const char* var_name, int val) {
 	glUseProgram(gl_id);
 	GLint loc = glGetUniformLocation(gl_id, var_name);
   if (loc == -1) {
-      printf("%s does not exist in shader %i\n", var_name, gl_id);
+      // printf("%s does not exist in shader %i\n", var_name, gl_id);
   }
 	glUniform1i(loc, val);
 	unbind_shader();
@@ -345,7 +345,7 @@ void shader_set_float(shader_t& shader, const char* var_name, float val) {
 	glUseProgram(gl_id);
 	GLint loc = glGetUniformLocation(gl_id, var_name);
     if (loc == -1) {
-        printf("%s does not exist in shader %i\n", var_name, gl_id);
+        // printf("%s does not exist in shader %i\n", var_name, gl_id);
     }
 	glUniform1f(loc, val);
 	unbind_shader();
@@ -356,7 +356,7 @@ void shader_set_vec3(shader_t& shader, const char* var_name, vec3 vec) {
 	glUseProgram(gl_id);
 	GLint loc = glGetUniformLocation(gl_id, var_name);
   if (loc == -1) {
-      printf("%s does not exist in shader %i\n", var_name, gl_id);
+      // printf("%s does not exist in shader %i\n", var_name, gl_id);
   }
 	glUniform3fv(loc, 1, (GLfloat*)&vec);
 	unbind_shader();
@@ -368,7 +368,7 @@ void shader_set_vec4(shader_t& shader, const char* var_name, vec4 vec) {
 	glUseProgram(gl_id);
 	GLint loc = glGetUniformLocation(gl_id, var_name);
   if (loc == -1) {
-      printf("%s does not exist in shader %i\n", var_name, gl_id);
+      // printf("%s does not exist in shader %i\n", var_name, gl_id);
   }
 	glUniform4fv(loc, 1, (GLfloat*)&vec);
 	unbind_shader();
@@ -919,6 +919,7 @@ framebuffer_t create_framebuffer(int width, int height, FB_TYPE fb_type) {
 void bind_framebuffer(framebuffer_t& fb) {
 	glBindFramebuffer(GL_FRAMEBUFFER, fb.id);
 	glViewport(0, 0, fb.width, fb.height);
+	// glViewport(0, 0, 1280, 960);
 }
 
 void unbind_framebuffer() {

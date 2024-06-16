@@ -15,6 +15,17 @@ struct ivec2 {
   float length();
 };
 
+struct vec3;
+struct ivec3 {
+  int x = 0; 
+  int y = 0; 
+  int z = 0; 
+
+  ivec3() = default;
+  ivec3(vec3& other);
+  ivec3 operator=(vec3& other);
+};
+
 struct vec3 {
   float x = 0;
   float y = 0;

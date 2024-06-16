@@ -35,15 +35,30 @@ model_t* get_model(int model_id) {
   return &models[model_id];
 }
 
+void render_mesh(mesh_t& mesh) {
+  bind_vao(mesh.vao);
+  draw_ebo(mesh.ebo);
+  unbind_vao();
+  unbind_ebo();
+}
+
+void render_sel_model_w_no_material_bind(int model_id) {
+  model_t& model = models[model_id];
+  for (mesh_t& mesh : model.meshes) {
+    render_mesh(mesh);
+  }
+}
+
 void render_model(int model_id, bool light_pass, shader_t& shader) {
   model_t& model = models[model_id];
   for (mesh_t& mesh : model.meshes) {
 
     if (!light_pass) {
       if (model_id == spotlight_t::LIGHT_MESH_ID) {
-        shader_set_int(material_t::associated_shader, "override_color_bool", 1);
+        // shader_set_int(material_t::associated_shader, "override_color_bool", 1);
+        shader_set_int(shader, "override_color_bool", 1);
       } else {
-        shader_set_int(material_t::associated_shader, "override_color_bool", 0);
+        shader_set_int(shader, "override_color_bool", 0);
       }
     }
 
@@ -73,10 +88,16 @@ void render_model(int model_id, bool light_pass, shader_t& shader) {
       unbind_ebo();
     }
 #else
+
+#if 1
+    render_mesh(mesh);
+#else
     bind_vao(mesh.vao);
     draw_ebo(mesh.ebo);
     unbind_vao();
     unbind_ebo();
+#endif
+
 #endif
   }
 }

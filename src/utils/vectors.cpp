@@ -22,6 +22,22 @@ float ivec2::length() {
   return sqrt(x*x + y*y);
 }
 
+// IVEC3
+
+ivec3::ivec3(vec3& other) {
+  x = static_cast<int>(round(other.x));
+  y = static_cast<int>(round(other.y));
+  z = static_cast<int>(round(other.z));
+}
+
+ivec3 ivec3::operator=(vec3& other) {
+  ivec3 iv;
+  iv.x = static_cast<int>(round(other.x));
+  iv.y = static_cast<int>(round(other.y));
+  iv.z = static_cast<int>(round(other.z));
+  return iv;
+}
+
 // VEC3
 
 float vec3::length() {

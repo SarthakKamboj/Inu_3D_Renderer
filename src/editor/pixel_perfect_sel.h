@@ -18,5 +18,11 @@ struct selectable_element_t {
 
 void init_selection();
 selectable_id create_selectable_element();
-void update_sel_el_on_obj();
-void render_sel_elements();
+selectable_id get_sel_el_from_color(vec3 color);
+void update_sel_el_on_obj(int obj_id);
+// void render_sel_elements();
+selectable_element_t get_sel_el(selectable_id id);
+void set_selection(selectable_id sel_id);
+
+struct object_t;
+bool is_obj_selected(object_t& obj);
