@@ -52,7 +52,7 @@ Having watched Denis Villeneuve's take on Dune in Dune Part 1 and Part 2 was ver
 <!-- ROADMAP -->
 ## Roadmap
 
-Currently the roadmap is being logged in a <a href="https://trello.com/b/SyJ3Bqbe">Trello</a>!
+Currently the roadmap is being logged in a <a href="https://trello.com/b/SyJ3Bqbe" target="_blank">Trello</a>!
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
