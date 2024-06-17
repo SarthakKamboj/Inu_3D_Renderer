@@ -16,8 +16,22 @@ offline_to_online_vertex_t create_offline_to_online_vertex(vec2 pos, vec2 tex) {
   return v;
 }
 
+float fb_width_on_screen_px;
+float width_of_screen;
 void update_online_vertices(framebuffer_t& final_offline_fb) {
   mesh_t& offline_to_online_quad = online_renderer.offline_to_online_quad;
+#if 1
+  float fb_ratio_height = static_cast<float>(window.window_dim.y) / final_offline_fb.height;
+  // float fb_width_on_screen = static_cast<float>(final_offline_fb.width) * fb_ratio_height ;
+  fb_width_on_screen_px = static_cast<float>(final_offline_fb.width) * fb_ratio_height;
+  // float width_of_screen = fb_width_on_screen / window.window_dim.x;
+  width_of_screen = fb_width_on_screen_px / window.window_dim.x;
+  float not_width_of_screen = 1.f - width_of_screen;
+  online_renderer.verts[0] = create_offline_to_online_vertex({-1+not_width_of_screen,-1}, {0,0});
+  online_renderer.verts[1] = create_offline_to_online_vertex({1-not_width_of_screen,-1}, {1,0});
+  online_renderer.verts[2] = create_offline_to_online_vertex({1-not_width_of_screen,1}, {1,1});
+  online_renderer.verts[3] = create_offline_to_online_vertex({-1+not_width_of_screen,1}, {0,1});
+#else
   float fb_ratio = static_cast<float>(final_offline_fb.width) / final_offline_fb.height;
   float win_ratio = static_cast<float>(window.window_dim.x) / window.window_dim.y;
   float width_of_screen = fb_ratio / win_ratio;
@@ -26,6 +40,7 @@ void update_online_vertices(framebuffer_t& final_offline_fb) {
   online_renderer.verts[1] = create_offline_to_online_vertex({1-not_width_of_screen,-1}, {1,0});
   online_renderer.verts[2] = create_offline_to_online_vertex({1-not_width_of_screen,1}, {1,1});
   online_renderer.verts[3] = create_offline_to_online_vertex({-1+not_width_of_screen,1}, {0,1});
+#endif
   update_vbo_data(offline_to_online_quad.vbo, (float*)online_renderer.verts, sizeof(online_renderer.verts));
 }
 

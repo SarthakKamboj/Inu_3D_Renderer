@@ -35,10 +35,25 @@ struct model_t {
   bool is_non_opaque_mesh = false;
 };
 
+bool is_model_opaque(model_t& model);
 int register_model(model_t& model);
 int latest_model_id();
 model_t* get_model(int model_id);
+void render_model(int model_id, bool light_pass, shader_t& shader);
+void render_sel_model_w_no_material_bind(int model_id);
+void set_material_on_model(int model_id, int mat_idx);
 
-int generate_plane(int mat_idx);
+void render_mesh(mesh_t& mesh);
+
+// these models should have only 1 mesh
+struct basic_models_t {
+  static int PLANE;
+  static int CUBE;
+  static int SPHERE;
+  static int CIRCLE;
+};
+
+void create_basic_models();
+// int generate_plane(int mat_idx);
 
 

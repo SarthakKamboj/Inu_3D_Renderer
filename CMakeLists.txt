@@ -43,6 +43,8 @@ function(configure_project)
 
         src/animation/interpolation.cpp
         src/animation/animation_internal.cpp
+
+        src/editor/pixel_perfect_sel.cpp
     )
 
     add_executable(${PROJECT_NAME} 

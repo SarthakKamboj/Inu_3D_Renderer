@@ -15,6 +15,7 @@
 #include "utils/mats.h"
 #include "windowing/window.h"
 #include "scene/camera.h"
+#include "editor/pixel_perfect_sel.h"
 
 void traverse_obj_hierarchy_opaque(int obj_id, bool parent, bool light_pass, shader_t& shader);
 void render_non_opaque_objs(std::vector<obj_sort_info_t>& non_opaque_objs, bool light_pass, shader_t& shader);
@@ -35,8 +36,11 @@ std::vector<object_t> objs;
 std::vector<skin_t> skins;
 
 static scene_t scene;
-float fb_width = 1280 / 1.f;
-float fb_height = 960 / 1.f;
+// float fb_width = 1280 / 1.f;
+// float fb_height = 960 / 1.f;
+
+float fb_width = 1920;
+float fb_height = 1080;
 
 framebuffer_t offline_fb;
 
@@ -55,6 +59,7 @@ int create_object(transform_t& transform) {
   static int i = 0;
   obj.id = i++;
   memcpy(&obj.transform, &transform, sizeof(transform_t));
+  obj.sel_id = create_selectable_element();
   objs.push_back(obj);
   return obj.id;
 }
@@ -112,6 +117,7 @@ void update_obj_model_mats_recursive(int obj_id, mat4& running_model) {
     }
   }
   objs[obj_id].model_mat = running_model * local_model_mat;
+  update_sel_el_on_obj(obj_id);
   updated_idxs.insert(obj_id);
   for (int child_id : objs[obj_id].child_objects) {
     update_obj_model_mats_recursive(child_id, objs[obj_id].model_mat);
@@ -238,7 +244,6 @@ void render_scene_obj(int obj_id, bool light_pass, shader_t& shader) {
 
 #endif
   // if (!not_render_obj) { 
-  model_t& model = models[obj.model_id];
 
   if (obj.is_skinned) {
     skin_t skin = get_skin(obj.skin_id);
@@ -273,8 +278,21 @@ void render_scene_obj(int obj_id, bool light_pass, shader_t& shader) {
     if (isnan(final_transform.pos.x) || isnan(final_transform.pos.y) || isnan(final_transform.pos.z)) {
       inu_assert_msg("final transform is nan");
     }
+  } 
+
+#if 1
+  if (is_obj_selected(obj)) {
+    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
   }
 
+  render_model(obj.model_id, light_pass, shader);
+
+  if (is_obj_selected(obj)) {
+    glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+  }
+#else 
+
+  model_t& model = models[obj.model_id];
   for (mesh_t& mesh : model.meshes) {
 
     if (!light_pass) {
@@ -316,12 +334,14 @@ void render_scene_obj(int obj_id, bool light_pass, shader_t& shader) {
 #endif
   }
   // }
+#endif
 
 #if 0
   for (int child : obj.child_objects) {
     render_scene_obj(child, false, light_pass, shader);
   }
 #endif
+
 }
 
 void spotlight_pass() {
@@ -366,6 +386,84 @@ void dirlight_pass() {
     remove_dir_light_from_rendering();
   }
 #endif
+}
+
+void traverse_obj_hierarchy_sel(int obj_id) {
+  object_t& obj = objs[obj_id];
+
+  shader_t& shader = selectable_element_t::SELECTION_SHADER;
+  selectable_id sel_id = obj.sel_id;
+
+  if (sel_id != -1 && obj.model_id != -1) {
+    selectable_element_t& sel_el = get_sel_el(sel_id);
+    shader_set_mat4(shader, "model", sel_el.model_mat);
+    shader_set_vec3(shader, "color", sel_el.color);
+
+    if (obj.is_skinned) {
+      skin_t skin = get_skin(obj.skin_id);
+      shader_set_int(shader, "skinned", 1);
+      for (int i = 0; i < skin.num_bones; i++) {
+        char mat4_name[64]{};
+        sprintf(mat4_name, "joint_inverse_bind_mats[%i]", i);
+        shader_set_mat4(shader, mat4_name, skin.inverse_bind_matricies[i]);
+
+        memset(mat4_name, 0, sizeof(mat4_name));
+        sprintf(mat4_name, "joint_model_matricies[%i]", i);
+        mat4 joint_model_matrix = get_obj_model_mat(skin.joint_obj_ids[i]);
+        shader_set_mat4(shader, mat4_name, joint_model_matrix);
+      }
+
+      // setting the rest to defaults
+      for (int i = skin.num_bones; i < BONES_PER_SKIN_LIMIT; i++) {
+        mat4 identity(1.0f);
+        char mat4_name[64]{};
+        sprintf(mat4_name, "joint_inverse_bind_mats[%i]", i);
+        shader_set_mat4(shader, mat4_name, identity);
+
+        memset(mat4_name, 0, sizeof(mat4_name));
+        sprintf(mat4_name, "joint_model_matricies[%i]", i);
+        shader_set_mat4(shader, mat4_name, identity);
+      }
+    } else {
+      shader_set_int(shader, "skinned", 0);
+      shader_set_mat4(shader, "model", sel_el.model_mat);
+    }
+
+    bind_shader(shader);
+    render_sel_model_w_no_material_bind(obj.model_id);
+
+  }
+
+  for (int child : obj.child_objects) {
+    traverse_obj_hierarchy_sel(child);
+  }
+}
+
+void selection_render_pass() {
+  bind_framebuffer(selectable_element_t::SELECTION_FB);
+  clear_framebuffer();
+
+  shader_t& shader = selectable_element_t::SELECTION_SHADER;
+
+  mat4 proj = get_cam_proj_mat();
+  mat4 view = get_cam_view_mat();
+  shader_set_mat4(shader, "projection", proj);
+  shader_set_mat4(shader, "view", view);
+
+  // PASS 1 will be of only opaque objects
+  for (int parent_id : scene.parent_objs) {
+    traverse_obj_hierarchy_sel(parent_id);
+  }
+
+  // TODO: need to check but i think this happens because skinned objects are not considered parents 
+  // but are still heads of their own hierarchy?
+  for (object_t& obj : objs) {
+    if (obj.is_skinned) {
+      traverse_obj_hierarchy_sel(obj.id);
+    }
+  }
+  unbind_shader();
+  unbind_framebuffer();
 }
 
 void offline_final_render_pass() {
@@ -602,6 +700,9 @@ void offline_final_render_pass() {
 void render_scene() { 
   spotlight_pass();
   dirlight_pass();
+
+  selection_render_pass();
+
   offline_final_render_pass();
 
   // render_light_probes();

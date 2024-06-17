@@ -119,7 +119,7 @@ struct tex_creation_meta_t {
 	TEX_FILTER_METHOD min_filter = TEX_FILTER_METHOD::NEAREST;
 	TEX_FILTER_METHOD mag_filter = TEX_FILTER_METHOD::NEAREST;
 	TEX_FORMAT input_data_tex_format = TEX_FORMAT::RGB;
-	TEX_FORMAT tex_format = TEX_FORMAT::RGB;
+	TEX_FORMAT tex_format = TEX_FORMAT::RGBA;
 	WRAP_MODE s_wrap_mode = WRAP_MODE::REPEAT;
 	WRAP_MODE t_wrap_mode = WRAP_MODE::REPEAT;
 	TEX_DATA_TYPE data_type = TEX_DATA_TYPE::UNSIGNED_BYTE;
@@ -248,6 +248,7 @@ struct material_t {
 };
 int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img);
 int create_material(std::string& mat_name, albedo_param_t& albedo_param, metallic_roughness_param_t& base_color_img, emission_param_t& emission_param, normals_param_t& normals, occ_param_t& occ, TRANSPARENCY_MODE transparency_mode, bool cull_back);
+void set_material_cull_back(int mat_id, bool cull_back);
 material_t bind_material(int mat_idx);
 material_t get_material(int mat_idx);
 int get_num_materials();

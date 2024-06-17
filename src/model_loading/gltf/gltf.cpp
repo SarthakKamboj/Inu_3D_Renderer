@@ -40,6 +40,7 @@ static std::vector<gltf_animation_t> gltf_animations;
 static std::vector<gltf_skin_t> gltf_skins;
 
 static std::unordered_map<int, int> gltf_mesh_id_to_internal_model_id;
+static std::unordered_map<int, int> gltf_mat_idx_to_internal_mat_id;
 
 static char folder_path[256];
 
@@ -1091,7 +1092,9 @@ void gltf_parse_skins_section() {
   if (gltf_peek() == ',') gltf_eat();
 }
 
-void gltf_parse_section() {
+void gltf_parse_section(bool parse_nodes) {
+
+  bool parse_scene_info = parse_nodes;
 
   std::string key = gltf_parse_string();
 
@@ -1101,13 +1104,25 @@ void gltf_parse_section() {
   if (key == "asset") {
     gltf_parse_asset_section();
   } else if (key == "nodes") {
-    gltf_parse_nodes_section();
+    if (parse_nodes) {
+      gltf_parse_nodes_section();
+    } else {
+      gltf_skip_section();
+    }
   } else if (key == "scenes") {
-    gltf_parse_scenes_section();
+    if (parse_scene_info) {
+      gltf_parse_scenes_section();
+    } else {
+      gltf_skip_section();
+    }
   } else if (key == "meshes") {
     gltf_parse_meshes_section();
   } else if (key == "scene") {
-    active_scene = gltf_parse_integer();
+    if (parse_scene_info) {
+      active_scene = gltf_parse_integer();
+    } else {
+      gltf_skip_section();
+    }
   } else if (key == "buffers") {
     gltf_parse_buffers_section();
   } else if (key == "bufferViews") {
@@ -1300,7 +1315,7 @@ material_image_t gltf_mat_img_to_internal_mat_img(gltf_mat_image_info_t& gltf_ma
   return mat_img;
 }
 
-void gltf_load_file(const char* filepath) {
+void gltf_load_file(const char* filepath, bool parse_nodes) {
 
 
   printf("loading gltf file: %s\n", filepath);
@@ -1329,6 +1344,7 @@ void gltf_load_file(const char* filepath) {
   gltf_skins.clear();
 
   gltf_mesh_id_to_internal_model_id.clear();
+  gltf_mat_idx_to_internal_mat_id.clear();
 
   // 1. PREPROCESS
   gltf_preprocess(filepath);
@@ -1338,7 +1354,7 @@ void gltf_load_file(const char* filepath) {
   gltf_eat();
 
   while (gltf_peek() != '}') {
-    gltf_parse_section();
+    gltf_parse_section(parse_nodes);
   }
 
   free(data);
@@ -1346,6 +1362,9 @@ void gltf_load_file(const char* filepath) {
 
   // 3. LOAD INTO INTERNAL FORMAT/ LOAD RAW DATA
   for (gltf_material_t& mat : gltf_materials) {
+
+    static int gltf_mat_idx = 0;
+
     albedo_param_t albedo;
     metallic_roughness_param_t met_rough_param; 
 
@@ -1353,7 +1372,8 @@ void gltf_load_file(const char* filepath) {
     albedo.base_color = vec4(1,1,1,1);
     albedo.variant = MATERIAL_PARAM_VARIANT::VEC4;
 
-    create_material(albedo, met_rough_param);
+    int internal_mat_id = create_material(albedo, met_rough_param);
+
 #else
 
     emission_param_t emission;
@@ -1408,8 +1428,11 @@ void gltf_load_file(const char* filepath) {
 
     bool cull_back = !mat.double_sided;
 
-    create_material(mat.name, albedo, met_rough_param, emission, normals, occs, mode, cull_back);
+    int internal_mat_id = create_material(mat.name, albedo, met_rough_param, emission, normals, occs, mode, cull_back);
 #endif
+
+    gltf_mat_idx_to_internal_mat_id[gltf_mat_idx] = internal_mat_id;
+    gltf_mat_idx++;
   }
  
   // mesh processing
@@ -1628,7 +1651,7 @@ void gltf_load_file(const char* filepath) {
 
       if (prim.material_idx != -1) {
         // TODO: right now works cause we are only loading one model...will need to change this lter for loading multiple models
-        mesh.mat_idx = prim.material_idx;
+        mesh.mat_idx = gltf_mat_idx_to_internal_mat_id[prim.material_idx];
         // mesh.mat_idx = prim.material_idx + get_num_materials();
       } else {
         // default material if mesh doesn't specify material

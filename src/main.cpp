@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <iostream>
 
 #include "windowing/window.h"
 #include "model_loading/model_internal.h"
@@ -16,6 +17,8 @@
 #include "utils/quaternion.h"
 #include "utils/inu_math.h"
 
+#include "glew.h"
+
 static float win_width = 1280.f;
 static float win_height = 960.f;
 
@@ -24,6 +27,82 @@ extern animation_globals_t animation_globals;
 extern framebuffer_t offline_fb;
 
 app_info_t app_info;
+
+extern float width_of_screen;
+extern float fb_width_on_screen_px;
+
+vec3 get_sel_pixel_color() {
+  bind_framebuffer(selectable_element_t::SELECTION_FB);
+  get_gfx_error();
+  glReadBuffer(GL_COLOR_ATTACHMENT0);
+  get_gfx_error();
+  vec2 mouse_pct{}; 
+  mouse_pct.x = static_cast<float>(window.input.mouse_pos.x) / static_cast<float>(window.window_dim.x);
+  mouse_pct.y = static_cast<float>(window.input.mouse_pos.y) / static_cast<float>(window.window_dim.y);
+  // printf("%i %i\n", window.input.mouse_pos.x, window.input.mouse_pos.y);
+  // printf("%f %f\n", mouse_pct.x, mouse_pct.y);
+
+#if 0
+  unsigned char pixel[3]{};
+  glReadPixels(window.input.mouse_pos.x, window.input.mouse_pos.y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, &pixel);
+  get_gfx_error();
+  printf("%c %c %c\n", pixel[0], pixel[1], pixel[2], pixel[3]);
+#else
+  glPixelStorei(GL_PACK_ALIGNMENT, 1);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+  float gaps = window.window_dim.x - fb_width_on_screen_px;
+  float gap_half = gaps / 2.0f;
+
+  if (window.input.mouse_pos.x < gap_half ||
+     (window.input.mouse_pos.x > (gap_half + fb_width_on_screen_px) )) {
+    vec3 z{};
+    return z;
+  }
+
+  vec2 mouse_rel_to_render{};
+  mouse_rel_to_render.x = window.input.mouse_pos.x - gap_half;
+  mouse_rel_to_render.y = window.input.mouse_pos.y;
+
+  vec2 mouse_rel_to_render_pct{};
+  mouse_rel_to_render_pct.x = mouse_rel_to_render.x / fb_width_on_screen_px;
+  mouse_rel_to_render_pct.y = mouse_rel_to_render.y / window.window_dim.y;
+
+  ivec2 sel_fb_row_col{};
+  sel_fb_row_col.x = mouse_rel_to_render_pct.x * selectable_element_t::SELECTION_FB.width;
+  sel_fb_row_col.y = mouse_rel_to_render_pct.y * selectable_element_t::SELECTION_FB.height;
+
+  printf("row, col: (%i %i)\n", sel_fb_row_col.x, sel_fb_row_col.y);
+
+#if 1
+  float pixel[4]{};
+  glReadPixels(sel_fb_row_col.x, sel_fb_row_col.y, 1, 1, GL_RGBA, GL_FLOAT, pixel);
+  printf("color: (%f %f %f)\n", pixel[0], pixel[1], pixel[2], pixel[3]);
+
+  vec3 final_color = {pixel[0], pixel[1], pixel[2]};
+#else
+  // GLubyte* pixels = (GLubyte*) malloc(4 * sizeof(GLubyte));
+  // memset(pixels, 0, 128 * 128 * 4 * sizeof(GLubyte));
+  // GLubyte pixels[128][128][4]{};
+  float pixels[128][1][4]{};
+  // glReadPixels(0, 0, 128, 128, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+  glReadPixels(0, 0, 128, 128, GL_RGBA, GL_FLOAT, pixels);
+  // get_gfx_error();
+  for (int i = 0; i < 128; i++) {
+    for (int j = 0; j < 128; j++) {
+      // GLubyte* p = pixels[i][j];
+      float* p = pixels[i][j];
+      // std::cout << "pixel data: " << std::to_string(p[0]) << " " << std::to_string(p[1]) << " " << std::to_string(p[2]) << std::endl;
+    }
+  }
+  // printf("%c %c %c\n", pixel[0], pixel[1], pixel[2], pixel[3]);
+#endif
+
+#endif
+ 
+  unbind_framebuffer();
+  return final_color;
+}
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
 
@@ -53,13 +132,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   sprintf(frag_shader_path, "%s\\shaders\\model.frag", resources_path);
   material_t::associated_shader = create_shader(vert_shader_path, geo_shader_path, frag_shader_path); 
 
+  init_selection();
+
   // const char* gltf_file_resources_folder_rel_path =  "box\\Box.gltf";
   // const char* gltf_file_resources_folder_rel_path =  "box_interleaved\\BoxInterleaved.gltf";
   // const char* gltf_file_resources_folder_rel_path = "box_textured\\BoxTextured.gltf";
   // const char* gltf_file_resources_folder_rel_path = "box_textured_non_power_of_2\\BoxTexturedNonPowerOfTwo.gltf";
   // const char* gltf_file_resources_folder_rel_path = "animated_cube\\AnimatedCube.gltf";
   // const char* gltf_file_resources_folder_rel_path = "box_animated\\BoxAnimated.gltf";
-  // const char* gltf_file_resources_folder_rel_path = "two_cylinder_engine\\2CylinderEngine.gltf";
+  // const char* gltf_file_resources_folder_rel_path2 = "two_cylinder_engine\\2CylinderEngine.gltf";
   // const char* gltf_file_resources_folder_rel_path = "box_with_spaces\\Box With Spaces.gltf";
   // const char* gltf_file_resources_folder_rel_path = "box_vertex_colors\\BoxVertexColors.gltf";
   // const char* gltf_file_resources_folder_rel_path = "cube_non_smooth_face\\Cube.gltf";
@@ -72,8 +153,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "suzan\\Suzanne.gltf";
   // const char* gltf_file_resources_folder_rel_path = "cartoon_car\\combined.gltf";
   // const char* gltf_file_resources_folder_rel_path = "ferrari_enzo\\scene.gltf";
-  // const char* gltf_file_resources_folder_rel_path = "buggy\\Buggy.gltf";
-  // const char* gltf_file_resources_folder_rel_path = "stylized_mushrooms\\scene.gltf";
+  // const char* gltf_file_resources_folder_rel_path2 = "buggy\\Buggy.gltf";
+  // const char* gltf_file_resources_folder_rel_path2 = "stylized_mushrooms\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "little_chestnut\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "milk_truck\\CesiumMilkTruck.gltf";
   // const char* gltf_file_resources_folder_rel_path = "rigged_simple\\RiggedSimple.gltf";
@@ -90,9 +171,26 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "medieval_fantasy_book\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "virtual_city\\VC.gltf";
   // const char* gltf_file_resources_folder_rel_path = "brain_stem\\BrainStem.gltf";
-  // const char* gltf_file_resources_folder_rel_path2 = "stylized_ww1_plane\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "global_illum_test\\global_illum_test.gltf";
+  //
+
+#if 0
   const char* gltf_file_resources_folder_rel_path = "global_illum_test\\global_illum_test_2.gltf";
+  char gltf_full_file_path[256]{};
+  sprintf(gltf_full_file_path, "%s\\models\\%s", resources_path, gltf_file_resources_folder_rel_path);
+  gltf_load_file(gltf_full_file_path);
+#endif
+  const char* gltf_file_resources_folder_rel_path = "pixel_perfect_sel\\pixel_perfect_sel.gltf";
+  char gltf_full_file_path[256]{};
+  sprintf(gltf_full_file_path, "%s\\models\\%s", resources_path, gltf_file_resources_folder_rel_path);
+  gltf_load_file(gltf_full_file_path);
+
+#if 0
+  // const char* gltf_file_resources_folder_rel_path2 = "stylized_ww1_plane\\scene.gltf";
+  char gltf_full_file_path2[256]{};
+  sprintf(gltf_full_file_path2, "%s\\models\\%s", resources_path, gltf_file_resources_folder_rel_path2);
+  gltf_load_file(gltf_full_file_path2);
+#endif
 
 #if 0
   if (strcmp(gltf_file_resources_folder_rel_path, "stylized_ww1_plane\\scene.gltf") == 0
@@ -106,13 +204,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   char bone_mesh_full_file_path[256]{};
   // this file pretty much just has a mesh, no nodes
   sprintf(bone_mesh_full_file_path, "%s\\bone_mesh\\custom_bone_mesh.gltf", resources_path);
-  gltf_load_file(bone_mesh_full_file_path);
+  gltf_load_file(bone_mesh_full_file_path, false);
   skin_t::BONE_MODEL_ID = latest_model_id();
 #endif
 
-  char gltf_full_file_path[256]{};
-  sprintf(gltf_full_file_path, "%s\\models\\%s", resources_path, gltf_file_resources_folder_rel_path);
-  gltf_load_file(gltf_full_file_path);
+  create_basic_models();
 
 #if 0
   char gltf_full_file_path2[256]{};
@@ -130,10 +226,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
   std::string probe_mat_name = "light material";
   int light_probe_mat_idx = create_material(probe_mat_name, albedo, met_rough_param);
-  light_probe_t::LIGHT_PROBE_MODEL_ID = generate_plane(light_probe_mat_idx);
+  // light_probe_t::LIGHT_PROBE_MODEL_ID = generate_plane(light_probe_mat_idx);
+  // light_probe_t::LIGHT_PROBE_MODEL_ID = basic_models_t::PLANE;
 #endif
-
-
 
   play_next_anim();
 
@@ -159,14 +254,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 #endif
 
 #if HAVE_DIR_LIGHT
-  create_dir_light({1,-1,0});
+  create_dir_light({-1,-1,0});
 #endif
 
   transform_t lp_t;
   // lp_t.pos = {0.5f,0.5f,0.2f};
-  lp_t.pos = {-3.0f,0.2,0};
+  // lp_t.pos = {-3.0f,0.2,0};
+  lp_t.pos = {0,0.2f,0};
   lp_t.rot = create_quaternion_w_rot({1,0,0}, 90.f);
-  lp_t.scale = {8,8,8};
+  lp_t.scale = {11,11,11};
+  // lp_t.scale = {1,1,1};
   create_light_probe(lp_t, {0, 1, 0});
 
   transform_t lp_t2;
@@ -187,6 +284,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     if (window.input.right_mouse_up) {
       // RENDER_DEPTH = 1-RENDER_DEPTH;
+    }
+
+    if (window.input.left_mouse_up) {
+      vec3 pixel_color = get_sel_pixel_color();
+      selectable_id sel_id = get_sel_el_from_color(pixel_color);
+      set_selection(sel_id);
     }
     
     update_cam();

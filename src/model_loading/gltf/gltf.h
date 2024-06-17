@@ -344,4 +344,4 @@ void gltf_eat();
 void gltf_parse_section();
 char gltf_peek();
 void gltf_preprocess(const char* filepath);
-void gltf_load_file(const char* filepath);
+void gltf_load_file(const char* filepath, bool parse_nodes = true);

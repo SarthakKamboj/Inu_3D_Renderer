@@ -589,7 +589,7 @@ vec4 pbr_brdf(norm_inter_vecs_t niv) {
   vec3 ambient_factor = max_ambient_factor * get_occ_rgb();
   vec3 color = ambient_factor * diffuse.rgb;
 
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < 0; i++) {
     color += calc_global_illum(niv, i) * vec3(0.1);
   }
 
