@@ -63,10 +63,10 @@ Currently the roadmap is being logged in a <a href="https://trello.com/b/SyJ3Bqb
 
 These are videos and images of what the engine can do currently! 
 
-<img src="readme/demo1.gif" />
-<img src="readme/demo2.gif" /> 
-<img src="readme/demo3.gif" /> 
-<img src="readme/demo4.png" />
+<img width="300" src="readme/demo1.gif" />
+<img width="300" src="readme/demo2.gif" /> 
+<img width="300" src="readme/demo3.gif" /> 
+<img width="300" src="readme/demo4.png" />
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
