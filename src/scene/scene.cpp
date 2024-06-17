@@ -36,8 +36,11 @@ std::vector<object_t> objs;
 std::vector<skin_t> skins;
 
 static scene_t scene;
-float fb_width = 1280 / 1.f;
-float fb_height = 960 / 1.f;
+// float fb_width = 1280 / 1.f;
+// float fb_height = 960 / 1.f;
+
+float fb_width = 1920;
+float fb_height = 1080;
 
 framebuffer_t offline_fb;
 

@@ -284,6 +284,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     if (window.input.right_mouse_up) {
       // RENDER_DEPTH = 1-RENDER_DEPTH;
+    }
+
+    if (window.input.left_mouse_up) {
       vec3 pixel_color = get_sel_pixel_color();
       selectable_id sel_id = get_sel_el_from_color(pixel_color);
       set_selection(sel_id);

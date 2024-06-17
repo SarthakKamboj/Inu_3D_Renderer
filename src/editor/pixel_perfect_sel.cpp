@@ -11,8 +11,8 @@
 static selectable_id running_id = 1;
 static std::vector<selectable_element_t> selectable_elements;
 
-static int sel_fb_width = 128;
-static int sel_fb_height = 128;
+static int sel_fb_width = 160;
+static int sel_fb_height = 90;
 framebuffer_t selectable_element_t::SELECTION_FB;
 
 static selectable_id selection_id = 0;
