@@ -16,6 +16,7 @@
 #include "windowing/window.h"
 #include "scene/camera.h"
 #include "editor/pixel_perfect_sel.h"
+#include "utils/log.h"
 
 void traverse_obj_hierarchy_opaque(int obj_id, bool parent, bool light_pass, shader_t& shader);
 void render_non_opaque_objs(std::vector<obj_sort_info_t>& non_opaque_objs, bool light_pass, shader_t& shader);
@@ -778,4 +779,81 @@ std::vector<int> get_bone_objs() {
 vbo_t* get_obj_vbo(int obj_id, int mesh_idx) {
   model_t* model = get_model(objs[obj_id].model_id);
   return &model->meshes[mesh_idx].vbo;
+}
+
+static std::vector<scene_iterated_info_t> scene_iterator_infos;
+scene_iterator_t create_scene_iterator() {
+  scene_iterator_t scene_iterator{};
+  scene_iterator_infos.clear();
+
+  // default values of this represents the root node over parent nodes
+  scene_iterated_info_t info;
+  info.num_children = scene.parent_objs.size();
+  scene_iterator_infos.push_back(info);
+
+  return scene_iterator;
+}
+
+scene_iterated_info_t* get_idx_of_scene_iterator_info(int obj_id) {
+  for (int j = 0; j < scene_iterator_infos.size(); j++)   {
+    if (scene_iterator_infos[j].obj_id == obj_id) return &scene_iterator_infos[j];
+  }
+  return NULL;
+}
+
+int iterate_scene_for_next_obj(scene_iterator_t& iterator) {
+
+  scene_iterated_info_t* scene_iter_info = get_idx_of_scene_iterator_info(iterator.obj_id);
+  inu_assert(scene_iter_info != NULL);
+
+  if (scene_iter_info->child_idx >= scene_iter_info->num_children) {
+    // this object has no more children so we have to move up the hierarchy
+
+    // we are already at the root node of the scene
+    if (iterator.obj_id == -1) return -1;
+
+    // we have to move up the hierarchy
+    iterator.obj_id = scene_iter_info->parent;
+    return iterate_scene_for_next_obj(iterator);
+  }
+
+  // there is a child object we can go to
+
+  // we are at the root node above parent nodes
+  if (iterator.obj_id == -1) {
+    std::vector<int> parent_obj_ids; 
+    for (auto i : scene.parent_objs) {
+      parent_obj_ids.push_back(i);
+    }
+    std::sort(parent_obj_ids.begin(), parent_obj_ids.end());
+
+    scene_iterated_info_t child_info{};
+    child_info.obj_id = parent_obj_ids[scene_iter_info->child_idx];
+    scene_iter_info->child_idx++;
+
+    object_t& child_obj = objs[child_info.obj_id];
+    child_info.num_children = child_obj.child_objects.size();
+
+    scene_iterator_infos.push_back(child_info);
+    iterator.obj_id = child_info.obj_id;
+
+    return iterator.obj_id;
+  }
+
+  // we are not at the root node above parent nodes
+  object_t& obj = objs[scene_iter_info->obj_id];
+  scene_iterated_info_t child_info{};
+
+  child_info.obj_id = obj.child_objects[scene_iter_info->child_idx];
+  scene_iter_info->child_idx++;
+
+  child_info.parent = scene_iter_info->obj_id;
+  
+  object_t& child_obj = objs[child_info.obj_id];
+  child_info.num_children = child_obj.child_objects.size();
+
+  scene_iterator_infos.push_back(child_info);
+  iterator.obj_id = child_info.obj_id;
+
+  return iterator.obj_id;
 }

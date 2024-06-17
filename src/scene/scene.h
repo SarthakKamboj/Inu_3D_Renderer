@@ -73,3 +73,18 @@ void dirlight_pass();
 void offline_final_render_pass();
 void render_scene();
 
+struct scene_iterator_t {
+  int obj_id = -1;
+};
+
+struct scene_iterated_info_t {
+  // these default values represent a node that supercedes all the individual parent nodes
+  int obj_id = -1;
+  int parent = -1;
+  int child_idx = 0;
+  int num_children = 0;
+};
+
+scene_iterator_t create_scene_iterator();
+int iterate_scene_for_next_obj(scene_iterator_t& iterator);
+

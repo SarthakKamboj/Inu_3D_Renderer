@@ -272,6 +272,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   lp_t2.scale = {6.5f,6.f,8};
   create_light_probe(lp_t2, {1, 0, 0});
 
+
+  scene_iterator_t iterator = create_scene_iterator();
+  int j = -1;
+  do {
+    j = iterate_scene_for_next_obj(iterator);
+  }
+  while (j != -1);
+
   int RENDER_DEPTH = 0;
   while (window.running) {
     inu_timer_t frame_timer;
