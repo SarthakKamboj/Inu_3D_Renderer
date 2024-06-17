@@ -1,5 +1,5 @@
 <!-- PROJECT LOGO -->
-
+<a name="readme-top"></a>
 <br />
 <div align="center">
     <img src="readme/logo.jpg" alt="Logo" width="240" height="240" style="border-radius:10%">
@@ -63,10 +63,10 @@ Currently the roadmap is being logged in a <a href="https://trello.com/b/SyJ3Bqb
 
 These are videos and images of what the engine can do currently! 
 
-<video src="readme/demo1.mp4" autoplay muted loop></video>
-<video src="readme/demo2.mp4"  autoplay muted loop></video>
-<video src="readme/demo3.mp4"  autoplay muted loop></video>
-<img src="readmedemo4.png" />
+<img src="readme/demo1.gif" />
+<img src="readme/demo2.gif" /> 
+<img src="readme/demo3.gif" /> 
+<img src="readme/demo4.png" />
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
