@@ -4,7 +4,7 @@
 <a name="readme-top"></a>
 <br />
 <div align="center">
-    <img src="readme/logo.jpg" alt="Logo" width="240" height="240" style="border-radius:10%">
+    <img src="readme/logo.jpg" alt="Logo" width="180" height="240" style="border-radius:10%">
 
   <h3 align="center">Dune Inspired Game</h3>
 
