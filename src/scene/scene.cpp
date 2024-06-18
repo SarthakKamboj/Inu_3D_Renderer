@@ -37,8 +37,6 @@ std::vector<object_t> objs;
 std::vector<skin_t> skins;
 
 static scene_t scene;
-// float fb_width = 1280 / 1.f;
-// float fb_height = 960 / 1.f;
 
 float fb_width = 1920;
 float fb_height = 1080;
@@ -60,8 +58,10 @@ int create_object(transform_t& transform) {
   static int i = 0;
   obj.id = i++;
   memcpy(&obj.transform, &transform, sizeof(transform_t));
-  obj.sel_id = create_selectable_element();
   objs.push_back(obj);
+
+  create_selectable_element(obj.id);
+
   return obj.id;
 }
 
@@ -118,7 +118,7 @@ void update_obj_model_mats_recursive(int obj_id, mat4& running_model) {
     }
   }
   objs[obj_id].model_mat = running_model * local_model_mat;
-  update_sel_el_on_obj(obj_id);
+  // update_sel_el_on_obj(obj_id);
   updated_idxs.insert(obj_id);
   for (int child_id : objs[obj_id].child_objects) {
     update_obj_model_mats_recursive(child_id, objs[obj_id].model_mat);
@@ -389,6 +389,7 @@ void dirlight_pass() {
 #endif
 }
 
+#if 0
 void traverse_obj_hierarchy_sel(int obj_id) {
   object_t& obj = objs[obj_id];
 
@@ -439,33 +440,7 @@ void traverse_obj_hierarchy_sel(int obj_id) {
     traverse_obj_hierarchy_sel(child);
   }
 }
-
-void selection_render_pass() {
-  bind_framebuffer(selectable_element_t::SELECTION_FB);
-  clear_framebuffer();
-
-  shader_t& shader = selectable_element_t::SELECTION_SHADER;
-
-  mat4 proj = get_cam_proj_mat();
-  mat4 view = get_cam_view_mat();
-  shader_set_mat4(shader, "projection", proj);
-  shader_set_mat4(shader, "view", view);
-
-  // PASS 1 will be of only opaque objects
-  for (int parent_id : scene.parent_objs) {
-    traverse_obj_hierarchy_sel(parent_id);
-  }
-
-  // TODO: need to check but i think this happens because skinned objects are not considered parents 
-  // but are still heads of their own hierarchy?
-  for (object_t& obj : objs) {
-    if (obj.is_skinned) {
-      traverse_obj_hierarchy_sel(obj.id);
-    }
-  }
-  unbind_shader();
-  unbind_framebuffer();
-}
+#endif
 
 void offline_final_render_pass() {
   // OFFLINE RENDER PASS

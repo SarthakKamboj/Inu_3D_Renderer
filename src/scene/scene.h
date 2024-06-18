@@ -41,7 +41,7 @@ struct object_t {
   bool is_joint_obj = false;
   bool is_skinned = false;
   int skin_id = -1;
-  selectable_id sel_id = -1;
+  // selectable_id sel_id = -1;
 };
 
 struct scene_t {
