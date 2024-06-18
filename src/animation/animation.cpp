@@ -1,4 +1,4 @@
-#include "animation_internal.h"
+#include "animation.h"
 
 #include "utils/app_info.h"
 #include "scene/scene.h"

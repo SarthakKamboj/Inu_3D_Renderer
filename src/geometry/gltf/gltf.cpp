@@ -11,7 +11,7 @@
 #include "utils/log.h"
 #include "utils/vectors.h"
 #include "geometry/model.h"
-#include "animation/animation_internal.h"
+#include "animation/animation.h"
 #include "gfx_api/gfx.h"
 #include "scene/scene.h"
 

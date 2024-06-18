@@ -7,14 +7,13 @@
 #include "utils/vectors.h"
 #include "utils/mats.h"
 #include "utils/transform.h"
-#include "animation/animation_internal.h"
+#include "animation/animation.h"
 #include "editor/pixel_perfect_sel.h"
+#include "app_includes.h"
 
 #define BONES_PER_SKIN_LIMIT 80
 #define SHOW_BONES 0
 #define NUM_LIGHTS_SUPPORTED_IN_SHADER 3
-
-#define EDITOR 1
 
 struct skin_t {
   int id = -1;
@@ -32,18 +31,18 @@ int register_skin(skin_t& skin);
 skin_t get_skin(int skin_id);
 
 struct object_t {
-  std::string name;
   int id = -1;
+  std::string name;
   transform_t transform;
-  int model_id = -1;
+  mat4 model_mat;
   std::vector<int> child_objects; 
   int parent_obj = -1;
-  mat4 model_mat;
+
+  int model_id = -1;
   std::vector<animation_chunk_data_ref_t> anim_chunk_refs;
   bool is_joint_obj = false;
   bool is_skinned = false;
   int skin_id = -1;
-  // selectable_id sel_id = -1;
 };
 
 struct scene_t {

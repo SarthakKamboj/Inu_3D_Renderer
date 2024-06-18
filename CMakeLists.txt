@@ -44,7 +44,7 @@ function(configure_project)
         src/scene/online_renderer.cpp
 
         src/animation/interpolation.cpp
-        src/animation/animation_internal.cpp
+        src/animation/animation.cpp
 
         src/editor/pixel_perfect_sel.cpp
     )
