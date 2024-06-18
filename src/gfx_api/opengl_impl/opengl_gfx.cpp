@@ -7,7 +7,7 @@
 #include <vector>
 #include <unordered_map>
 
-#include "model_loading/image/stb_image.h"
+#include "geometry/image/stb_image.h"
 #include "glew.h"
 
 #include "opengl_gfx_helper.h"

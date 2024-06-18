@@ -10,7 +10,7 @@
 
 #include "utils/log.h"
 #include "utils/vectors.h"
-#include "model_loading/model_internal.h"
+#include "geometry/model.h"
 #include "animation/animation_internal.h"
 #include "gfx_api/gfx.h"
 #include "scene/scene.h"

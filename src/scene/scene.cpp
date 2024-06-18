@@ -7,17 +7,17 @@
 #include "wglew.h"
 
 #include "utils/mats.h"
-#include "model_loading/model_internal.h"
+#include "geometry/model.h"
 #include "utils/app_info.h"
-#include "gfx/dirlight.h"
-#include "gfx/light_probe.h"
+#include "lights/dirlight.h"
+#include "lights/light_probe.h"
 #include "gfx_api/gfx.h"
 #include "utils/mats.h"
 #include "windowing/window.h"
 #include "scene/camera.h"
 #include "editor/pixel_perfect_sel.h"
 #include "utils/log.h"
-#include "gfx/spotlight.h"
+#include "lights/spotlight.h"
 
 void traverse_obj_hierarchy_opaque(int obj_id, bool parent, bool light_pass, shader_t& shader);
 void render_non_opaque_objs(std::vector<obj_sort_info_t>& non_opaque_objs, bool light_pass, shader_t& shader);

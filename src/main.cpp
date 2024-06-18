@@ -2,8 +2,8 @@
 #include <iostream>
 
 #include "windowing/window.h"
-#include "model_loading/model_internal.h"
-#include "model_loading/gltf/gltf.h"
+#include "geometry/model.h"
+#include "geometry/gltf/gltf.h"
 #include "gfx_api/gfx.h"
 #include "scene/online_renderer.h"
 #include "lights/dirlight.h"

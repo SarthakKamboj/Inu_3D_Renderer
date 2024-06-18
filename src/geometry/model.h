@@ -54,6 +54,5 @@ struct basic_models_t {
 };
 
 void create_basic_models();
-// int generate_plane(int mat_idx);
 
 

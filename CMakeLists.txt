@@ -27,9 +27,9 @@ function(configure_project)
         src/lights/spotlight.cpp
         src/lights/light_probe.cpp
 
-        src/model_loading/gltf/gltf.cpp
-        src/model_loading/image/stb_image.cpp
-        src/model_loading/model_internal.cpp
+        src/geometry/gltf/gltf.cpp
+        src/geometry/image/stb_image.cpp
+        src/geometry/model.cpp
 
         src/utils/general.cpp
         src/utils/inu_math.cpp

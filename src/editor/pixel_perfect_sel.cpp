@@ -3,7 +3,7 @@
 #include "utils/general.h"
 #include "scene/camera.h"
 #include "scene/scene.h"
-#include "model_loading/model_internal.h"
+#include "geometry/model.h"
 #include "gfx_api/gfx.h"
 
 #include <vector>

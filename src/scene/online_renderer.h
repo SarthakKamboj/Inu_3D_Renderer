@@ -1,6 +1,6 @@
 #pragma once
 
-#include "model_loading/model_internal.h"
+#include "geometry/model.h"
 #include "gfx_api/gfx.h"
 
 struct offline_to_online_vertex_t {

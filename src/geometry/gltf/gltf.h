@@ -1,6 +1,6 @@
 #pragma once
 
-#include "model_loading/model_internal.h"
+#include "geometry/model.h"
 #include "utils/vectors.h"
 #include "utils/quaternion.h"
 #include "utils/mats.h"

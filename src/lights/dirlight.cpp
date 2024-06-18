@@ -5,7 +5,7 @@
 #include "utils/general.h"
 #include "scene/scene.h"
 #include "scene/camera.h"
-#include "model_loading/gltf/gltf.h"
+#include "geometry/gltf/gltf.h"
 #include "scene/scene.h"
 #include "animation/interpolation.h"
 #include "windowing/window.h"

@@ -7,7 +7,7 @@
 #include "utils/general.h"
 #include "utils/log.h"
 #include "windowing/window.h"
-#include "model_loading/gltf/gltf.h"
+#include "geometry/gltf/gltf.h"
 
 extern window_t window;
 

@@ -4,7 +4,7 @@
 #include "utils/transform.h"
 #include "utils/mats.h"
 #include "utils/vectors.h"
-#include "model_loading/model_internal.h"
+#include "geometry/model.h"
 #include "app_includes.h"
 
 #define CHANGING_REF_TO_FIT 0
