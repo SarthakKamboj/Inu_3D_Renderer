@@ -2,7 +2,7 @@
 
 #include "utils/general.h"
 #include "windowing/window.h"
-#include "gfx/gfx.h"
+#include "gfx_api/gfx.h"
 
 static online_renderer_t online_renderer;
 extern framebuffer_t offline_fb;

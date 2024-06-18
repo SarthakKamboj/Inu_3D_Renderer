@@ -1,6 +1,6 @@
 #include "light_probe.h"
 
-#include "gfx/gfx.h"
+#include "gfx_api/gfx.h"
 #include "model_loading/model_internal.h"
 
 #include "glew.h"

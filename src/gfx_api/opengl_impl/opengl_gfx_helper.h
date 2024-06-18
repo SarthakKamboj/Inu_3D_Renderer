@@ -1,7 +1,7 @@
 #pragma once
 
 #include "glew.h"
-#include "gfx.h"
+#include "../gfx.h"
 
 struct gl_tex_creation_meta_t {
 	GLenum tex_target;

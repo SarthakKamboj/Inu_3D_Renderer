@@ -19,9 +19,9 @@ function(configure_project)
 
         src/windowing/window.cpp
 
-        src/gfx/opengl_gfx.cpp
-        src/gfx/opengl_gfx_helper.cpp
-        src/gfx/opengl/glew.c
+        src/gfx_api/opengl_impl/opengl_gfx.cpp
+        src/gfx_api/opengl_impl/opengl_gfx_helper.cpp
+        src/gfx_api/opengl_impl/opengl_sys/glew.c
         src/gfx/online_renderer.cpp
         src/gfx/light.cpp
         src/gfx/light_probe.cpp
@@ -54,8 +54,8 @@ function(configure_project)
 
     target_include_directories(${PROJECT_NAME} 
         PUBLIC src
-        PUBLIC src/gfx/opengl
-        PUBLIC src/gfx/opengl/GL
+        PUBLIC src/gfx_api/opengl_impl/opengl_sys
+        PUBLIC src/gfx_api/opengl_impl/opengl_sys/GL
 
         PUBLIC ext/glm
     )

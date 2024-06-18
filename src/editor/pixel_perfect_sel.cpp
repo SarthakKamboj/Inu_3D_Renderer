@@ -4,6 +4,7 @@
 #include "scene/camera.h"
 #include "scene/scene.h"
 #include "model_loading/model_internal.h"
+#include "gfx_api/gfx.h"
 
 #include <vector>
 #include <unordered_map>

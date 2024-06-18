@@ -14,6 +14,8 @@
 #define SHOW_BONES 0
 #define NUM_LIGHTS_SUPPORTED_IN_SHADER 3
 
+#define EDITOR 1
+
 struct skin_t {
   int id = -1;
   int upper_most_joint_node_idx = -1;

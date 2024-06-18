@@ -1,4 +1,4 @@
-#include "gfx.h"
+#include "../gfx.h"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -14,7 +14,7 @@
 #include "utils/general.h"
 #include "utils/log.h"
 #include "windowing/window.h"
-#include "light.h"
+#include "gfx/light.h"
 
 static std::unordered_map<tex_id_t, GLuint> tex_id_to_gl_id;
 static std::unordered_map<fb_id_t, GLuint> fb_id_to_gl_id;

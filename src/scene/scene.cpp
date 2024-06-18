@@ -11,7 +11,7 @@
 #include "utils/app_info.h"
 #include "gfx/light.h"
 #include "gfx/light_probe.h"
-#include "gfx/gfx.h"
+#include "gfx_api/gfx.h"
 #include "utils/mats.h"
 #include "windowing/window.h"
 #include "scene/camera.h"
@@ -60,7 +60,9 @@ int create_object(transform_t& transform) {
   memcpy(&obj.transform, &transform, sizeof(transform_t));
   objs.push_back(obj);
 
+#if EDITOR
   create_selectable_element(obj.id);
+#endif
 
   return obj.id;
 }
@@ -673,15 +675,15 @@ void offline_final_render_pass() {
 #endif
 }
 
-void render_scene() { 
+void render_scene() {
   spotlight_pass();
   dirlight_pass();
 
+#if EDITOR
   selection_render_pass();
+#endif
 
   offline_final_render_pass();
-
-  // render_light_probes();
 }
 
 skin_t::skin_t() {

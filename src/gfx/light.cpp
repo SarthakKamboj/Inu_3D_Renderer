@@ -1,6 +1,6 @@
 #include "light.h"
 
-#include "gfx/gfx.h"
+#include "gfx_api/gfx.h"
 #include "windowing/window.h"
 #include "utils/general.h"
 #include "scene/scene.h"

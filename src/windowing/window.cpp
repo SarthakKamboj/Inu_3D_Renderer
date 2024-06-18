@@ -11,7 +11,7 @@
 #include "wglew.h"
 // #include <utils/wglext.h>
 
-#include "gfx/gfx.h"
+#include "gfx_api/gfx.h"
 #include "utils/inu_time.h"
 
 #ifndef UNICODE

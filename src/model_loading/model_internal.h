@@ -5,7 +5,7 @@
 
 #include "utils/vectors.h"
 #include "utils/log.h"
-#include "gfx/gfx.h"
+#include "gfx_api/gfx.h"
 
 struct vertex_t {
   vec3 position; 

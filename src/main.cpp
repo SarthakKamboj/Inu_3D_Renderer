@@ -4,7 +4,7 @@
 #include "windowing/window.h"
 #include "model_loading/model_internal.h"
 #include "model_loading/gltf/gltf.h"
-#include "gfx/gfx.h"
+#include "gfx_api/gfx.h"
 #include "gfx/online_renderer.h"
 #include "gfx/light.h"
 #include "gfx/light_probe.h"

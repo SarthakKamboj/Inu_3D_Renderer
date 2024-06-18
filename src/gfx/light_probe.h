@@ -1,7 +1,7 @@
 #pragma once
 
 #include "utils/transform.h"
-#include "gfx/gfx.h"
+#include "gfx_api/gfx.h"
 
 #define SHOW_LIGHT_PROBES 1
 

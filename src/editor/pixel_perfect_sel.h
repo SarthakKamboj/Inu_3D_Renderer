@@ -3,7 +3,7 @@
 #include "utils/vectors.h"
 #include "utils/mats.h"
 
-#include "gfx/gfx.h"
+#include "gfx_api/gfx.h"
 
 typedef int selectable_id;
 

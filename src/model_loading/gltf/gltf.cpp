@@ -12,7 +12,7 @@
 #include "utils/vectors.h"
 #include "model_loading/model_internal.h"
 #include "animation/animation_internal.h"
-#include "gfx/gfx.h"
+#include "gfx_api/gfx.h"
 #include "scene/scene.h"
 
 #define SET_MESHES_TO_WHITE 0

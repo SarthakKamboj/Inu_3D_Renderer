@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gfx/gfx.h"
+#include "gfx_api/gfx.h"
 #include "utils/transform.h"
 #include "utils/mats.h"
 #include "utils/vectors.h"
