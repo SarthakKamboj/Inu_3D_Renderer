@@ -5,6 +5,7 @@
 #include "gfx/light.h"
 #include "utils/general.h"
 #include "model_loading/gltf/gltf.h"
+#include "gfx/spotlight.h"
 
 std::vector<model_t> models;
 

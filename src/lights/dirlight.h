@@ -5,11 +5,12 @@
 #include "utils/mats.h"
 #include "utils/vectors.h"
 #include "model_loading/model_internal.h"
+#include "app_includes.h"
 
 #define CHANGING_REF_TO_FIT 0
 #define USE_GLM 0
 
-#define SHOW_LIGHTS 1
+// #define SHOW_LIGHTS 1
 #define NUM_SM_CASCADES 3
 #define HAVE_DIR_LIGHT 1
 #define NUM_CUBE_CORNERS 8
@@ -33,7 +34,7 @@
 #define BBL 6
 #define FBL 7
 
-// will hopefully use shadow volumes at some pt
+#if 0
 struct spotlight_t {
   int id = -1;
   transform_t transform;
@@ -65,6 +66,7 @@ tex_id_t get_spotlight_fb_depth_tex(int light_id);
 mat4 get_spotlight_proj_mat(int light_id);
 mat4 get_spotlight_view_mat(int light_id);
 vec3 get_spotlight_pos(int light_id);
+#endif
 
 struct dir_light_shadow_map_vert_t {
   vec2 pos;

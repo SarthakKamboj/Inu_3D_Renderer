@@ -9,7 +9,7 @@
 #include "utils/mats.h"
 #include "model_loading/model_internal.h"
 #include "utils/app_info.h"
-#include "gfx/light.h"
+#include "gfx/dirlight.h"
 #include "gfx/light_probe.h"
 #include "gfx_api/gfx.h"
 #include "utils/mats.h"
@@ -17,6 +17,7 @@
 #include "scene/camera.h"
 #include "editor/pixel_perfect_sel.h"
 #include "utils/log.h"
+#include "gfx/spotlight.h"
 
 void traverse_obj_hierarchy_opaque(int obj_id, bool parent, bool light_pass, shader_t& shader);
 void render_non_opaque_objs(std::vector<obj_sort_info_t>& non_opaque_objs, bool light_pass, shader_t& shader);

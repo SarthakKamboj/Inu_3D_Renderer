@@ -22,9 +22,10 @@ function(configure_project)
         src/gfx_api/opengl_impl/opengl_gfx.cpp
         src/gfx_api/opengl_impl/opengl_gfx_helper.cpp
         src/gfx_api/opengl_impl/opengl_sys/glew.c
-        src/gfx/online_renderer.cpp
-        src/gfx/light.cpp
-        src/gfx/light_probe.cpp
+
+        src/lights/dirlight.cpp
+        src/lights/spotlight.cpp
+        src/lights/light_probe.cpp
 
         src/model_loading/gltf/gltf.cpp
         src/model_loading/image/stb_image.cpp
@@ -40,6 +41,7 @@ function(configure_project)
 
         src/scene/scene.cpp
         src/scene/camera.cpp
+        src/scene/online_renderer.cpp
 
         src/animation/interpolation.cpp
         src/animation/animation_internal.cpp

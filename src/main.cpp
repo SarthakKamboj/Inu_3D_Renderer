@@ -5,9 +5,10 @@
 #include "model_loading/model_internal.h"
 #include "model_loading/gltf/gltf.h"
 #include "gfx_api/gfx.h"
-#include "gfx/online_renderer.h"
-#include "gfx/light.h"
-#include "gfx/light_probe.h"
+#include "scene/online_renderer.h"
+#include "lights/dirlight.h"
+#include "lights/spotlight.h"
+#include "lights/light_probe.h"
 #include "scene/scene.h"
 #include "scene/camera.h"
 #include "utils/transform.h"
@@ -232,6 +233,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
   play_next_anim();
 
+  init_spotlight_data();
   init_light_data();
 #if 0
   // create_light({2,10,0});
