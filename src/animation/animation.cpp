@@ -9,6 +9,7 @@
 
 #include <unordered_set>
 #include <algorithm>
+#include <unordered_map>
 
 #define STEP_BY_STEP_ANIM 0
 
@@ -20,6 +21,8 @@ extern window_t window;
 
 static std::vector<animation_data_chunk_t> anim_data_chunks;
 static std::vector<animation_t> animations;
+static std::vector<obj_anim_attachment_t> obj_anim_attachments;
+static std::unordered_map<int, int> obj_id_to_obj_anim_attach_idx;
 
 #if STEP_BY_STEP_ANIM
 static std::unordered_set<float> timestamps_set;
@@ -80,10 +83,51 @@ bool is_chunk_in_anim(animation_t& anim, int chunk_id) {
   return std::find(anim.data_chunk_ids.begin(), anim.data_chunk_ids.end(), chunk_id) != anim.data_chunk_ids.end();
 }
 
+void attach_anim_chunk_ref_to_obj(int obj_id, animation_chunk_data_ref_t& ref) {
+  obj_anim_attachment_t* attach = NULL;
+
+  bool already_created_attachment = obj_id_to_obj_anim_attach_idx.find(obj_id) != obj_id_to_obj_anim_attach_idx.end();
+  if (already_created_attachment) {
+    int attachment_idx = obj_id_to_obj_anim_attach_idx[obj_id];
+    attach = &obj_anim_attachments[attachment_idx];
+  } else {
+    obj_anim_attachment_t att{};
+    att.obj_id = obj_id;
+    obj_anim_attachments.push_back(att);
+    int obj_att_arr_idx = obj_anim_attachments.size() - 1; 
+    obj_id_to_obj_anim_attach_idx[obj_id] = obj_att_arr_idx;
+    attach = &obj_anim_attachments[obj_att_arr_idx];
+  }
+
+  attach->anim_chunk_refs.push_back(ref);
+
+#if 0
+  animation_data_chunk_t* data = get_anim_data_chunk(ref.chunk_id);
+  vec3* v_anim_data = (vec3*)data->keyframe_data;
+  quaternion_t* q_anim_data = (quaternion_t*)data->keyframe_data;
+  printf("\n\nobj name: %s\n", obj.name.c_str());
+  for (int i = 0; i < data->num_timestamps; i++) {
+    printf("timestamp: %f frame: %i ", data->timestamps[i], i+1);
+    if (ref.target == ANIM_TARGET_ON_NODE::ROTATION) {
+      printf("rot: ");
+      print_quat(q_anim_data[i]);
+    } else if (ref.target == ANIM_TARGET_ON_NODE::POSITION) {
+      printf("pos: ");
+      print_vec3(v_anim_data[i]);
+    } else if (ref.target == ANIM_TARGET_ON_NODE::SCALE) {
+      printf("scale: ");
+      print_vec3(v_anim_data[i]);
+    }
+    printf("\n");
+  }
+#endif 
+}
+
 void print_animation_data(std::string& anim_name) {
   for (animation_t& anim : animations) {
     if (anim.name != anim_name) continue;
     printf("--- ANIM: %s ---\n", anim_name.c_str());
+#if 0
     std::vector<int> bones = get_bone_objs();
     for (int bone_obj_id : bones) {
       object_t* bone = get_obj(bone_obj_id);
@@ -116,6 +160,7 @@ void print_animation_data(std::string& anim_name) {
         }
       }
     }
+#endif
   }
 }
 
@@ -160,12 +205,19 @@ void update_animations() {
 #endif
 
   for (object_t& obj : objs) { 
+    bool obj_has_animation = obj_id_to_obj_anim_attach_idx.find(obj.id) != obj_id_to_obj_anim_attach_idx.end();
+    if (!obj_has_animation) continue;
+
+    int obj_anim_att_idx = obj_id_to_obj_anim_attach_idx[obj.id];
+    std::vector<animation_chunk_data_ref_t>& anim_chunk_refs = obj_anim_attachments[obj_anim_att_idx].anim_chunk_refs;
+
     vec3 orig = obj.transform.pos;
     quaternion_t orig_rot = obj.transform.rot;
-    for (animation_chunk_data_ref_t& ref : obj.anim_chunk_refs) {	
+    for (animation_chunk_data_ref_t& ref : anim_chunk_refs) {	
       animation_data_chunk_t* chunk = get_anim_data_chunk(ref.chunk_id);
       std::vector<int>& cur_anim_chunks = animations[playing_anim_idx].data_chunk_ids;
-      if (std::find(cur_anim_chunks.begin(), cur_anim_chunks.end(), chunk->id) == cur_anim_chunks.end()) {
+      bool anim_chunk_part_of_this_anim = std::find(cur_anim_chunks.begin(), cur_anim_chunks.end(), chunk->id) != cur_anim_chunks.end();
+      if (!anim_chunk_part_of_this_anim) {
         continue;
       }
 
@@ -274,7 +326,6 @@ void update_animations() {
 		    }
 		  }
     } 
-    vec3 diff = {obj.transform.pos.x - orig.x, obj.transform.pos.y - orig.y, obj.transform.pos.z - orig.z };
     inu_assert(length(obj.transform.scale) != 0, "scale is 0");
     if (isnan(obj.transform.pos.x) || isnan(obj.transform.pos.y) || isnan(obj.transform.pos.z)) {
       inu_assert_msg("obj transform pos is nan");

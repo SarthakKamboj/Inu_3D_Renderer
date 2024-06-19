@@ -1,13 +1,21 @@
 #include "model.h"
 
 #include <vector>
+#include <unordered_map>
 
 #include "lights/dirlight.h"
 #include "utils/general.h"
 #include "geometry/gltf/gltf.h"
 #include "lights/spotlight.h"
+#include "inu_typedefs.h"
 
-std::vector<model_t> models;
+static std::vector<model_t> models;
+static std::unordered_map<object_id, model_id> obj_to_model;
+
+bool is_model_opaque(int model_id) {
+  model_t& model = models[model_id];
+  return is_model_opaque(model);
+}
 
 bool is_model_opaque(model_t& model) {
   for (mesh_t& mesh : model.meshes) {
@@ -109,6 +117,17 @@ void set_material_on_model(int model_id, int mat_idx) {
     mesh.mat_idx = mat_idx;    
   }
   m.is_non_opaque_mesh = !is_model_opaque(m);
+}
+
+void attach_model_to_obj(int obj_id, int model_id) {
+  printf("attached model id %i to obj: %i\n", model_id, obj_id);
+  // objs[obj_id].model_id = model_id;
+  obj_to_model[obj_id] = model_id;
+}
+
+int get_obj_model_id(int obj_id) {
+  if (obj_to_model.find(obj_id) == obj_to_model.end()) return -1;
+  return obj_to_model[obj_id];
 }
 
 int basic_models_t::PLANE = -1;

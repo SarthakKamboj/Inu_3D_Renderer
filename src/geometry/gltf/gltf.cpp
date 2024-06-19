@@ -12,6 +12,7 @@
 #include "utils/vectors.h"
 #include "geometry/model.h"
 #include "animation/animation.h"
+#include "animation/skin.h"
 #include "gfx_api/gfx.h"
 #include "scene/scene.h"
 

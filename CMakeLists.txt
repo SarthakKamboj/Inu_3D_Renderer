@@ -45,6 +45,7 @@ function(configure_project)
 
         src/animation/interpolation.cpp
         src/animation/animation.cpp
+        src/animation/skin.cpp
 
         src/editor/pixel_perfect_sel.cpp
     )

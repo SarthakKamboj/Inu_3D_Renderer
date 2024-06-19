@@ -5,6 +5,7 @@
 #include "scene/scene.h"
 #include "geometry/model.h"
 #include "gfx_api/gfx.h"
+#include "animation/skin.h"
 
 #include <vector>
 #include <unordered_map>
@@ -96,43 +97,20 @@ selectable_element_t get_sel_el(selectable_id id) {
   return selectable_elements[id-1];
 }
 
-void render_obj_into_pixel_perfect_fb(selectable_element_t& sel_el, object_t& obj) {
+void render_obj_into_pixel_perfect_fb(selectable_element_t& sel_el, object_t& obj, int obj_model_id) {
   shader_t& shader = selectable_element_t::SELECTION_SHADER;
 
   shader_set_vec3(shader, "color", sel_el.color);
 
-  if (obj.is_skinned) {
-    skin_t skin = get_skin(obj.skin_id);
-    shader_set_int(shader, "skinned", 1);
-    for (int i = 0; i < skin.num_bones; i++) {
-      char mat4_name[64]{};
-      sprintf(mat4_name, "joint_inverse_bind_mats[%i]", i);
-      shader_set_mat4(shader, mat4_name, skin.inverse_bind_matricies[i]);
-
-      memset(mat4_name, 0, sizeof(mat4_name));
-      sprintf(mat4_name, "joint_model_matricies[%i]", i);
-      mat4 joint_model_matrix = get_obj_model_mat(skin.joint_obj_ids[i]);
-      shader_set_mat4(shader, mat4_name, joint_model_matrix);
-    }
-
-    // setting the rest to defaults
-    for (int i = skin.num_bones; i < BONES_PER_SKIN_LIMIT; i++) {
-      mat4 identity(1.0f);
-      char mat4_name[64]{};
-      sprintf(mat4_name, "joint_inverse_bind_mats[%i]", i);
-      shader_set_mat4(shader, mat4_name, identity);
-
-      memset(mat4_name, 0, sizeof(mat4_name));
-      sprintf(mat4_name, "joint_model_matricies[%i]", i);
-      shader_set_mat4(shader, mat4_name, identity);
-    }
+  if (obj_has_skin(obj.id)) {
+    set_skin_in_shader_for_obj(shader, obj.id);
   } else {
     shader_set_int(shader, "skinned", 0);
     shader_set_mat4(shader, "model", obj.model_mat);
-  }
+  } 
 
   bind_shader(shader);
-  render_sel_model_w_no_material_bind(obj.model_id);
+  render_sel_model_w_no_material_bind(obj_model_id);
 }
 
 void selection_render_pass() {
@@ -153,9 +131,12 @@ void selection_render_pass() {
     inu_assert(obj_p);
     object_t& obj = *obj_p;
 
-    selectable_element_t* sel_el = get_sel_el_for_obj(obj_id);
-    if (sel_el) {
-      render_obj_into_pixel_perfect_fb(*sel_el, obj);
+    int obj_model_id = get_obj_model_id(obj_id);
+    if (obj_model_id != -1) {
+      selectable_element_t* sel_el = get_sel_el_for_obj(obj_id);
+      if (sel_el) {
+        render_obj_into_pixel_perfect_fb(*sel_el, obj, obj_model_id);
+      }
     }
 
     obj_id = iterate_scene_for_next_obj(iterator);

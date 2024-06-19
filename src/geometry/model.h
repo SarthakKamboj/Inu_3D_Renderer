@@ -36,7 +36,10 @@ struct model_t {
 };
 
 bool is_model_opaque(model_t& model);
+bool is_model_opaque(int model_id);
 int register_model(model_t& model);
+int get_obj_model_id(int obj_id);
+void attach_model_to_obj(int obj_id, int model_id);
 int latest_model_id();
 model_t* get_model(int model_id);
 void render_model(int model_id, bool light_pass, shader_t& shader);
@@ -54,5 +57,3 @@ struct basic_models_t {
 };
 
 void create_basic_models();
-
-

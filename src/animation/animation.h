@@ -39,6 +39,12 @@ struct animation_chunk_data_ref_t {
 int register_anim_data_chunk(animation_data_chunk_t& data);
 animation_data_chunk_t* get_anim_data_chunk(int id);
 
+struct obj_anim_attachment_t {
+  int obj_id; 
+  std::vector<animation_chunk_data_ref_t> anim_chunk_refs;
+};
+void attach_anim_chunk_ref_to_obj(int obj_id, animation_chunk_data_ref_t& ref);
+
 struct animation_globals_t {
   float anim_time = 0;
   float anim_start_time = 0;

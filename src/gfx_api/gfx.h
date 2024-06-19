@@ -283,3 +283,9 @@ struct obj_sort_info_t {
   int obj_id = -1;
   vec3 pos; 
 };
+
+enum RENDER_MODE {
+	NORMAL,
+	WIREFRAME
+};
+void set_render_mode(RENDER_MODE render_mode);

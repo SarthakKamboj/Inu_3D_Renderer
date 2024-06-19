@@ -949,3 +949,11 @@ void get_gfx_error() {
 	}
 	printf("\n");
 }
+
+void set_render_mode(RENDER_MODE render_mode) {
+	if (render_mode == RENDER_MODE::NORMAL) {
+    glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+	} else if (render_mode == RENDER_MODE::WIREFRAME) {
+    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+  }
+}
