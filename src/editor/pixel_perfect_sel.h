@@ -24,7 +24,6 @@ selectable_id get_sel_el_from_color(vec3 color);
 selectable_element_t get_sel_el(selectable_id id);
 void set_selection(selectable_id sel_id);
 
-struct object_t;
-bool is_obj_selected(object_t& obj);
+bool is_obj_selected(int obj_id);
 
 void selection_render_pass();

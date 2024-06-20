@@ -88,9 +88,10 @@ void set_selection(selectable_id id) {
   selection_id = id;
 }
 
-bool is_obj_selected(object_t& obj) {
-  if (obj_id_to_sel_id.find(obj.id) == obj_id_to_sel_id.end()) return false; 
-  return obj_id_to_sel_id[obj.id] == selection_id;
+bool is_obj_selected(int obj_id) {
+  if (obj_id_to_sel_id.find(obj_id) == obj_id_to_sel_id.end()) return false;
+  // return obj_id_to_sel_id[obj.id] == selection_id;
+  return obj_id_to_sel_id[obj_id] == selection_id;
 }
 
 selectable_element_t get_sel_el(selectable_id id) {

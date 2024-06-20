@@ -19,37 +19,20 @@
 #include "utils/log.h"
 #include "lights/spotlight.h"
 #include "animation/skin.h"
+#include "render_passes/pbr_render_pass.h"
 
 void traverse_obj_hierarchy_opaque(int obj_id, bool parent, bool light_pass, shader_t& shader);
 void render_non_opaque_objs(std::vector<obj_sort_info_t>& non_opaque_objs, bool light_pass, shader_t& shader);
 void render_scene_obj(int obj_id, bool light_pass, shader_t& shader);
 
-struct obj_sort_info_comparator_t {
-  bool operator()(obj_sort_info_t a, obj_sort_info_t b) {
-    vec3 cam_pos = get_cam_pos();
-    vec3 diff_a = a.pos - cam_pos;
-    vec3 diff_b = b.pos - cam_pos;
-    float dist_a = diff_a.length();
-    float dist_b = diff_b.length();
-    return dist_a > dist_b;
-  }
-};
-
 std::vector<object_t> objs;
 
 static scene_t scene;
 
-float fb_width = 1920;
-float fb_height = 1080;
-
-framebuffer_t offline_fb;
-
-// extern std::vector<model_t> models;
 extern app_info_t app_info;
 extern window_t window;
 
 void init_scene_rendering() {
-  offline_fb = create_framebuffer(fb_width, fb_height, FB_TYPE::RENDER_BUFFER_DEPTH_STENCIL);
 }
 
 int create_object(transform_t& transform) {
@@ -204,14 +187,14 @@ void render_scene_obj(int obj_id, bool light_pass, shader_t& shader) {
   } 
 
 #if 1
-  if (is_obj_selected(obj)) {
+  if (is_obj_selected(obj_id)) {
     set_render_mode(RENDER_MODE::WIREFRAME);
   }
 
   int model_id = get_obj_model_id(obj_id);
   render_model(model_id, light_pass, shader);
 
-  if (is_obj_selected(obj)) {
+  if (is_obj_selected(obj_id)) {
     set_render_mode(RENDER_MODE::NORMAL);
   }
 #else 
@@ -312,237 +295,6 @@ void dirlight_pass() {
 #endif
 }
 
-void offline_final_render_pass() {
-  // OFFLINE RENDER PASS
-  bind_framebuffer(offline_fb);
-  clear_framebuffer();
-
-  mat4 proj = get_cam_proj_mat();
-  mat4 view = get_cam_view_mat();
-  shader_set_mat4(material_t::associated_shader, "projection", proj);
-  shader_set_mat4(material_t::associated_shader, "view", view);
-
-  shader_set_float(material_t::associated_shader, "cam_data.near_plane", get_cam_near_plane());
-  shader_set_float(material_t::associated_shader, "cam_data.far_plane", get_cam_far_plane());
-  shader_set_vec3(material_t::associated_shader, "cam_data.cam_pos", get_cam_pos());
-
-  // spotlights for offline shader
-  int num_lights = get_num_spotlights();
-  for (int i = 0; i < NUM_LIGHTS_SUPPORTED_IN_SHADER; i++) {
-    mat4 identity(1.0f);
-    bool inactive = (i >= num_lights);
-
-    char var_name[64]{};
-    sprintf(var_name, "spotlights_mat_data[%i].light_view", i);
-    if (inactive) {
-      shader_set_mat4(material_t::associated_shader, var_name, identity);
-    } else {
-      mat4 light_view = get_spotlight_view_mat(i);
-      shader_set_mat4(material_t::associated_shader, var_name, light_view);
-    }
-    
-    memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "spotlights_mat_data[%i].light_projection", i);
-    if (inactive) {
-      shader_set_mat4(material_t::associated_shader, var_name, identity);
-    } else {
-      mat4 light_proj = get_spotlight_proj_mat(i);
-      shader_set_mat4(material_t::associated_shader, var_name, light_proj);
-    }
-
-    memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "spotlights_data[%i].depth_tex", i);
-    if (inactive) {
-      shader_set_int(material_t::associated_shader, var_name, 0);
-    } else {
-      shader_set_int(material_t::associated_shader, var_name, LIGHT0_SHADOW_MAP_TEX + i);
-      tex_id_t depth_att = get_spotlight_fb_depth_tex(i);
-      bind_texture(depth_att, LIGHT0_SHADOW_MAP_TEX + i);
-    }
-
-    memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "spotlights_data[%i].pos", i);
-    if (inactive) {
-      shader_set_vec3(material_t::associated_shader, var_name, {0,0,0});
-    } else {
-      vec3 p = get_spotlight_pos(i);
-      shader_set_vec3(material_t::associated_shader, var_name, p);
-    }
-
-    memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "spotlights_data[%i].light_active", i);
-    if (inactive) {
-      shader_set_int(material_t::associated_shader, var_name, 0);
-    } else {
-      shader_set_int(material_t::associated_shader, var_name, 1);
-    }
-
-    memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "spotlights_data[%i].shadow_map_width", i);
-    if (inactive) {
-      shader_set_int(material_t::associated_shader, var_name, 0);
-    } else {
-      shader_set_int(material_t::associated_shader, var_name, spotlight_t::SHADOW_MAP_WIDTH);
-    }
-
-    memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "spotlights_data[%i].shadow_map_height", i);
-    if (inactive) {
-      shader_set_int(material_t::associated_shader, var_name, 0);
-    } else {
-      shader_set_int(material_t::associated_shader, var_name, spotlight_t::SHADOW_MAP_HEIGHT);
-    }
-    
-    memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "spotlights_data[%i].near_plane", i);
-    if (inactive) {
-      shader_set_float(material_t::associated_shader, var_name, 0);
-    } else {
-      shader_set_float(material_t::associated_shader, var_name, spotlight_t::NEAR_PLANE);
-    }
-
-    memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "spotlights_data[%i].far_plane", i);
-    if (inactive) {
-      shader_set_float(material_t::associated_shader, var_name, 0);
-    } else {
-      shader_set_float(material_t::associated_shader, var_name, spotlight_t::FAR_PLANE);
-    }
-  }
-
-  // set up dir lights in offline shader
-  int num_dir_lights = get_num_dir_lights(); 
-  const int NUM_MAX_DIR_LIGHTS = 1;
-  for (int i = 0; i < NUM_MAX_DIR_LIGHTS * HAVE_DIR_LIGHT; i++) {
-
-    mat4 identity(1.0f);
-    bool inactive = (i >= num_dir_lights);
-
-    if (inactive) {
-      const char* var_name = "dir_light_data.light_active";
-      shader_set_int(material_t::associated_shader, var_name, 0);
-      continue;
-    }
-
-    dir_light_t* dir_light = get_dir_light(i);
-
-    for (int j = 0; j < NUM_SM_CASCADES; j++) {
-
-      char var_name[64]{};
-      sprintf(var_name, "dir_light_data.light_views[%i]", j);
-      if (inactive) {
-        shader_set_mat4(material_t::associated_shader, var_name, identity);
-      } else {
-        shader_set_mat4(material_t::associated_shader, var_name, dir_light->light_views[j]);
-      }
-
-      memset(var_name, 0, sizeof(var_name));
-      sprintf(var_name, "dir_light_data.light_projs[%i]", j);
-      if (inactive) {
-        shader_set_mat4(material_t::associated_shader, var_name, identity);
-      } else {
-        shader_set_mat4(material_t::associated_shader, var_name, dir_light->light_orthos[j]);
-      }
-
-      memset(var_name, 0, sizeof(var_name));
-      sprintf(var_name, "dir_light_data.cascade_depths[%i]", j);
-      if (inactive) {
-        shader_set_float(material_t::associated_shader, var_name, 0);
-      } else {
-        shader_set_float(material_t::associated_shader, var_name, dir_light->cacade_depths[j]);
-      }
-    }
-    
-    char var_name[64]{};
-    sprintf(var_name, "dir_light_data.cascade_depths[%i]", NUM_SM_CASCADES);
-    if (inactive) {
-      shader_set_float(material_t::associated_shader, var_name, 0);
-    } else {
-      shader_set_float(material_t::associated_shader, var_name, dir_light->cacade_depths[NUM_SM_CASCADES]);
-    }
-
-    memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "dir_light_data.light_dir");
-    if (inactive) {
-      shader_set_vec3(material_t::associated_shader, var_name, {0,0,0});
-    } else {
-      shader_set_vec3(material_t::associated_shader, var_name, dir_light->dir);
-    }
-    
-    memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "dir_light_data.shadow_map");
-    if (inactive) {
-      shader_set_int(material_t::associated_shader, var_name, 0);
-    } else {
-      shader_set_int(material_t::associated_shader, var_name, DIR_LIGHT_SHADOW_MAP_TEX);
-      tex_id_t depth_att = dir_light->light_pass_fb.depth_att;
-      bind_texture(depth_att, DIR_LIGHT_SHADOW_MAP_TEX);
-    }
-
-    memset(var_name, 0, sizeof(var_name));
-    sprintf(var_name, "dir_light_data.light_active");
-    if (inactive) {
-      shader_set_int(material_t::associated_shader, var_name, 0);
-    } else {
-      shader_set_int(material_t::associated_shader, var_name, 1);
-    }
-
-  }
-
-#if 0
-  shader_set_int(material_t::associated_shader, "light_prob.shape", LIGHT_PROBE_SHAPE::RECT_PLANAR);
-  vec3 color = {0,1,0};
-  shader_set_vec3(material_t::associated_shader, "light_prob.color", color);
-  shader_set_vec3(material_t::associated_shader, "light_prob.world_pos", color);
-#endif
-  set_light_probe_in_shader(1, 0, material_t::associated_shader);
-  set_light_probe_in_shader(2, 1, material_t::associated_shader);
-
-  // set_light_probe_in_shader(1, 0, material_t::associated_shader);
-  
-
-  // PASS 1 will be of only opaque objects
-  for (int parent_id : scene.parent_objs) {
-    traverse_obj_hierarchy_opaque(parent_id, true, false, material_t::associated_shader);
-  }
-
-  // TODO: need to check but i think this happens because skinned objects are not considered parents 
-  // but are still heads of their own hierarchy?
-  for (object_t& obj : objs) {
-    if (obj_has_skin(obj.id)) {
-      traverse_obj_hierarchy_opaque(obj.id, false, false, material_t::associated_shader);
-    }
-  }
-  unbind_shader();
-
-  // PASS 2 will be of only non opaque objects...altho these will need to be sorted and rendered back to front
-  // sort non-opaque objects 
-
-  obj_sort_info_comparator_t obj_sort_info_comparator;  
-  std::vector<obj_sort_info_t> non_opaque_objs;
-  for (object_t& obj : objs) {
-    int model_id = get_obj_model_id(obj.id);
-    if (model_id == -1) continue;
-    if (is_model_opaque(model_id)) {
-      obj_sort_info_t info;
-      transform_t final_transform = get_transform_from_matrix(obj.model_mat);
-      info.obj_id = obj.id;
-      info.pos = final_transform.pos;
-      non_opaque_objs.push_back(info);
-    }
-  }
-
-  std::sort(non_opaque_objs.begin(), non_opaque_objs.end(), obj_sort_info_comparator);
-  render_non_opaque_objs(non_opaque_objs, false, material_t::associated_shader);
-
-#if DISPLAY_DIR_LIGHT_SHADOW_MAPS
-  if (num_dir_lights > 0) {
-    // show depth maps 
-    render_dir_light_shadow_maps(0);
-  }
-#endif
-}
-
 void render_scene() {
   spotlight_pass();
   dirlight_pass();
@@ -551,7 +303,7 @@ void render_scene() {
   selection_render_pass();
 #endif
 
-  offline_final_render_pass();
+  pbr_render_pass();
 }
 
 vbo_t* get_obj_vbo(int obj_id, int mesh_idx) {

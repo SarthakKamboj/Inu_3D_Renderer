@@ -17,6 +17,7 @@
 #include "utils/mats.h"
 #include "utils/quaternion.h"
 #include "utils/inu_math.h"
+#include "render_passes/pbr_render_pass.h"
 
 #include "glew.h"
 
@@ -124,6 +125,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   printf("resources_path: %s\n", resources_path);
 
   init_scene_rendering();
+  init_pbr_render_pass();
 
   char vert_shader_path[256]{};
   sprintf(vert_shader_path, "%s\\shaders\\model.vert", resources_path);
@@ -159,7 +161,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "little_chestnut\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "milk_truck\\CesiumMilkTruck.gltf";
   // const char* gltf_file_resources_folder_rel_path = "rigged_simple\\RiggedSimple.gltf";
-  const char* gltf_file_resources_folder_rel_path = "rigged_figure\\RiggedFigure.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "rigged_figure\\RiggedFigure.gltf";
   // const char* gltf_file_resources_folder_rel_path = "rigged_figure\\blender_export.gltf";
   // const char* gltf_file_resources_folder_rel_path = "cesium_man\\CesiumMan.gltf";
   // const char* gltf_file_resources_folder_rel_path = "shadow_test\\test.gltf";
@@ -169,7 +171,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "junkrat\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "reap_the_whirlwind\\scene.gltf";
 
-  // const char* gltf_file_resources_folder_rel_path = "medieval_fantasy_book\\scene.gltf";
+  const char* gltf_file_resources_folder_rel_path = "medieval_fantasy_book\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "virtual_city\\VC.gltf";
   // const char* gltf_file_resources_folder_rel_path = "brain_stem\\BrainStem.gltf";
   // const char* gltf_file_resources_folder_rel_path = "global_illum_test\\global_illum_test.gltf";

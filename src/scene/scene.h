@@ -21,8 +21,6 @@ struct object_t {
   mat4 model_mat;
   std::vector<int> child_objects; 
   int parent_obj = -1;
-
-  // int model_id = -1;
 };
 
 struct scene_t {

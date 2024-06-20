@@ -24,9 +24,6 @@ bool update_dir_light_frustums = true;
 
 static std::vector<dir_light_t> dir_lights;
 
-extern float fb_width;
-extern float fb_height;
-
 // const float spotlight_t::SHADOW_MAP_WIDTH = fb_width / 4.f;
 // const float spotlight_t::SHADOW_MAP_HEIGHT = fb_height / 4.f;
 

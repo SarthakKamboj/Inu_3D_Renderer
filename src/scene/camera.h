@@ -1,3 +1,5 @@
+#pragma once
+
 #include "utils/transform.h"
 #include "utils/mats.h"
 

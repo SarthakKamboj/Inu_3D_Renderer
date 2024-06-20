@@ -92,7 +92,11 @@ std::vector<int> get_bone_objs() {
 void attach_skin_to_obj(int obj_id, int skin_id) {
   obj_id_to_skin_id[obj_id] = skin_id;
   // remove any parents of the object 
-  remove_obj_as_child(obj_id);
+#if 0
+  int parent_joint = skins[skin_id].upper_most_joint_node_idx;
+  remove_obj_as_child(parent_joint);
+  set_obj_as_parent(parent_joint);
+#endif
 }
 
 bool obj_has_skin(int obj_id) {

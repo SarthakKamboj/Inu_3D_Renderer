@@ -47,6 +47,8 @@ function(configure_project)
         src/animation/animation.cpp
         src/animation/skin.cpp
 
+        src/render_passes/pbr_render_pass.cpp
+
         src/editor/pixel_perfect_sel.cpp
     )
 
