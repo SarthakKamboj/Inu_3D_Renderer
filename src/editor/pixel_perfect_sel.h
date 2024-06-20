@@ -19,6 +19,8 @@ struct selectable_element_t {
 
 void init_selection();
 selectable_id create_selectable_element(int obj_id);
+void handle_selection_logic();
+vec3 get_sel_pixel_color();
 selectable_id get_sel_el_from_color(vec3 color);
 
 selectable_element_t get_sel_el(selectable_id id);

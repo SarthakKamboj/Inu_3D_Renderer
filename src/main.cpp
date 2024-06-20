@@ -19,8 +19,6 @@
 #include "utils/inu_math.h"
 #include "render_passes/pbr_render_pass.h"
 
-#include "glew.h"
-
 static float win_width = 1280.f;
 static float win_height = 960.f;
 
@@ -29,82 +27,6 @@ extern animation_globals_t animation_globals;
 extern framebuffer_t offline_fb;
 
 app_info_t app_info;
-
-extern float width_of_screen;
-extern float fb_width_on_screen_px;
-
-vec3 get_sel_pixel_color() {
-  bind_framebuffer(selectable_element_t::SELECTION_FB);
-  get_gfx_error();
-  glReadBuffer(GL_COLOR_ATTACHMENT0);
-  get_gfx_error();
-  vec2 mouse_pct{}; 
-  mouse_pct.x = static_cast<float>(window.input.mouse_pos.x) / static_cast<float>(window.window_dim.x);
-  mouse_pct.y = static_cast<float>(window.input.mouse_pos.y) / static_cast<float>(window.window_dim.y);
-  // printf("%i %i\n", window.input.mouse_pos.x, window.input.mouse_pos.y);
-  // printf("%f %f\n", mouse_pct.x, mouse_pct.y);
-
-#if 0
-  unsigned char pixel[3]{};
-  glReadPixels(window.input.mouse_pos.x, window.input.mouse_pos.y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, &pixel);
-  get_gfx_error();
-  printf("%c %c %c\n", pixel[0], pixel[1], pixel[2], pixel[3]);
-#else
-  glPixelStorei(GL_PACK_ALIGNMENT, 1);
-  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-  float gaps = window.window_dim.x - fb_width_on_screen_px;
-  float gap_half = gaps / 2.0f;
-
-  if (window.input.mouse_pos.x < gap_half ||
-     (window.input.mouse_pos.x > (gap_half + fb_width_on_screen_px) )) {
-    vec3 z{};
-    return z;
-  }
-
-  vec2 mouse_rel_to_render{};
-  mouse_rel_to_render.x = window.input.mouse_pos.x - gap_half;
-  mouse_rel_to_render.y = window.input.mouse_pos.y;
-
-  vec2 mouse_rel_to_render_pct{};
-  mouse_rel_to_render_pct.x = mouse_rel_to_render.x / fb_width_on_screen_px;
-  mouse_rel_to_render_pct.y = mouse_rel_to_render.y / window.window_dim.y;
-
-  ivec2 sel_fb_row_col{};
-  sel_fb_row_col.x = mouse_rel_to_render_pct.x * selectable_element_t::SELECTION_FB.width;
-  sel_fb_row_col.y = mouse_rel_to_render_pct.y * selectable_element_t::SELECTION_FB.height;
-
-  printf("row, col: (%i %i)\n", sel_fb_row_col.x, sel_fb_row_col.y);
-
-#if 1
-  float pixel[4]{};
-  glReadPixels(sel_fb_row_col.x, sel_fb_row_col.y, 1, 1, GL_RGBA, GL_FLOAT, pixel);
-  printf("color: (%f %f %f)\n", pixel[0], pixel[1], pixel[2], pixel[3]);
-
-  vec3 final_color = {pixel[0], pixel[1], pixel[2]};
-#else
-  // GLubyte* pixels = (GLubyte*) malloc(4 * sizeof(GLubyte));
-  // memset(pixels, 0, 128 * 128 * 4 * sizeof(GLubyte));
-  // GLubyte pixels[128][128][4]{};
-  float pixels[128][1][4]{};
-  // glReadPixels(0, 0, 128, 128, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-  glReadPixels(0, 0, 128, 128, GL_RGBA, GL_FLOAT, pixels);
-  // get_gfx_error();
-  for (int i = 0; i < 128; i++) {
-    for (int j = 0; j < 128; j++) {
-      // GLubyte* p = pixels[i][j];
-      float* p = pixels[i][j];
-      // std::cout << "pixel data: " << std::to_string(p[0]) << " " << std::to_string(p[1]) << " " << std::to_string(p[2]) << std::endl;
-    }
-  }
-  // printf("%c %c %c\n", pixel[0], pixel[1], pixel[2], pixel[3]);
-#endif
-
-#endif
- 
-  unbind_framebuffer();
-  return final_color;
-}
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
 
@@ -171,7 +93,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "junkrat\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "reap_the_whirlwind\\scene.gltf";
 
-  const char* gltf_file_resources_folder_rel_path = "medieval_fantasy_book\\scene.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "medieval_fantasy_book\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "virtual_city\\VC.gltf";
   // const char* gltf_file_resources_folder_rel_path = "brain_stem\\BrainStem.gltf";
   // const char* gltf_file_resources_folder_rel_path = "global_illum_test\\global_illum_test.gltf";
@@ -183,7 +105,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   sprintf(gltf_full_file_path, "%s\\models\\%s", resources_path, gltf_file_resources_folder_rel_path);
   gltf_load_file(gltf_full_file_path);
 #endif
-  // const char* gltf_file_resources_folder_rel_path = "pixel_perfect_sel\\pixel_perfect_sel.gltf";
+  const char* gltf_file_resources_folder_rel_path = "pixel_perfect_sel\\pixel_perfect_sel.gltf";
   char gltf_full_file_path[256]{};
   sprintf(gltf_full_file_path, "%s\\models\\%s", resources_path, gltf_file_resources_folder_rel_path);
   gltf_load_file(gltf_full_file_path);
@@ -299,11 +221,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
       // RENDER_DEPTH = 1-RENDER_DEPTH;
     }
 
-    if (window.input.left_mouse_up) {
-      vec3 pixel_color = get_sel_pixel_color();
-      selectable_id sel_id = get_sel_el_from_color(pixel_color);
-      set_selection(sel_id);
-    }
+    handle_selection_logic() ;
     
     update_cam();
     update_animations();
