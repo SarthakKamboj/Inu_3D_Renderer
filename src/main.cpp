@@ -151,8 +151,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
   std::string probe_mat_name = "light material";
   int light_probe_mat_idx = create_material(probe_mat_name, albedo, met_rough_param);
-  // light_probe_t::LIGHT_PROBE_MODEL_ID = generate_plane(light_probe_mat_idx);
-  // light_probe_t::LIGHT_PROBE_MODEL_ID = basic_models_t::PLANE;
 #endif
 
   play_next_anim();

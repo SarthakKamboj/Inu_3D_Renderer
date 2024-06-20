@@ -36,5 +36,5 @@ tex_id_t get_spotlight_fb_depth_tex(int light_id);
 mat4 get_spotlight_proj_mat(int light_id);
 mat4 get_spotlight_view_mat(int light_id);
 vec3 get_spotlight_pos(int light_id);
-
+void spotlight_pass();
 

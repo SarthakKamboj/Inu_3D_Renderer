@@ -8,6 +8,7 @@
 #include "utils/log.h"
 #include "windowing/window.h"
 #include "geometry/gltf/gltf.h"
+#include "animation/skin.h"
 
 extern window_t window;
 
@@ -112,4 +113,42 @@ mat4 get_spotlight_view_mat(int light_id) {
 
 vec3 get_spotlight_pos(int light_id) {
   return spotlights[light_id].transform.pos;
+}
+
+void render_scene_obj_for_spotlight(int obj_id) {
+  shader_t& shader = spotlight_t::light_shader;
+
+  if (obj_has_skin(obj_id)) {
+    set_skin_in_shader_for_obj(shader, obj_id);
+  } else {
+    shader_set_int(shader, "skinned", 0);
+    mat4 model_mat = get_obj_model_mat(obj_id);
+    shader_set_mat4(shader, "model", model_mat);
+  } 
+
+  int model_id = get_obj_model_id(obj_id);
+  render_model(model_id, true, shader);
+}
+
+void spotlight_pass() {
+  // LIGHT PASS
+  int num_spotlights = get_num_spotlights();
+  for (int i = 0; i < num_spotlights; i++) {
+    setup_spotlight_for_rendering(i);
+
+#if 1
+
+#else
+    for (int parent_id : scene.parent_objs) {
+      traverse_obj_hierarchy_opaque(parent_id, true, true, spotlight_t::light_shader);
+    }
+    for (object_t& obj : objs) {
+      if (obj_has_skin(obj.id)) {
+        traverse_obj_hierarchy_opaque(obj.id, false, true, spotlight_t::light_shader);
+      }
+    }
+#endif
+
+    remove_spotlight_from_rendering();
+  }
 }

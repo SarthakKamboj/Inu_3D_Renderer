@@ -251,24 +251,6 @@ void render_scene_obj(int obj_id, bool light_pass, shader_t& shader) {
 
 }
 
-void spotlight_pass() {
-  // LIGHT PASS
-  int num_spotlights = get_num_spotlights();
-  for (int i = 0; i < num_spotlights; i++) {
-    setup_spotlight_for_rendering(i);
-
-    for (int parent_id : scene.parent_objs) {
-      traverse_obj_hierarchy_opaque(parent_id, true, true, spotlight_t::light_shader);
-    }
-    for (object_t& obj : objs) {
-      if (obj_has_skin(obj.id)) {
-        traverse_obj_hierarchy_opaque(obj.id, false, true, spotlight_t::light_shader);
-      }
-    }
-    remove_spotlight_from_rendering();
-  }
-}
-
 void dirlight_pass() {
 
 #if HAVE_DIR_LIGHT
