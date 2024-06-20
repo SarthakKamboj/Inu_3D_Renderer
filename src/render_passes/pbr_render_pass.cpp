@@ -19,7 +19,7 @@ void init_pbr_render_pass() {
   offline_fb = create_framebuffer(fb_width, fb_height, FB_TYPE::RENDER_BUFFER_DEPTH_STENCIL);
 }
 
-void render_scene_obj(int obj_id, bool light_pass) {
+void render_scene_obj(int obj_id) {
   shader_t& shader = material_t::associated_shader;
 
   if (obj_has_skin(obj_id)) {
@@ -35,7 +35,7 @@ void render_scene_obj(int obj_id, bool light_pass) {
   }
 
   int model_id = get_obj_model_id(obj_id);
-  render_model(model_id, light_pass, shader);
+  render_model(model_id, false, shader);
 
   if (is_obj_selected(obj_id)) {
     set_render_mode(RENDER_MODE::NORMAL);
@@ -91,13 +91,13 @@ void pbr_render_pass() {
 
   // PASS 1 will be of only opaque objects
   for (int obj_id : obj_ids_w_opaque_models) {
-    render_scene_obj(obj_id, false);
+    render_scene_obj(obj_id);
   } 
 
   // PASS 2 will be of only non opaque objects...altho these will need to be sorted and rendered back to front
   // sort non-opaque objects 
   for (obj_sort_info_t& info : non_opaque_objs) {
-    render_scene_obj(info.obj_id, false);
+    render_scene_obj(info.obj_id);
   }
  
   unbind_shader();

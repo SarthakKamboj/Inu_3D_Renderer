@@ -21,8 +21,6 @@
 #include "animation/skin.h"
 #include "render_passes/pbr_render_pass.h"
 
-void traverse_obj_hierarchy_opaque(int obj_id, bool parent, bool light_pass, shader_t& shader);
-void render_non_opaque_objs(std::vector<obj_sort_info_t>& non_opaque_objs, bool light_pass, shader_t& shader);
 void render_scene_obj(int obj_id, bool light_pass, shader_t& shader);
 
 std::vector<object_t> objs;
@@ -148,32 +146,6 @@ void update_obj_model_mats() {
 
 void attach_name_to_obj(int obj_id, std::string& name) {
   objs[obj_id].name = name;
-}
-
-// all objects here should have a model attached to them
-void render_non_opaque_objs(std::vector<obj_sort_info_t>& non_opaque_objs, bool light_pass, shader_t& shader) {
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  for (obj_sort_info_t& osi : non_opaque_objs) {
-    object_t& obj = objs[osi.obj_id];
-    bool not_render_obj = light_pass && get_obj_model_id(osi.obj_id) == spotlight_t::LIGHT_MESH_ID;
-    if (not_render_obj) continue;
-    render_scene_obj(osi.obj_id, light_pass, shader);
-  }
-}
-
-void traverse_obj_hierarchy_opaque(int obj_id, bool parent, bool light_pass, shader_t& shader) {
-  object_t& obj = objs[obj_id];
-
-  int model_id = get_obj_model_id(obj_id);
-  bool not_render_obj = (model_id == -1) || (light_pass && model_id == spotlight_t::LIGHT_MESH_ID);
-  if (!not_render_obj && is_model_opaque(model_id)) {
-    render_scene_obj(obj_id, light_pass, shader);
-  }
-
-  for (int child : obj.child_objects) {
-    traverse_obj_hierarchy_opaque(child, false, light_pass, shader);
-  }
 }
 
 void render_scene_obj(int obj_id, bool light_pass, shader_t& shader) {

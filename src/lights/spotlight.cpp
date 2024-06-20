@@ -139,7 +139,6 @@ void spotlight_pass() {
   for (int i = 0; i < num_spotlights; i++) {
     setup_spotlight_for_rendering(i);
 
-#if 1
     scene_iterator_t iterator = create_scene_iterator();
     int obj_id = iterate_scene_for_next_obj(iterator);
     do {
@@ -163,18 +162,6 @@ void spotlight_pass() {
       obj_id = iterate_scene_for_next_obj(iterator);
     }
     while (obj_id != -1);
-
-
-#else
-    for (int parent_id : scene.parent_objs) {
-      traverse_obj_hierarchy_opaque(parent_id, true, true, spotlight_t::light_shader);
-    }
-    for (object_t& obj : objs) {
-      if (obj_has_skin(obj.id)) {
-        traverse_obj_hierarchy_opaque(obj.id, false, true, spotlight_t::light_shader);
-      }
-    }
-#endif
 
     remove_spotlight_from_rendering();
   }

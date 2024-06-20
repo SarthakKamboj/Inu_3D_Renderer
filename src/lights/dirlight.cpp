@@ -651,8 +651,6 @@ void dirlight_pass() {
     gen_dir_light_matricies(i, cam); 
     setup_dir_light_for_rendering(i, cam);
 
-#if 1
-
     scene_iterator_t iterator = create_scene_iterator();
     int obj_id = iterate_scene_for_next_obj(iterator);
     do {
@@ -676,18 +674,6 @@ void dirlight_pass() {
       obj_id = iterate_scene_for_next_obj(iterator);
     }
     while (obj_id != -1);
-
-#else
-    for (int parent_id : scene.parent_objs) {
-      traverse_obj_hierarchy_opaque(parent_id, true, true, dir_light_t::light_shader);
-    }
-
-    for (object_t& obj : objs) {
-      if (obj_has_skin(obj.id)) {
-        traverse_obj_hierarchy_opaque(obj.id, false, true, dir_light_t::light_shader);
-      }
-    }
-#endif
 
     remove_dir_light_from_rendering();
   }
