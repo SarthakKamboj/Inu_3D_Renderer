@@ -10,7 +10,6 @@
 #define CHANGING_REF_TO_FIT 0
 #define USE_GLM 0
 
-// #define SHOW_LIGHTS 1
 #define NUM_SM_CASCADES 3
 #define HAVE_DIR_LIGHT 1
 #define NUM_CUBE_CORNERS 8

@@ -22,6 +22,8 @@ void init_pbr_render_pass() {
 void render_scene_obj(int obj_id) {
   shader_t& shader = material_t::associated_shader;
 
+  int model_id = get_obj_model_id(obj_id);
+
   if (obj_has_skin(obj_id)) {
     set_skin_in_shader_for_obj(shader, obj_id);
   } else {
@@ -34,8 +36,20 @@ void render_scene_obj(int obj_id) {
     set_render_mode(RENDER_MODE::WIREFRAME);
   }
 
-  int model_id = get_obj_model_id(obj_id);
+#if SHOW_SPOTLIGHTS == 1
+  if (model_id == spotlight_t::LIGHT_MESH_ID) {
+    shader_set_int(shader, "override_color_bool", 1);
+    shader_set_vec3(shader, "override_color", {1,1,1});
+    bind_shader(shader);
+    render_model_w_no_material_bind(model_id);
+    unbind_shader();
+  } else {
+    render_model(model_id, false, shader);
+  }
+#else
   render_model(model_id, false, shader);
+#endif
+
 
   if (is_obj_selected(obj_id)) {
     set_render_mode(RENDER_MODE::NORMAL);

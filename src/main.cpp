@@ -18,6 +18,7 @@
 #include "utils/quaternion.h"
 #include "utils/inu_math.h"
 #include "render_passes/pbr_render_pass.h"
+#include "renderer/renderer.h"
 
 static float win_width = 1280.f;
 static float win_height = 960.f;
@@ -93,8 +94,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "junkrat\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "reap_the_whirlwind\\scene.gltf";
 
-  // const char* gltf_file_resources_folder_rel_path = "medieval_fantasy_book\\scene.gltf";
-  const char* gltf_file_resources_folder_rel_path = "virtual_city\\VC.gltf";
+  const char* gltf_file_resources_folder_rel_path = "medieval_fantasy_book\\scene.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "virtual_city\\VC.gltf";
   // const char* gltf_file_resources_folder_rel_path = "brain_stem\\BrainStem.gltf";
   // const char* gltf_file_resources_folder_rel_path = "global_illum_test\\global_illum_test.gltf";
 
@@ -156,7 +157,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
   init_spotlight_data();
   init_light_data();
-#if 0
+
+#if 1
   // create_light({2,10,0});
   // create_light({-2,3,0});
   // create_light({-20,30,0});
@@ -229,7 +231,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     // RENDERING PASS
     
     // offline rendering pass  
-    render_scene();
+    offline_render();
 
     // online rendering pass
     if (RENDER_DEPTH == 0) {

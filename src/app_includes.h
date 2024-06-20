@@ -1,4 +1,4 @@
 #pragma once
 
 #define EDITOR 1
-#define SHOW_LIGHTS 1
+#define SHOW_SPOTLIGHTS 1

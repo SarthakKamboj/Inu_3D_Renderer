@@ -15,7 +15,7 @@ struct spotlight_t {
   vec3 dir;
   vec3 color;
 
-#if SHOW_LIGHTS
+#if SHOW_SPOTLIGHTS == 1
   static int LIGHT_MESH_ID;
 #endif
   static shader_t light_shader;

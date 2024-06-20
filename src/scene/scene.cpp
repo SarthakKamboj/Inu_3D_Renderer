@@ -21,8 +21,6 @@
 #include "animation/skin.h"
 #include "render_passes/pbr_render_pass.h"
 
-void render_scene_obj(int obj_id, bool light_pass, shader_t& shader);
-
 std::vector<object_t> objs;
 
 static scene_t scene;
@@ -146,92 +144,6 @@ void update_obj_model_mats() {
 
 void attach_name_to_obj(int obj_id, std::string& name) {
   objs[obj_id].name = name;
-}
-
-void render_scene_obj(int obj_id, bool light_pass, shader_t& shader) {
-  object_t& obj = objs[obj_id];
-
-  if (obj_has_skin(obj_id)) {
-    set_skin_in_shader_for_obj(shader, obj_id);
-  } else {
-    shader_set_int(shader, "skinned", 0);
-    shader_set_mat4(shader, "model", obj.model_mat);
-  } 
-
-#if 1
-  if (is_obj_selected(obj_id)) {
-    set_render_mode(RENDER_MODE::WIREFRAME);
-  }
-
-  int model_id = get_obj_model_id(obj_id);
-  render_model(model_id, light_pass, shader);
-
-  if (is_obj_selected(obj_id)) {
-    set_render_mode(RENDER_MODE::NORMAL);
-  }
-#else 
-
-  model_t& model = models[obj.model_id];
-  for (mesh_t& mesh : model.meshes) {
-
-    if (!light_pass) {
-      if (obj.model_id == spotlight_t::LIGHT_MESH_ID) {
-        shader_set_int(material_t::associated_shader, "override_color_bool", 1);
-      } else {
-        shader_set_int(material_t::associated_shader, "override_color_bool", 0);
-      }
-    }
-
-    material_t m;
-    if (!light_pass) {
-      m = bind_material(mesh.mat_idx);
-    } else {
-      m = get_material(mesh.mat_idx);
-      bind_shader(shader);
-    }
-
-    bool rendering_only_if_textured_albedo = app_info.render_only_textured && m.albedo.base_color_img.tex_handle == -1;
-    // bool transparent_mesh = (m.transparency_mode == TRANSPARENCY_MODE::TRANSPARENT);
-
-    if (rendering_only_if_textured_albedo) {
-      continue;
-    }
-
-#if SHOW_BONES
-    // only shows bones
-    if (obj.is_joint_obj) {
-      bind_vao(mesh.vao);
-      draw_ebo(mesh.ebo);
-      unbind_vao();
-      unbind_ebo();
-    }
-#else
-    bind_vao(mesh.vao);
-    draw_ebo(mesh.ebo);
-    unbind_vao();
-    unbind_ebo();
-#endif
-  }
-  // }
-#endif
-
-#if 0
-  for (int child : obj.child_objects) {
-    render_scene_obj(child, false, light_pass, shader);
-  }
-#endif
-
-}
-
-void render_scene() {
-  spotlight_pass();
-  dirlight_pass();
-
-#if EDITOR
-  selection_render_pass();
-#endif
-
-  pbr_render_pass();
 }
 
 vbo_t* get_obj_vbo(int obj_id, int mesh_idx) {

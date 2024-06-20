@@ -10,12 +10,13 @@
 #include "geometry/gltf/gltf.h"
 #include "geometry/model.h"
 #include "animation/skin.h"
+#include "app_includes.h"
 
 extern window_t window;
 
 static std::vector<spotlight_t> spotlights;
 
-#if SHOW_LIGHTS
+#if SHOW_SPOTLIGHTS == 1
 int spotlight_t::LIGHT_MESH_ID = -1;
 #endif
 
@@ -36,14 +37,13 @@ void init_spotlight_data() {
   sprintf(frag_shader_path, "%s\\shaders\\light.frag", resources_path);
   spotlight_t::light_shader = create_shader(vert_shader_path, frag_shader_path);
 
-#if SHOW_LIGHTS
+#if SHOW_SPOTLIGHTS == 1
   char light_mesh_full_file_path[256]{};
   // this file pretty much just has a mesh, no nodes
   sprintf(light_mesh_full_file_path, "%s\\models\\custom_light\\light_mesh.gltf", resources_path);
-  gltf_load_file(light_mesh_full_file_path);
+  gltf_load_file(light_mesh_full_file_path, false);
   spotlight_t::LIGHT_MESH_ID = latest_model_id();
 #endif
-
 
 }
 
@@ -65,7 +65,7 @@ int create_spotlight(vec3 pos) {
   int obj_id = create_object(obj_t);
   attach_name_to_obj(obj_id, std::string("light pos"));
   set_obj_as_parent(obj_id);
-#if SHOW_LIGHTS
+#if SHOW_SPOTLIGHTS == 1
   attach_model_to_obj(obj_id, spotlight_t::LIGHT_MESH_ID);
 #endif
 
@@ -127,6 +127,8 @@ void render_scene_obj_for_spotlight(int obj_id) {
     shader_set_mat4(shader, "model", model_mat);
   } 
 
+  shader_set_vec3(shader, "color", {1,0,0});
+
   int model_id = get_obj_model_id(obj_id);
   bind_shader(shader);
   render_model_w_no_material_bind(model_id);
@@ -142,23 +144,10 @@ void spotlight_pass() {
     scene_iterator_t iterator = create_scene_iterator();
     int obj_id = iterate_scene_for_next_obj(iterator);
     do {
-      object_t* obj_p = get_obj(obj_id);
-      inu_assert(obj_p);
-      object_t& obj = *obj_p;
-
-      if (obj_has_skin(obj_id)) {
-        set_skin_in_shader_for_obj(spotlight_t::light_shader, obj_id);
-      } else {
-        shader_set_int(spotlight_t::light_shader, "skinned", 0);
-        shader_set_mat4(spotlight_t::light_shader, "model", obj.model_mat);
-      }
-
       int obj_model_id = get_obj_model_id(obj_id);
-      if (obj_model_id != -1) {
-        bind_shader(spotlight_t::light_shader);
-        render_model_w_no_material_bind(obj_model_id);
+      if (obj_model_id != -1 && obj_model_id != spotlight_t::LIGHT_MESH_ID) {
+        render_scene_obj_for_spotlight(obj_id);
       }
-
       obj_id = iterate_scene_for_next_obj(iterator);
     }
     while (obj_id != -1);

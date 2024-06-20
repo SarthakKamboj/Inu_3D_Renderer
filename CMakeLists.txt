@@ -49,6 +49,8 @@ function(configure_project)
 
         src/render_passes/pbr_render_pass.cpp
 
+        src/renderer/renderer.cpp
+
         src/editor/pixel_perfect_sel.cpp
     )
 

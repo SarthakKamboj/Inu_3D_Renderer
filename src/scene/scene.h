@@ -47,7 +47,6 @@ void print_joint_transform_info();
 
 void spotlight_pass();
 void offline_final_render_pass();
-void render_scene();
 
 struct scene_iterator_t {
   int obj_id = -1;
