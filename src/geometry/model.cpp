@@ -51,7 +51,7 @@ void render_mesh(mesh_t& mesh) {
   unbind_ebo();
 }
 
-void render_sel_model_w_no_material_bind(int model_id) {
+void render_model_w_no_material_bind(int model_id) {
   model_t& model = models[model_id];
   for (mesh_t& mesh : model.meshes) {
     render_mesh(mesh);

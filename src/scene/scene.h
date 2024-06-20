@@ -46,7 +46,6 @@ void init_scene_rendering();
 void print_joint_transform_info();
 
 void spotlight_pass();
-void dirlight_pass();
 void offline_final_render_pass();
 void render_scene();
 

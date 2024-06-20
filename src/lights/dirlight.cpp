@@ -10,6 +10,7 @@
 #include "animation/interpolation.h"
 #include "windowing/window.h"
 #include "utils/mats.h"
+#include "animation/skin.h"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -638,3 +639,58 @@ void render_dir_light_shadow_maps(int dir_light_id) {
 dir_light_t* get_dir_light(int id) {
   return &dir_lights[id];
 }
+
+void dirlight_pass() {
+
+#if HAVE_DIR_LIGHT
+  // DIR light
+  int num_dir_lights = get_num_dir_lights();
+  camera_t* cam = get_cam();
+
+  for (int i = 0; i < num_dir_lights; i++) { 
+    gen_dir_light_matricies(i, cam); 
+    setup_dir_light_for_rendering(i, cam);
+
+#if 1
+
+    scene_iterator_t iterator = create_scene_iterator();
+    int obj_id = iterate_scene_for_next_obj(iterator);
+    do {
+      object_t* obj_p = get_obj(obj_id);
+      inu_assert(obj_p);
+      object_t& obj = *obj_p;
+
+      if (obj_has_skin(obj_id)) {
+        set_skin_in_shader_for_obj(dir_light_t::light_shader, obj_id);
+      } else {
+        shader_set_int(dir_light_t::light_shader, "skinned", 0);
+        shader_set_mat4(dir_light_t::light_shader, "model", obj.model_mat);
+      }
+
+      int obj_model_id = get_obj_model_id(obj_id);
+      if (obj_model_id != -1) {
+        bind_shader(dir_light_t::light_shader);
+        render_model_w_no_material_bind(obj_model_id);
+      }
+
+      obj_id = iterate_scene_for_next_obj(iterator);
+    }
+    while (obj_id != -1);
+
+#else
+    for (int parent_id : scene.parent_objs) {
+      traverse_obj_hierarchy_opaque(parent_id, true, true, dir_light_t::light_shader);
+    }
+
+    for (object_t& obj : objs) {
+      if (obj_has_skin(obj.id)) {
+        traverse_obj_hierarchy_opaque(obj.id, false, true, dir_light_t::light_shader);
+      }
+    }
+#endif
+
+    remove_dir_light_from_rendering();
+  }
+#endif
+}
+

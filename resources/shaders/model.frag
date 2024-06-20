@@ -613,6 +613,8 @@ void main() {
   // frag_color = vec4(pbr, 1.0);
   frag_color = pbr;
 
+  is_in_dir_light_info_t in_dir0 = calc_light_rel_data();
+
 #if VIEW_AMOUNT_IN_LIGHT
   frag_color = vec4(max_in_light, max_in_light, max_in_light, 1);
 #elif VIEW_LIGHT_MULTIPLIER

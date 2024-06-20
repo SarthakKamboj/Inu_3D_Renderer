@@ -8,6 +8,7 @@
 #include "utils/log.h"
 #include "windowing/window.h"
 #include "geometry/gltf/gltf.h"
+#include "geometry/model.h"
 #include "animation/skin.h"
 
 extern window_t window;
@@ -127,7 +128,9 @@ void render_scene_obj_for_spotlight(int obj_id) {
   } 
 
   int model_id = get_obj_model_id(obj_id);
-  render_model(model_id, true, shader);
+  bind_shader(shader);
+  render_model_w_no_material_bind(model_id);
+  unbind_shader();
 }
 
 void spotlight_pass() {
@@ -137,6 +140,30 @@ void spotlight_pass() {
     setup_spotlight_for_rendering(i);
 
 #if 1
+    scene_iterator_t iterator = create_scene_iterator();
+    int obj_id = iterate_scene_for_next_obj(iterator);
+    do {
+      object_t* obj_p = get_obj(obj_id);
+      inu_assert(obj_p);
+      object_t& obj = *obj_p;
+
+      if (obj_has_skin(obj_id)) {
+        set_skin_in_shader_for_obj(spotlight_t::light_shader, obj_id);
+      } else {
+        shader_set_int(spotlight_t::light_shader, "skinned", 0);
+        shader_set_mat4(spotlight_t::light_shader, "model", obj.model_mat);
+      }
+
+      int obj_model_id = get_obj_model_id(obj_id);
+      if (obj_model_id != -1) {
+        bind_shader(spotlight_t::light_shader);
+        render_model_w_no_material_bind(obj_model_id);
+      }
+
+      obj_id = iterate_scene_for_next_obj(iterator);
+    }
+    while (obj_id != -1);
+
 
 #else
     for (int parent_id : scene.parent_objs) {

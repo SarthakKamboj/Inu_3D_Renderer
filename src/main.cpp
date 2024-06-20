@@ -94,7 +94,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "reap_the_whirlwind\\scene.gltf";
 
   // const char* gltf_file_resources_folder_rel_path = "medieval_fantasy_book\\scene.gltf";
-  // const char* gltf_file_resources_folder_rel_path = "virtual_city\\VC.gltf";
+  const char* gltf_file_resources_folder_rel_path = "virtual_city\\VC.gltf";
   // const char* gltf_file_resources_folder_rel_path = "brain_stem\\BrainStem.gltf";
   // const char* gltf_file_resources_folder_rel_path = "global_illum_test\\global_illum_test.gltf";
   //
@@ -105,7 +105,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   sprintf(gltf_full_file_path, "%s\\models\\%s", resources_path, gltf_file_resources_folder_rel_path);
   gltf_load_file(gltf_full_file_path);
 #endif
-  const char* gltf_file_resources_folder_rel_path = "pixel_perfect_sel\\pixel_perfect_sel.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "pixel_perfect_sel\\pixel_perfect_sel.gltf";
   char gltf_full_file_path[256]{};
   sprintf(gltf_full_file_path, "%s\\models\\%s", resources_path, gltf_file_resources_folder_rel_path);
   gltf_load_file(gltf_full_file_path);

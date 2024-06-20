@@ -43,7 +43,7 @@ void attach_model_to_obj(int obj_id, int model_id);
 int latest_model_id();
 model_t* get_model(int model_id);
 void render_model(int model_id, bool light_pass, shader_t& shader);
-void render_sel_model_w_no_material_bind(int model_id);
+void render_model_w_no_material_bind(int model_id);
 void set_material_on_model(int model_id, int mat_idx);
 
 void render_mesh(mesh_t& mesh);

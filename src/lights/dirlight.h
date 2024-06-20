@@ -88,6 +88,8 @@ void remove_dir_light_from_rendering();
 void setup_dir_light_for_rendering_debug(int light_id, camera_t* camera, int cascade);
 void remove_dir_light_from_rendering_debug();
 
+void dirlight_pass();
+
 #if DISPLAY_DIR_LIGHT_SHADOW_MAPS
 void create_dir_light_shadow_map_img_buffers(dir_light_t& light);
 void render_dir_light_shadow_maps(int dir_light_id);

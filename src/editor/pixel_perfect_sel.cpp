@@ -126,7 +126,7 @@ void render_obj_into_pixel_perfect_fb(selectable_element_t& sel_el, object_t& ob
   } 
 
   bind_shader(shader);
-  render_sel_model_w_no_material_bind(obj_model_id);
+  render_model_w_no_material_bind(obj_model_id);
 }
 
 void selection_render_pass() {
