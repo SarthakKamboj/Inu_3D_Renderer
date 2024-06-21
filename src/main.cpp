@@ -94,10 +94,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "junkrat\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "reap_the_whirlwind\\scene.gltf";
 
-  const char* gltf_file_resources_folder_rel_path = "medieval_fantasy_book\\scene.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "medieval_fantasy_book\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "virtual_city\\VC.gltf";
   // const char* gltf_file_resources_folder_rel_path = "brain_stem\\BrainStem.gltf";
   // const char* gltf_file_resources_folder_rel_path = "global_illum_test\\global_illum_test.gltf";
+  const char* gltf_file_resources_folder_rel_path = "global_illum_test\\global_illum_test_2.gltf";
 
 #if 0
   const char* gltf_file_resources_folder_rel_path = "global_illum_test\\global_illum_test_2.gltf";
@@ -162,7 +163,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // create_light({2,10,0});
   // create_light({-2,3,0});
   // create_light({-20,30,0});
-#if 1
+#if 0
   create_spotlight({2,8,0});
   create_spotlight({-20,10,0});
   create_spotlight({10,5,-5});

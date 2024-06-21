@@ -1,6 +1,7 @@
 #version 410 core
 
 #define NUM_CASCADES 3
+#define MAX_LIGHT_PROBES 50
 
 #define PI 3.14159265359
 
@@ -115,7 +116,8 @@ struct light_probe_t {
   vec3 world_pos;
   int shape;
 };
-uniform light_probe_t light_probes[2];
+uniform light_probe_t light_probes[MAX_LIGHT_PROBES];
+uniform int num_light_probes_set;
 
 in vec2 tex_coords[2];
 in vec3 color;
@@ -589,7 +591,7 @@ vec4 pbr_brdf(norm_inter_vecs_t niv) {
   vec3 ambient_factor = max_ambient_factor * get_occ_rgb();
   vec3 color = ambient_factor * diffuse.rgb;
 
-  for (int i = 0; i < 0; i++) {
+  for (int i = 0; i < num_light_probes_set; i++) {
     color += calc_global_illum(niv, i) * vec3(0.1);
   }
 

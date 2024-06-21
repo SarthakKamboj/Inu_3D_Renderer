@@ -957,3 +957,11 @@ void set_render_mode(RENDER_MODE render_mode) {
     glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
   }
 }
+
+void enable_culling() {
+  glEnable(GL_CULL_FACE);
+}
+
+void disable_culling() {
+  glDisable(GL_CULL_FACE);
+}

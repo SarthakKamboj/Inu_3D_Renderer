@@ -295,7 +295,13 @@ void set_up_shader_for_pbr_render_pass() {
   shader_set_vec3(material_t::associated_shader, "light_prob.color", color);
   shader_set_vec3(material_t::associated_shader, "light_prob.world_pos", color);
 #endif
+#if 0
   set_light_probe_in_shader(1, 0, material_t::associated_shader);
   set_light_probe_in_shader(2, 1, material_t::associated_shader);
+#else
+  // will later move this call to be object specific
+  transform_t t{};
+  setup_light_probes_based_on_transform(t);
+#endif
 
 }

@@ -284,3 +284,6 @@ enum RENDER_MODE {
 	WIREFRAME
 };
 void set_render_mode(RENDER_MODE render_mode);
+
+void enable_culling();
+void disable_culling();
