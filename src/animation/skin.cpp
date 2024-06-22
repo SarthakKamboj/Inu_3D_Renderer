@@ -6,10 +6,20 @@
 #include <unordered_map>
 #include <vector>
 
-static std::unordered_map<int, int> obj_id_to_skin_id;
+static std::unordered_map<object_id, skin_id> obj_id_to_skin_id;
 static std::vector<skin_t> skins;
 
-int skin_t::BONE_MODEL_ID = -1;
+model_id skin_t::BONE_MODEL_ID = -1;
+
+void init_skin_system() {
+#if SHOW_BONES
+  char bone_mesh_full_file_path[256]{};
+  // this file pretty much just has a mesh, no nodes
+  sprintf(bone_mesh_full_file_path, "%s\\bone_mesh\\custom_bone_mesh.gltf", resources_path);
+  gltf_load_file(bone_mesh_full_file_path, false);
+  skin_t::BONE_MODEL_ID = latest_model_id();
+#endif
+}
 
 skin_t::skin_t() {
   id = -1;
@@ -36,11 +46,11 @@ int register_skin(skin_t& skin) {
   return skin.id;
 }
 
-skin_t* get_skin(int skin_id) {
-  if (skin_id >= skins.size()) {
+skin_t* get_skin(skin_id id) {
+  if (id >= skins.size()) {
     return NULL;
   }
-  return &skins[skin_id];
+  return &skins[id];
 }
 
 #if 0
@@ -89,8 +99,8 @@ std::vector<int> get_bone_objs() {
 }
 #endif
 
-void attach_skin_to_obj(int obj_id, int skin_id) {
-  obj_id_to_skin_id[obj_id] = skin_id;
+void attach_skin_to_obj(object_id obj_id, skin_id skin_id_to_attach) {
+  obj_id_to_skin_id[obj_id] = skin_id_to_attach;
   // remove any parents of the object 
 #if 0
   int parent_joint = skins[skin_id].upper_most_joint_node_idx;
@@ -99,13 +109,13 @@ void attach_skin_to_obj(int obj_id, int skin_id) {
 #endif
 }
 
-bool obj_has_skin(int obj_id) {
+bool obj_has_skin(object_id obj_id) {
   return obj_id_to_skin_id.find(obj_id) != obj_id_to_skin_id.end();
 }
 
-void set_skin_in_shader_for_obj(shader_t& shader, int obj_id) {
-  int skin_id = obj_id_to_skin_id[obj_id];
-  skin_t* skin_p = get_skin(skin_id);
+void set_skin_in_shader_for_obj(shader_t& shader, object_id obj_id) {
+  skin_id skin_id_for_obj = obj_id_to_skin_id[obj_id];
+  skin_t* skin_p = get_skin(skin_id_for_obj);
   inu_assert(skin_p);
   skin_t& skin = *skin_p;
 

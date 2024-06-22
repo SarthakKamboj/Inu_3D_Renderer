@@ -126,13 +126,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   }
 #endif
 
-#if SHOW_BONES
-  char bone_mesh_full_file_path[256]{};
-  // this file pretty much just has a mesh, no nodes
-  sprintf(bone_mesh_full_file_path, "%s\\bone_mesh\\custom_bone_mesh.gltf", resources_path);
-  gltf_load_file(bone_mesh_full_file_path, false);
-  skin_t::BONE_MODEL_ID = latest_model_id();
-#endif
+  init_skin_system() ;
 
   create_basic_models();
 

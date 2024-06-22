@@ -1,12 +1,14 @@
 #pragma once
 
+#include "inu_typedefs.h"
+
 #include <vector>
 #include <string>
 
 struct animation_t {
-  int id = -1;
+  animation_id id = -1;
   std::string name;
-  std::vector<int> data_chunk_ids;
+  std::vector<anim_chunk_id> data_chunk_ids;
 };
 int register_animation(animation_t& anim);
 void play_next_anim();
@@ -17,7 +19,7 @@ enum class ANIM_INTERPOLATION_MODE {
 };
 
 struct animation_data_chunk_t {
-  int id = -1;
+  anim_chunk_id id = -1;
   int num_timestamps = -1;
   std::vector<float> timestamps; 
   ANIM_INTERPOLATION_MODE interpolation_mode = ANIM_INTERPOLATION_MODE::LINEAR;
@@ -32,18 +34,18 @@ enum class ANIM_TARGET_ON_NODE {
 };
 
 struct animation_chunk_data_ref_t {
-  int chunk_id = -1;
+  anim_chunk_id chunk_id = -1;
   ANIM_TARGET_ON_NODE target = ANIM_TARGET_ON_NODE::NONE;
 };
 
-int register_anim_data_chunk(animation_data_chunk_t& data);
-animation_data_chunk_t* get_anim_data_chunk(int id);
+anim_chunk_id register_anim_data_chunk(animation_data_chunk_t& data);
+animation_data_chunk_t* get_anim_data_chunk(anim_chunk_id id);
 
 struct obj_anim_attachment_t {
-  int obj_id; 
+  object_id obj_id; 
   std::vector<animation_chunk_data_ref_t> anim_chunk_refs;
 };
-void attach_anim_chunk_ref_to_obj(int obj_id, animation_chunk_data_ref_t& ref);
+void attach_anim_chunk_ref_to_obj(object_id obj_id, animation_chunk_data_ref_t& ref);
 
 struct animation_globals_t {
   float anim_time = 0;
@@ -53,4 +55,4 @@ struct animation_globals_t {
 
 void update_animations();
 void print_animation_data(std::string& anim_name);
-bool is_chunk_in_anim(animation_t& anim, int chunk_id);
+bool is_chunk_in_anim(animation_t& anim, anim_chunk_id chunk_id);

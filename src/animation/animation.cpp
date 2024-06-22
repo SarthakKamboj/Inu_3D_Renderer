@@ -59,7 +59,7 @@ void play_next_anim() {
   animation_globals.anim_time = 0;
   animation_globals.anim_end_time = 0;
   for (int j = 0; j < anim.data_chunk_ids.size(); j++) {
-    int data_chunk_id = anim.data_chunk_ids[j];
+    anim_chunk_id data_chunk_id = anim.data_chunk_ids[j];
     animation_data_chunk_t& adc = anim_data_chunks[data_chunk_id];
     int nt = adc.num_timestamps;
     animation_globals.anim_end_time = adc.timestamps[nt-1];
@@ -75,15 +75,15 @@ void play_next_anim() {
 
 }
 
-animation_data_chunk_t* get_anim_data_chunk(int data_id) {
+animation_data_chunk_t* get_anim_data_chunk(anim_chunk_id data_id) {
   return &anim_data_chunks[data_id];
 }
 
-bool is_chunk_in_anim(animation_t& anim, int chunk_id) {
+bool is_chunk_in_anim(animation_t& anim, anim_chunk_id chunk_id) {
   return std::find(anim.data_chunk_ids.begin(), anim.data_chunk_ids.end(), chunk_id) != anim.data_chunk_ids.end();
 }
 
-void attach_anim_chunk_ref_to_obj(int obj_id, animation_chunk_data_ref_t& ref) {
+void attach_anim_chunk_ref_to_obj(object_id obj_id, animation_chunk_data_ref_t& ref) {
   obj_anim_attachment_t* attach = NULL;
 
   bool already_created_attachment = obj_id_to_obj_anim_attach_idx.find(obj_id) != obj_id_to_obj_anim_attach_idx.end();
@@ -164,7 +164,7 @@ void print_animation_data(std::string& anim_name) {
   }
 }
 
-int register_anim_data_chunk(animation_data_chunk_t& data) {
+anim_chunk_id register_anim_data_chunk(animation_data_chunk_t& data) {
   data.id = anim_data_chunks.size();
   anim_data_chunks.push_back(data);
 #if 0
@@ -215,7 +215,7 @@ void update_animations() {
     quaternion_t orig_rot = obj.transform.rot;
     for (animation_chunk_data_ref_t& ref : anim_chunk_refs) {	
       animation_data_chunk_t* chunk = get_anim_data_chunk(ref.chunk_id);
-      std::vector<int>& cur_anim_chunks = animations[playing_anim_idx].data_chunk_ids;
+      std::vector<anim_chunk_id>& cur_anim_chunks = animations[playing_anim_idx].data_chunk_ids;
       bool anim_chunk_part_of_this_anim = std::find(cur_anim_chunks.begin(), cur_anim_chunks.end(), chunk->id) != cur_anim_chunks.end();
       if (!anim_chunk_part_of_this_anim) {
         continue;
