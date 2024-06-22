@@ -1,5 +1,7 @@
 #version 410 core
 
+#include "material.shader"
+
 #define NUM_CASCADES 3
 #define MAX_LIGHT_PROBES 50
 
@@ -27,8 +29,6 @@
 #define VIEW_OCC 0
 #define ENABLE_QUANTIZING 0
 
-#define USE_VEC3 0
-
 float s_rgb_to_linear(float s_rgb);
 float get_roughness();
 float get_metalness();
@@ -39,41 +39,6 @@ vec3 get_occ_rgb();
 float s_rgb_to_linear(float s_rgb) {
   return pow(s_rgb / 255.0, 2.2);
 }
-
-struct shader_tex {
-  sampler2D samp; 
-  int tex_id;
-};
-
-struct material_t {
-  // base color info
-  shader_tex base_color_tex;
-#if USE_VEC3
-  vec3 mesh_color;
-#else
-  vec4 mesh_color;
-#endif
-  int use_base_color_tex;
-
-  // metal and roughness info
-  float surface_roughness;
-  float metalness;
-  shader_tex metal_rough_tex;
-  int use_metal_rough_tex;
-
-  // emission info
-  vec3 emission_factor;
-  shader_tex emission_tex;
-  int use_emission_tex;
-
-  // normal info
-  int use_normal_tex;
-  shader_tex normal_tex;
-
-  // occ info
-  int use_occ_tex;
-  shader_tex occ_tex;
-};
 
 uniform material_t material;
 uniform int override_color_bool;
@@ -410,11 +375,7 @@ vec4 lambert_diffuse() {
   vec4 diffuse; 
   if (material.base_color_tex.tex_id == -1) {
     if (material.use_base_color_tex == 0) {
-#if USE_VEC3
-      diffuse = vec4(material.mesh_color, 1);
-#else
       diffuse = material.mesh_color;
-#endif
     } else {
       diffuse = vec4(color, 1);
     }

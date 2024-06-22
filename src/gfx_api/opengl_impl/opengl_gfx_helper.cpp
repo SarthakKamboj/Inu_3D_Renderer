@@ -1,6 +1,9 @@
 #include "opengl_gfx_helper.h"
 
+#include <iostream>
+
 #include "utils/log.h"
+#include "utils/general.h"
 
 GLint internal_to_gl_wrap_mode(WRAP_MODE wrap_mode) {	
 	switch (wrap_mode) {
@@ -127,4 +130,68 @@ GLenum internal_to_gl_vao_data_type(VAO_ATTR_DATA_TYPE t) {
 
 	inu_assert_msg("vao data type not found");
 	return GL_NONE;
+}
+
+char* custom_parse_shader_contents(const char* path) {
+
+#define STARTING_CONTENTS_BUFFER_LEN 2048
+#define MAX_LINE_LEN 256
+
+	char resources_path[256]{};
+  get_resources_folder_path(resources_path);
+
+	int total_contents_len = STARTING_CONTENTS_BUFFER_LEN;
+	char* shader_contents = (char*)malloc(STARTING_CONTENTS_BUFFER_LEN * sizeof(char));
+	memset(shader_contents, 0, total_contents_len);
+	int running_len = 0;
+
+	FILE* file = fopen(path, "r");
+  inu_assert(file, "could not open file to get file contents");
+	size_t content_len = 0;
+
+	while (!feof(file)) {
+		size_t line_len = 0;
+		// char* line = fgetline(file, &line_len);
+		char line[MAX_LINE_LEN]{};
+		fgets(line, MAX_LINE_LEN, file);
+		bool include_line = strstr(line, "#include") != NULL;
+
+		char* char_to_add = NULL;
+
+		if (include_line) {
+			char include_file_name[64]{};
+			sscanf(line, "#include \"%s", include_file_name);
+			include_file_name[strlen(include_file_name)-1] = 0;
+			char include_shader_path[256]{};
+  		sprintf(include_shader_path, "%s\\shaders\\%s", resources_path, include_file_name);
+			char* include_file_contents = get_file_contents(include_shader_path);
+			char_to_add = include_file_contents;
+			// running_len += strlen(include_file_contents);	
+		} else {
+			char_to_add = line;
+			// sprintf(shader_contents + running_len, "%s", line);
+			// running_len += line_len;
+		}	
+
+		if (running_len + strlen(char_to_add) >= total_contents_len) {
+			total_contents_len *= 2;
+    	shader_contents = (char*)realloc(shader_contents, total_contents_len * sizeof(char));
+		}
+
+		sprintf(shader_contents + (int)running_len, "%s", char_to_add);
+		running_len += strlen(char_to_add);	
+
+		if (include_line) {
+			free(char_to_add);
+		}
+	}
+
+	shader_contents[running_len] = 0;
+
+	fclose(file);
+	
+	return shader_contents;
+
+#undef MAX_LINE_LEN
+#undef STARTING_CONTENTS_BUFFER_LEN
 }

@@ -22,3 +22,5 @@ GLint internal_to_gl_tex_filter(TEX_FILTER_METHOD filter_method);
 GLenum internal_to_gl_tex_data_type(TEX_DATA_TYPE type);
 gl_tex_creation_meta_t internal_to_gl_tex_meta(tex_creation_meta_t& internal);
 GLenum internal_to_gl_vao_data_type(VAO_ATTR_DATA_TYPE t);
+
+char* custom_parse_shader_contents(const char* path);

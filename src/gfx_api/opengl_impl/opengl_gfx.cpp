@@ -171,7 +171,8 @@ shader_t create_shader(const char* vert_source_path, const char* frag_source_pat
 	shader_id_to_gl_id[shader.id] = gl_shader_id;
 
 	GLuint vert = glCreateShader(GL_VERTEX_SHADER);
-	char* vert_source = get_file_contents(vert_source_path);
+	// char* vert_source = get_file_contents(vert_source_path);
+	char* vert_source = custom_parse_shader_contents(vert_source_path);
 	glShaderSource(vert, 1, &vert_source, NULL);
 
 	int success;
@@ -187,7 +188,8 @@ shader_t create_shader(const char* vert_source_path, const char* frag_source_pat
 	get_gfx_error();
 
 	GLuint frag = glCreateShader(GL_FRAGMENT_SHADER);
-	char* frag_source = get_file_contents(frag_source_path);
+	// char* frag_source = get_file_contents(frag_source_path);
+	char* frag_source = custom_parse_shader_contents(frag_source_path);
 	glShaderSource(frag, 1, &frag_source, NULL);
 	glCompileShader(frag);
 	glGetShaderiv(frag, GL_COMPILE_STATUS, &success);
@@ -231,7 +233,8 @@ shader_t create_shader(const char* vert_source_path, const char* geom_source_pat
 	shader_id_to_gl_id[shader.id] = gl_shader_id;
 
 	GLuint vert = glCreateShader(GL_VERTEX_SHADER);
-	char* vert_source = get_file_contents(vert_source_path);
+	// char* vert_source = get_file_contents(vert_source_path);
+	char* vert_source = custom_parse_shader_contents(vert_source_path);
 	glShaderSource(vert, 1, &vert_source, NULL);
 
 	int success;
@@ -251,7 +254,8 @@ shader_t create_shader(const char* vert_source_path, const char* geom_source_pat
     	// Log or print `err`.
 		printf("error\n");
 	}
-	char* geom_source = get_file_contents(geom_source_path);
+	// char* geom_source = get_file_contents(geom_source_path);
+	char* geom_source = custom_parse_shader_contents(geom_source_path);
 	glShaderSource(geom, 1, &geom_source, NULL);
 	err = glGetError();
 	if (err != GL_NO_ERROR) {
@@ -277,7 +281,8 @@ shader_t create_shader(const char* vert_source_path, const char* geom_source_pat
 	}
 
 	GLuint frag = glCreateShader(GL_FRAGMENT_SHADER);
-	char* frag_source = get_file_contents(frag_source_path);
+	// char* frag_source = get_file_contents(frag_source_path);
+	char* frag_source = custom_parse_shader_contents(frag_source_path);
 	glShaderSource(frag, 1, &frag_source, NULL);
 	glCompileShader(frag);
 	glGetShaderiv(frag, GL_COMPILE_STATUS, &success);
