@@ -1,46 +1,11 @@
 #version 410 core
 
+#include "material.shader"
+
 layout (triangles) in;
 layout (triangle_strip, max_vertices = 3) out;
 
-#define USE_VEC3 0
-
 mat4 calc_tbn_mat(int idx);
-
-struct shader_tex {
-  sampler2D samp; 
-  int tex_id;
-};
-
-struct material_t {
-  // base color info
-  shader_tex base_color_tex;
-#if USE_VEC3
-  vec3 mesh_color;
-#else
-  vec4 mesh_color;
-#endif
-  int use_base_color_tex;
-
-  // metal and roughness info
-  float surface_roughness;
-  float metalness;
-  shader_tex metal_rough_tex;
-  int use_metal_rough_tex;
-
-  // emission info
-  vec3 emission_factor;
-  shader_tex emission_tex;
-  int use_emission_tex;
-
-  // normal info
-  int use_normal_tex;
-  shader_tex normal_tex;
-
-  // occ info
-  int use_occ_tex;
-  shader_tex occ_tex;
-};
 
 uniform material_t material;
 
@@ -112,14 +77,8 @@ mat4 calc_tbn_mat(int idx) {
   mat2 tex_coord_diff = mat2(vec2(u1, u2), vec2(v1, v2));
   mat2 inv_tex_coord_diff = inverse(tex_coord_diff);
 
-#if 0
-  vec3 combined_normal = normalize(gs_in[0].normal.xyz) + normalize(gs_in[1].normal.xyz) + normalize(gs_in[2].normal.xyz);
-  vec3 surface_normal = normalize(combined_normal / 3.0);
-  vec4 N = vec4(surface_normal, 0.0);
-#else
   vec3 combined_normal = normalize(gs_in[idx].normal.xyz);
   vec4 N = vec4(combined_normal, 0.0);
-#endif
 
   vec3 e1 = (gl_in[1].gl_Position.xyz / gl_in[1].gl_Position.w) - (gl_in[0].gl_Position.xyz / gl_in[0].gl_Position.w);
   vec3 e2 = (gl_in[2].gl_Position.xyz / gl_in[2].gl_Position.w) - (gl_in[1].gl_Position.xyz / gl_in[1].gl_Position.w);
@@ -135,7 +94,6 @@ mat4 calc_tbn_mat(int idx) {
 }
 
 void main() {
-  // tbn_mat = calc_tbn_mat();
   emit_vert(0);
   emit_vert(1);
   emit_vert(2);

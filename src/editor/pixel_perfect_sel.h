@@ -2,27 +2,30 @@
 
 #include "utils/vectors.h"
 #include "utils/mats.h"
-
-#include "gfx/gfx.h"
+#include "inu_typedefs.h"
+#include "gfx_api/gfx.h"
 
 typedef int selectable_id;
 
 struct selectable_element_t {
   selectable_id id = 0;
   vec3 color; 
-  mat4 model_mat;
+
+  object_id obj_id = -1;
 
   static framebuffer_t SELECTION_FB;
   static shader_t SELECTION_SHADER;
 };
 
 void init_selection();
-selectable_id create_selectable_element();
+selectable_id create_selectable_element(object_id obj_id);
+void handle_selection_logic();
+vec3 get_sel_pixel_color();
 selectable_id get_sel_el_from_color(vec3 color);
-void update_sel_el_on_obj(int obj_id);
-// void render_sel_elements();
+
 selectable_element_t get_sel_el(selectable_id id);
 void set_selection(selectable_id sel_id);
 
-struct object_t;
-bool is_obj_selected(object_t& obj);
+bool is_obj_selected(object_id obj_id);
+
+void selection_render_pass();

@@ -5,7 +5,7 @@
 #include "windowing/window.h"
 #include "utils/general.h"
 #include "utils/log.h"
-#include "gfx/light.h"
+#include "lights/dirlight.h"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"

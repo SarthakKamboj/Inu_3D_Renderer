@@ -19,16 +19,17 @@ function(configure_project)
 
         src/windowing/window.cpp
 
-        src/gfx/opengl_gfx.cpp
-        src/gfx/opengl_gfx_helper.cpp
-        src/gfx/opengl/glew.c
-        src/gfx/online_renderer.cpp
-        src/gfx/light.cpp
-        src/gfx/light_probe.cpp
+        src/gfx_api/opengl_impl/opengl_gfx.cpp
+        src/gfx_api/opengl_impl/opengl_gfx_helper.cpp
+        src/gfx_api/opengl_impl/opengl_sys/glew.c
 
-        src/model_loading/gltf/gltf.cpp
-        src/model_loading/image/stb_image.cpp
-        src/model_loading/model_internal.cpp
+        src/lights/dirlight.cpp
+        src/lights/spotlight.cpp
+        src/lights/light_probe.cpp
+
+        src/geometry/gltf/gltf.cpp
+        src/geometry/image/stb_image.cpp
+        src/geometry/model.cpp
 
         src/utils/general.cpp
         src/utils/inu_math.cpp
@@ -40,9 +41,15 @@ function(configure_project)
 
         src/scene/scene.cpp
         src/scene/camera.cpp
+        src/scene/online_renderer.cpp
 
         src/animation/interpolation.cpp
-        src/animation/animation_internal.cpp
+        src/animation/animation.cpp
+        src/animation/skin.cpp
+
+        src/render_passes/pbr_render_pass.cpp
+
+        src/renderer/renderer.cpp
 
         src/editor/pixel_perfect_sel.cpp
     )
@@ -54,8 +61,8 @@ function(configure_project)
 
     target_include_directories(${PROJECT_NAME} 
         PUBLIC src
-        PUBLIC src/gfx/opengl
-        PUBLIC src/gfx/opengl/GL
+        PUBLIC src/gfx_api/opengl_impl/opengl_sys
+        PUBLIC src/gfx_api/opengl_impl/opengl_sys/GL
 
         PUBLIC ext/glm
     )
