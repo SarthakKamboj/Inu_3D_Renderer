@@ -22,7 +22,7 @@ extern float fb_width_on_screen_px;
 static selectable_id running_id = 1;
 static std::vector<selectable_element_t> selectable_elements;
 
-static std::unordered_map<int, selectable_id> obj_id_to_sel_id;
+static std::unordered_map<object_id, selectable_id> obj_id_to_sel_id;
 
 static int sel_fb_width = 160;
 static int sel_fb_height = 90;
@@ -45,7 +45,7 @@ void init_selection() {
   selectable_element_t::SELECTION_SHADER = create_shader(vert_shader_path, frag_shader_path);
 }
 
-selectable_id create_selectable_element(int obj_id) {
+selectable_id create_selectable_element(object_id obj_id) {
   selectable_element_t el;
 
   el.id = running_id;
@@ -68,7 +68,7 @@ selectable_id create_selectable_element(int obj_id) {
   return el.id;
 }
 
-selectable_element_t* get_sel_el_for_obj(int obj_id) {
+selectable_element_t* get_sel_el_for_obj(object_id obj_id) {
   selectable_id sel_id = obj_id_to_sel_id[obj_id];
   if (sel_id != -1) {
     return &selectable_elements[sel_id - 1];
@@ -103,7 +103,7 @@ void handle_selection_logic() {
   }
 }
 
-bool is_obj_selected(int obj_id) {
+bool is_obj_selected(object_id obj_id) {
   if (obj_id_to_sel_id.find(obj_id) == obj_id_to_sel_id.end()) return false;
   // return obj_id_to_sel_id[obj.id] == selection_id;
   return obj_id_to_sel_id[obj_id] == selection_id;
@@ -113,7 +113,7 @@ selectable_element_t get_sel_el(selectable_id id) {
   return selectable_elements[id-1];
 }
 
-void render_obj_into_pixel_perfect_fb(selectable_element_t& sel_el, object_t& obj, int obj_model_id) {
+void render_obj_into_pixel_perfect_fb(selectable_element_t& sel_el, object_t& obj, object_id obj_model_id) {
   shader_t& shader = selectable_element_t::SELECTION_SHADER;
 
   shader_set_vec3(shader, "color", sel_el.color);
@@ -141,13 +141,13 @@ void selection_render_pass() {
   shader_set_mat4(shader, "view", view);
 
   scene_iterator_t iterator = create_scene_iterator();
-  int obj_id = iterate_scene_for_next_obj(iterator);
+  object_id obj_id = iterate_scene_for_next_obj(iterator);
   do {
     object_t* obj_p = get_obj(obj_id);
     inu_assert(obj_p);
     object_t& obj = *obj_p;
 
-    int obj_model_id = get_obj_model_id(obj_id);
+    object_id obj_model_id = get_obj_model_id(obj_id);
     if (obj_model_id != -1) {
       selectable_element_t* sel_el = get_sel_el_for_obj(obj_id);
       if (sel_el) {
