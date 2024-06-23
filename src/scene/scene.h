@@ -18,6 +18,7 @@ enum class OBJECT_FLAGS {
   NONE = 0,
   GAMEOBJECT = 1,
   SELECTABLE = 2,
+  EDITOR_OBJ = 4,
   ALL = 0xFFFF
 };
 OBJECT_FLAGS operator|(OBJECT_FLAGS of1, OBJECT_FLAGS of2);
