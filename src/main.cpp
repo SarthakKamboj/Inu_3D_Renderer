@@ -19,6 +19,7 @@
 #include "utils/inu_math.h"
 #include "render_passes/pbr_render_pass.h"
 #include "renderer/renderer.h"
+#include "animation/skin.h"
 
 static float win_width = 1280.f;
 static float win_height = 960.f;
@@ -94,11 +95,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   // const char* gltf_file_resources_folder_rel_path = "junkrat\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "reap_the_whirlwind\\scene.gltf";
 
-  // const char* gltf_file_resources_folder_rel_path = "medieval_fantasy_book\\scene.gltf";
+  const char* gltf_file_resources_folder_rel_path = "medieval_fantasy_book\\scene.gltf";
   // const char* gltf_file_resources_folder_rel_path = "virtual_city\\VC.gltf";
   // const char* gltf_file_resources_folder_rel_path = "brain_stem\\BrainStem.gltf";
   // const char* gltf_file_resources_folder_rel_path = "global_illum_test\\global_illum_test.gltf";
-  const char* gltf_file_resources_folder_rel_path = "global_illum_test\\global_illum_test_2.gltf";
+  // const char* gltf_file_resources_folder_rel_path = "global_illum_test\\global_illum_test_2.gltf";
 
 #if 0
   const char* gltf_file_resources_folder_rel_path = "global_illum_test\\global_illum_test_2.gltf";

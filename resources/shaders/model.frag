@@ -63,7 +63,6 @@ struct dir_light_data_t {
   float cascade_depths[NUM_CASCADES+1];
   vec3 light_dir;
 };
-
 uniform dir_light_data_t dir_light_data;
 
 struct cam_data_t {
@@ -72,8 +71,6 @@ struct cam_data_t {
   vec3 cam_pos;
 };
 uniform cam_data_t cam_data;
-
-#define LP_REC_SHAPE 1
 
 struct light_probe_t {
   vec3 color;
@@ -232,24 +229,73 @@ struct dir_light_rel_data_t {
 
 // texture xy is in xy of return value
 // depth is in z of return value
-vec3 get_cascade_tex_depth_info(int cascade) {
+vec3 get_cascade_tex_depth_info(int cascade, vec4 global_pos) {
   // looking down -z axis in camera's eye space
   mat4 light_projection = dir_light_data.light_projs[cascade];
   mat4 light_view = dir_light_data.light_views[cascade];
-  vec4 screen_rel_pos = light_projection * light_view * global;
+  vec4 screen_rel_pos = light_projection * light_view * global_pos;
   screen_rel_pos /= screen_rel_pos.w;
   vec3 tex_plus_depth_info = (screen_rel_pos.xyz + vec3(1.0)) / 2.0;
   return tex_plus_depth_info;
 }
+
+vec4 tex_coord_to_world_pos(vec3 tex_depth_coords, int cascade) {
+  mat4 light_projection = dir_light_data.light_projs[cascade];
+  mat4 light_view = dir_light_data.light_views[cascade];
+  vec3 unnorm_tex_depth = (tex_depth_coords * 2.0) - vec3(1.0);
+  vec4 world_pos_4 = inverse(light_view) * inverse(light_projection) * vec4(unnorm_tex_depth, 1.0);
+  return world_pos_4;
+}
+
+float remap(float value, float low1, float high1, float low2, float high2) {
+  return low2 + (value - low1) * (high2 - low2) / (high1 - low1);
+}
+
+#if 0
+float calc_in_shadow(vec3 tex_coord) {
+
+#define SMOOTH_TC_MAX 0.8
+
+  int ofb_x = tex_coord.x > 1.0;
+  int blend_x = tex_coord.x > SMOOTH_TC_MAX;
+
+  int ofb_y = tex_coord.y > 1.0;
+  int blend_y = tex_coord.y > SMOOTH_TC_MAX;
+
+  float depth;
+  float closest_depth;
+
+  if (tex_coord.x < 0 || tex_coord.x > SMOOTH_TC_MAX || tex_coord.y < 0 || tex_coord.y > SMOOTH_TC_MAX) {
+    // if (highest_precision_cascade == NUM_CASCADES-1) continue;
+
+    int less_precise_layer = highest_precision_cascade + 1;
+    vec3 lesser_cascade_tex_depth_info = get_cascade_tex_depth_info(less_precise_layer);
+    depth = lesser_cascade_tex_depth_info.z;
+    vec3 new_frag_tex_coord = vec3(lesser_cascade_tex_depth_info.xy, less_precise_layer);
+    closest_depth = texture(dir_light_data.shadow_map, new_frag_tex_coord).r;
+
+  } else {
+    depth = highest_prec_tex_plus_depth_info.z;
+
+    // depth buffer stores 0 to 1, for near to far respectively
+    // so closest_depth is between 0 to 1
+    closest_depth = texture(dir_light_data.shadow_map, tex_coord).r;
+  } 
+
+#undef SMOOTH_TC_MAX
+  return 0;
+}
+#endif
 
 struct is_in_dir_light_info_t {
   float amount_in_light;
   float closest_depth;
   float depth;
   vec3 tex_coords;
+  vec4 debug_info;
 };
 
-is_in_dir_light_info_t calc_light_rel_data() {
+is_in_dir_light_info_t calc_dir_light_rel_data() {
 
   is_in_dir_light_info_t in_dir_light_info;
 
@@ -258,7 +304,8 @@ is_in_dir_light_info_t calc_light_rel_data() {
 
   // get the highest precision shadow cascade
   for (int i = 0; i < NUM_CASCADES; i++) {
-    vec3 tex_plus_depth_info = get_cascade_tex_depth_info(i);
+  // for (int i = 2; i < 3; i++) {
+    vec3 tex_plus_depth_info = get_cascade_tex_depth_info(i, global);
     bool highest_prec = tex_plus_depth_info.x >= 0 && tex_plus_depth_info.x <= 1 && tex_plus_depth_info.y >= 0 && tex_plus_depth_info.y <= 1;
     if (highest_prec) {
       highest_precision_cascade = i; 
@@ -275,54 +322,92 @@ is_in_dir_light_info_t calc_light_rel_data() {
   float bias = 0.0005;
   bias = 0.00075;
   bias = 0.001;
+  // bias = 0.01;
 
   in_dir_light_info.depth = highest_prec_tex_plus_depth_info.z;
+  // in_dir_light_info.debug_info = vec4(1,0,0,1);
 
   int pcf = 3;
+  // pcf = 0;
+
+  float central_in_light = 0;
 
   // get the closest depth at that point in the highest precision shadow cascade and see whether this point is in the shadow or not
   ivec2 sm_dim = textureSize(dir_light_data.shadow_map, highest_precision_cascade).xy;
+
+  in_dir_light_info.debug_info = vec4(vec3(sm_dim.x > 3), 1);
+
+  // in_dir_light_info.debug_info.xyz = vec3(highest_precision_cascade == 0, highest_precision_cascade == 1, highest_precision_cascade == 2);
   for (int x_offset = -(pcf/2); x_offset <= (pcf/2); x_offset++) {
     for (int y_offset = -(pcf/2); y_offset <= (pcf/2); y_offset++) {
 
+      // vec3 new_tex_coord = tex_coords + vec3(x_offset / float(sm_dim.x), y_offset / float(sm_dim.y), 0);
       vec3 new_tex_coord = tex_coords + vec3(x_offset / float(sm_dim.x), y_offset / float(sm_dim.y), 0);
+
+      float cur_bias = bias;
 
       float depth;
       float closest_depth;
       
       if (new_tex_coord.x < 0 || new_tex_coord.x > 1 || new_tex_coord.y < 0 || new_tex_coord.y > 1) {
         if (highest_precision_cascade == NUM_CASCADES-1) continue;
+        // vec3 new_tex_depth_info = vec3(new_tex_coord.xy, highest_prec_tex_plus_depth_info.z);
+        // vec4 related_global_pos = tex_coord_to_world_pos(new_tex_depth_info, highest_precision_cascade);
 
+        // vec4 related_global_pos = tex_coord_to_world_pos(highest_prec_tex_plus_depth_info, highest_precision_cascade);
         int less_precise_layer = highest_precision_cascade + 1;
 
-        vec3 lesser_cascade_tex_depth_info = get_cascade_tex_depth_info(less_precise_layer);
+        // vec3 lesser_cascade_tex_depth_info = get_cascade_tex_depth_info(less_precise_layer, related_global_pos);
+        vec3 lesser_cascade_tex_depth_info = get_cascade_tex_depth_info(less_precise_layer, global);
 
         depth = lesser_cascade_tex_depth_info.z;
 
         vec3 new_frag_tex_coord = vec3(lesser_cascade_tex_depth_info.xy, less_precise_layer);
-        closest_depth = dir_light_data.light_active * texture(dir_light_data.shadow_map, new_frag_tex_coord).r;
+        // vec3 new_frag_tex_coord = vec3(lesser_cascade_tex_depth_info.xy, highest_precision_cascade);
+        // closest_depth = dir_light_data.light_active * texture(dir_light_data.shadow_map, new_frag_tex_coord).r;
+        // closest_depth = dir_light_data.light_active * textureOffset(dir_light_data.shadow_map, new_frag_tex_coord, ivec2(0, 0)).r;
+        closest_depth = dir_light_data.light_active * textureOffset(dir_light_data.shadow_map, new_frag_tex_coord, ivec2(x_offset, y_offset)).r;
+
+        cur_bias *= pow(3.1, less_precise_layer);
+
+        // in_dir_light_info.debug_info = vec4(0,1,0,1);
       } else {
         depth = highest_prec_tex_plus_depth_info.z;
 
         // depth buffer stores 0 to 1, for near to far respectively
         // so closest_depth is between 0 to 1
-        closest_depth = dir_light_data.light_active * texture(dir_light_data.shadow_map, new_tex_coord).r;
+        // closest_depth = dir_light_data.light_active * texture(dir_light_data.shadow_map, new_tex_coord).r;
+        closest_depth = dir_light_data.light_active * textureOffset(dir_light_data.shadow_map, tex_coords, ivec2(x_offset, y_offset)).r;
+        cur_bias *= pow(3.1, highest_precision_cascade);
+
+        // closest_depth = dir_light_data.light_active * textureOffset(dir_light_data.shadow_map, tex_coords, ivec2(x_offset, y_offset-1)).r;
+
+        // in_dir_light_info.debug_info += vec4(1.0 / max(1.0, float(pcf * pcf)), vec3(0));
       }
 
       // z pos is closer to light than the texture sample says
-      if (depth <= (closest_depth + bias)) {
+      if (depth <= (closest_depth + cur_bias)) {
+      // if (depth <= (closest_depth + bias)) {
         // light
         amount_in_light += (1.0 / max(0.1, float(pcf * pcf)));
       }
 
       if (x_offset == 0 && y_offset == 0) {
         in_dir_light_info.closest_depth = closest_depth;
+        if (depth <= (closest_depth + bias)) {
+          // light
+          central_in_light = 1.0;
+        } else {
+          central_in_light = 0.0;
+        }
       }
 
     }
   } 
 
   in_dir_light_info.amount_in_light = min(max(0.0, amount_in_light), 1.0) * dir_light_data.light_active;
+  // in_dir_light_info.amount_in_light = central_in_light;
+  // in_dir_light_info.amount_in_light = 1.0;
 
   return in_dir_light_info;
 }
@@ -531,7 +616,12 @@ vec3 calc_global_illum(norm_inter_vecs_t niv, int light_probe_i) {
 vec4 pbr_brdf(norm_inter_vecs_t niv) {
 
   // dirlight
-  is_in_dir_light_info_t in_dir0 = calc_light_rel_data();
+  is_in_dir_light_info_t in_dir0 = calc_dir_light_rel_data();
+
+  // return vec4(vec3(in_dir0.amount_in_light), 1.0);
+  // return vec4(vec3(in_dir0.depth), 1.0);
+  // return in_dir0.debug_info;
+  // return vec4(vec3(in_dir0.closest_depth), 1.0);
 
   // spotlights
   is_in_spotlight_info_t in_spotlight0 = is_in_spotlight(niv, spotlights_data[0], spotlight_rel_screen_pos0);
@@ -552,7 +642,8 @@ vec4 pbr_brdf(norm_inter_vecs_t niv) {
   vec3 ambient_factor = max_ambient_factor * get_occ_rgb();
   vec3 color = ambient_factor * diffuse.rgb;
 
-  for (int i = 0; i < num_light_probes_set; i++) {
+  // for (int i = 0; i < num_light_probes_set; i++) {
+  for (int i = 0; i < 0; i++) {
     color += calc_global_illum(niv, i) * vec3(0.1);
   }
 
@@ -576,7 +667,7 @@ void main() {
   // frag_color = vec4(pbr, 1.0);
   frag_color = pbr;
 
-  is_in_dir_light_info_t in_dir0 = calc_light_rel_data();
+  is_in_dir_light_info_t in_dir0 = calc_dir_light_rel_data();
 
 #if VIEW_AMOUNT_IN_LIGHT
   frag_color = vec4(max_in_light, max_in_light, max_in_light, 1);
@@ -630,7 +721,9 @@ void main() {
   float ail = in_dir0.amount_in_light;
   frag_color = vec4(ail,ail,ail,1);
 #elif VIEW_CASCADE
-  int dir_light_layer = dir_light_rel_data.highest_precision_cascade;
+  // int dir_light_layer = dir_light_rel_data.highest_precision_cascade;
+  int dir_light_layer = int(in_dir0.tex_coords.z);
+
   if (dir_light_layer == 0) {
     frag_color = vec4(1,0,0,1);
   } else if (dir_light_layer == 1) {
