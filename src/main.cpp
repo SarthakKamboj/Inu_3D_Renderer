@@ -20,6 +20,7 @@
 #include "render_passes/pbr_render_pass.h"
 #include "renderer/renderer.h"
 #include "animation/skin.h"
+#include "editor/move_tool.h"
 
 static float win_width = 1280.f;
 static float win_height = 960.f;
@@ -130,6 +131,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
   init_skin_system() ;
 
   create_basic_models();
+  init_move_tool();
 
 #if 0
   char gltf_full_file_path2[256]{};

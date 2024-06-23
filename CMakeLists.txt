@@ -52,6 +52,7 @@ function(configure_project)
         src/renderer/renderer.cpp
 
         src/editor/pixel_perfect_sel.cpp
+        src/editor/move_tool.cpp
     )
 
     add_executable(${PROJECT_NAME} 

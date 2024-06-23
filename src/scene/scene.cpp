@@ -31,12 +31,14 @@ extern window_t window;
 void init_scene_rendering() {
 }
 
-int create_object(transform_t& transform) {
+int create_object(transform_t& transform, OBJECT_FLAGS obj_flag) {
   object_t obj;
   static int i = 0;
   obj.id = i++;
   memcpy(&obj.transform, &transform, sizeof(transform_t));
   objs.push_back(obj);
+
+  obj.obj_flag = obj_flag;
 
 #if EDITOR
   create_selectable_element(obj.id);
@@ -153,7 +155,7 @@ vbo_t* get_obj_vbo(int obj_id, int mesh_idx) {
 }
 
 static std::vector<scene_iterated_info_t> scene_iterator_infos;
-scene_iterator_t create_scene_iterator() {
+scene_iterator_t create_scene_iterator(OBJECT_FLAGS obj_flag) {
   scene_iterator_t scene_iterator{};
   scene_iterator_infos.clear();
 
@@ -227,4 +229,8 @@ int iterate_scene_for_next_obj(scene_iterator_t& iterator) {
   iterator.obj_id = child_info.obj_id;
 
   return iterator.obj_id;
+}
+
+OBJECT_FLAGS operator|(OBJECT_FLAGS of1, OBJECT_FLAGS of2) {
+  return static_cast<OBJECT_FLAGS>(static_cast<int>(of1) | static_cast<int>(of2));
 }

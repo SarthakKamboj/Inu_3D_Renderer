@@ -14,6 +14,14 @@
 
 #define NUM_LIGHTS_SUPPORTED_IN_SHADER 3
 
+enum class OBJECT_FLAGS {
+  NONE = 0,
+  GAMEOBJECT = 1,
+  SELECTABLE = 2,
+  ALL = 0xFFFF
+};
+OBJECT_FLAGS operator|(OBJECT_FLAGS of1, OBJECT_FLAGS of2);
+
 struct object_t {
   int id = -1;
   std::string name;
@@ -21,13 +29,15 @@ struct object_t {
   mat4 model_mat;
   std::vector<int> child_objects; 
   int parent_obj = -1;
+
+  OBJECT_FLAGS obj_flag = OBJECT_FLAGS::NONE;
 };
 
 struct scene_t {
   std::unordered_set<int> parent_objs;
 };
 
-int create_object(transform_t& transform);
+int create_object(transform_t& transform, OBJECT_FLAGS obj_flag = OBJECT_FLAGS::ALL);
 void attach_name_to_obj(int obj_id, std::string& name);
 void attach_child_obj_to_obj(int obj_id, int child_obj_id);
 void remove_obj_as_child(int obj_id);
@@ -50,6 +60,7 @@ void offline_final_render_pass();
 
 struct scene_iterator_t {
   int obj_id = -1;
+  OBJECT_FLAGS obj_flag = OBJECT_FLAGS::NONE;
 };
 
 struct scene_iterated_info_t {
@@ -60,6 +71,6 @@ struct scene_iterated_info_t {
   int num_children = 0;
 };
 
-scene_iterator_t create_scene_iterator();
+scene_iterator_t create_scene_iterator(OBJECT_FLAGS obj_flag = OBJECT_FLAGS::ALL);
 int iterate_scene_for_next_obj(scene_iterator_t& iterator);
 
