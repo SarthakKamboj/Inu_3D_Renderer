@@ -73,17 +73,15 @@ void pbr_render_pass() {
 
   set_up_shader_for_pbr_render_pass();
   
-  // set_light_probe_in_shader(1, 0, material_t::associated_shader);
-  scene_iterator_t scene_iterator = create_scene_iterator(); 
+  // scene_iterator_t scene_iterator = create_scene_iterator(OBJECT_FLAGS::GAMEOBJECT);
+  // scene_iterator_t scene_iterator = create_scene_iterator(OBJECT_FLAGS::EDITOR_OBJ);
+  scene_iterator_t scene_iterator = create_scene_iterator(OBJECT_FLAGS::NONE);
 
   std::vector<object_id> obj_ids_w_opaque_models;
   std::vector<obj_sort_info_t> non_opaque_objs;
   int obj_id = iterate_scene_for_next_obj(scene_iterator);
   do {
     int model_id = get_obj_model_id(obj_id);
-    if (obj_id == 2) {
-        int a = 5;
-    }
     if (model_id != -1) {
       if(is_model_opaque(model_id)) {
         obj_ids_w_opaque_models.push_back(obj_id);

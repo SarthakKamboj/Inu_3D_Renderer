@@ -53,6 +53,7 @@ function(configure_project)
 
         src/editor/pixel_perfect_sel.cpp
         src/editor/move_tool.cpp
+        src/editor/editor_pass.cpp
     )
 
     add_executable(${PROJECT_NAME} 

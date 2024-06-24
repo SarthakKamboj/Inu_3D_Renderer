@@ -1735,7 +1735,7 @@ void gltf_load_file(const char* filepath, bool parse_nodes) {
     t.rot.z = node.rot.z;
     t.rot.w = node.rot.w;
 
-    int obj_id = create_object(t);
+    int obj_id = create_object(t, OBJECT_FLAGS::GAMEOBJECT | OBJECT_FLAGS::SELECTABLE);
     attach_name_to_obj(obj_id, node.name);
     offset_gltf_node_to_internal_obj_id = obj_id - i;
     if (node.gltf_mesh_handle != -1) {

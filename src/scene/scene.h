@@ -22,6 +22,7 @@ enum class OBJECT_FLAGS {
   ALL = 0xFFFF
 };
 OBJECT_FLAGS operator|(OBJECT_FLAGS of1, OBJECT_FLAGS of2);
+int operator&(OBJECT_FLAGS of1, OBJECT_FLAGS of2);
 
 struct object_t {
   int id = -1;

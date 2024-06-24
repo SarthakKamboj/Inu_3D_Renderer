@@ -140,7 +140,7 @@ void selection_render_pass() {
   shader_set_mat4(shader, "projection", proj);
   shader_set_mat4(shader, "view", view);
 
-  scene_iterator_t iterator = create_scene_iterator();
+  scene_iterator_t iterator = create_scene_iterator(OBJECT_FLAGS::SELECTABLE);
   object_id obj_id = iterate_scene_for_next_obj(iterator);
   do {
     object_t* obj_p = get_obj(obj_id);

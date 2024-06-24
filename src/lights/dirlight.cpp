@@ -184,7 +184,7 @@ void create_frustum_and_ortho_models(dir_light_t& light) {
 
       transform_t t;
       t.scale = {1,1,1};
-      int obj_id = create_object(t);
+      int obj_id = create_object(t, OBJECT_FLAGS::EDITOR_OBJ);
       attach_model_to_obj(obj_id, model_id);
 
       if (debug_i == FRUSTUM_MODEL_CREATION_ITER) {
@@ -651,7 +651,7 @@ void dirlight_pass() {
     gen_dir_light_matricies(i, cam); 
     setup_dir_light_for_rendering(i, cam);
 
-    scene_iterator_t iterator = create_scene_iterator();
+    scene_iterator_t iterator = create_scene_iterator(OBJECT_FLAGS::GAMEOBJECT);
     int obj_id = iterate_scene_for_next_obj(iterator);
     do {
       object_t* obj_p = get_obj(obj_id);

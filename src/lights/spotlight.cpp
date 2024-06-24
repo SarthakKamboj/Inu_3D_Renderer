@@ -62,7 +62,7 @@ int create_spotlight(vec3 pos) {
   transform_t obj_t;
   obj_t.pos = pos;
   obj_t.scale = {1,1,1};
-  int obj_id = create_object(obj_t);
+  int obj_id = create_object(obj_t, OBJECT_FLAGS::EDITOR_OBJ);
   attach_name_to_obj(obj_id, std::string("light pos"));
   set_obj_as_parent(obj_id);
 #if SHOW_SPOTLIGHTS == 1
@@ -141,7 +141,7 @@ void spotlight_pass() {
   for (int i = 0; i < num_spotlights; i++) {
     setup_spotlight_for_rendering(i);
 
-    scene_iterator_t iterator = create_scene_iterator();
+    scene_iterator_t iterator = create_scene_iterator(OBJECT_FLAGS::GAMEOBJECT);
     int obj_id = iterate_scene_for_next_obj(iterator);
     do {
       int obj_model_id = get_obj_model_id(obj_id);

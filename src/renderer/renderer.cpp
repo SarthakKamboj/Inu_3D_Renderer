@@ -4,6 +4,7 @@
 #include "lights/dirlight.h"
 #include "editor/pixel_perfect_sel.h"
 #include "render_passes/pbr_render_pass.h"
+#include "editor/editor_pass.h"
 
 void offline_render() {
   spotlight_pass();
@@ -14,4 +15,8 @@ void offline_render() {
 #endif
 
   pbr_render_pass();
+
+#if EDITOR
+  editor_pass();
+#endif
 }

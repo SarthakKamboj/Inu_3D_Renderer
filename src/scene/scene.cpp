@@ -36,9 +36,9 @@ int create_object(transform_t& transform, OBJECT_FLAGS obj_flag) {
   static int i = 0;
   obj.id = i++;
   memcpy(&obj.transform, &transform, sizeof(transform_t));
+  obj.obj_flag = obj_flag;
   objs.push_back(obj);
 
-  obj.obj_flag = obj_flag;
 
 #if EDITOR
   create_selectable_element(obj.id);
@@ -157,6 +157,7 @@ vbo_t* get_obj_vbo(int obj_id, int mesh_idx) {
 static std::vector<scene_iterated_info_t> scene_iterator_infos;
 scene_iterator_t create_scene_iterator(OBJECT_FLAGS obj_flag) {
   scene_iterator_t scene_iterator{};
+  scene_iterator.obj_flag = obj_flag;
   scene_iterator_infos.clear();
 
   // default values of this represents the root node over parent nodes
@@ -179,8 +180,8 @@ int iterate_scene_for_next_obj(scene_iterator_t& iterator) {
   scene_iterated_info_t* scene_iter_info = get_idx_of_scene_iterator_info(iterator.obj_id);
   inu_assert(scene_iter_info != NULL);
 
+  // this object has no more children so we have to move up the hierarchy
   if (scene_iter_info->child_idx >= scene_iter_info->num_children) {
-    // this object has no more children so we have to move up the hierarchy
 
     // we are already at the root node of the scene
     if (iterator.obj_id == -1) return -1;
@@ -210,11 +211,16 @@ int iterate_scene_for_next_obj(scene_iterator_t& iterator) {
     scene_iterator_infos.push_back(child_info);
     iterator.obj_id = child_info.obj_id;
 
+    if ((child_obj.obj_flag & iterator.obj_flag) == 0) {
+      return iterate_scene_for_next_obj(iterator);
+    }
+
     return iterator.obj_id;
   }
 
   // we are not at the root node above parent nodes
   object_t& obj = objs[scene_iter_info->obj_id];
+
   scene_iterated_info_t child_info{};
 
   child_info.obj_id = obj.child_objects[scene_iter_info->child_idx];
@@ -228,9 +234,17 @@ int iterate_scene_for_next_obj(scene_iterator_t& iterator) {
   scene_iterator_infos.push_back(child_info);
   iterator.obj_id = child_info.obj_id;
 
+  if ((child_obj.obj_flag & iterator.obj_flag) == 0) {
+    return iterate_scene_for_next_obj(iterator);
+  }
+
   return iterator.obj_id;
 }
 
 OBJECT_FLAGS operator|(OBJECT_FLAGS of1, OBJECT_FLAGS of2) {
   return static_cast<OBJECT_FLAGS>(static_cast<int>(of1) | static_cast<int>(of2));
+}
+
+int operator&(OBJECT_FLAGS of1, OBJECT_FLAGS of2) {
+  return static_cast<int>(of1) & static_cast<int>(of2);
 }
