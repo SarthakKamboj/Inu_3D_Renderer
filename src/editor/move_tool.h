@@ -19,6 +19,14 @@ struct move_tool_t {
   int selected_obj_id = -1;
 };
 
+struct axes_model_t {
+  int x_axis_obj_id = -1;  
+  int y_axis_obj_id = -1;  
+  int z_axis_obj_id = -1;  
+};
+void create_axes();
+void hide_axes();
+
 void init_move_tool();
 void update_move_tool();
 bool currently_selecting();

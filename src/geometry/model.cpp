@@ -19,6 +19,7 @@ bool is_model_opaque(int model_id) {
 
 bool is_model_opaque(model_t& model) {
   for (mesh_t& mesh : model.meshes) {
+    if (mesh.mat_idx == -1) continue;
     material_t m = get_material(mesh.mat_idx);
     bool non_opaque = (m.transparency_mode != TRANSPARENCY_MODE::OPQUE);
     if (non_opaque) {
@@ -46,7 +47,11 @@ model_t* get_model(int model_id) {
 
 void render_mesh(mesh_t& mesh) {
   bind_vao(mesh.vao);
-  draw_ebo(mesh.ebo);
+  if (mesh.mesh_draw_mode == MESH_DRAW_MODE::LINE) {
+    draw_ebo_as_lines(mesh.ebo);
+  } else {
+    draw_ebo(mesh.ebo);
+  }
   unbind_vao();
   unbind_ebo();
 }

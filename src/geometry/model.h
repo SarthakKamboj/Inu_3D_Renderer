@@ -17,6 +17,11 @@ struct vertex_t {
   float weights[4];
 };
 
+enum class MESH_DRAW_MODE {
+  TRIANGLE,
+  LINE
+};
+
 struct mesh_t {
   vao_t vao;
 
@@ -26,7 +31,9 @@ struct mesh_t {
   ebo_t ebo;
   std::vector<unsigned int> indicies;
 
-  int mat_idx;
+  int mat_idx = -1;
+
+  MESH_DRAW_MODE mesh_draw_mode = MESH_DRAW_MODE::TRIANGLE;
 };
 
 struct model_t {

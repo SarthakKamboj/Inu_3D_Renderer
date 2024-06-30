@@ -102,6 +102,10 @@ void draw_ebo(const ebo_t& ebo) {
 	glDrawElements(GL_TRIANGLES, ebo.num_indicies, GL_UNSIGNED_INT, 0);
 }
 
+void draw_ebo_as_lines(const ebo_t& ebo) {
+	glDrawElements(GL_LINES, ebo.num_indicies, GL_UNSIGNED_INT, 0);
+}
+
 void bind_ebo(const ebo_t& ebo) {
 	GLuint gl_ebo_id = ebo_id_to_gl_id[ebo.id];
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gl_ebo_id);

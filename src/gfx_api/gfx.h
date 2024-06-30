@@ -31,6 +31,7 @@ struct ebo_t {
 };
 ebo_t create_ebo(const unsigned int* indicies, const int size_of_buffer);
 void draw_ebo(const ebo_t& ebo);
+void draw_ebo_as_lines(const ebo_t& ebo);
 void bind_ebo(const ebo_t& ebo);
 void unbind_ebo();
 void delete_ebo(const ebo_t& ebo);

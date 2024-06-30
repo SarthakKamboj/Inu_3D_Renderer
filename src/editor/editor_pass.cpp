@@ -33,15 +33,12 @@ void attach_editor_mat_to_obj(int obj_id, editor_mat_t& mat) {
 }
 
 void render_editor_obj(int obj_id, int model_id) {
-
   model_t* m_p = get_model(model_id);
   if (m_p == NULL || m_p->hidden) return;
 
-  shader_t& shader = editor_system.editor_shader;
-
   setup_editor_obj_in_shader(obj_id);
 
-  bind_shader(shader);
+  bind_shader(editor_system.editor_shader);
   render_model_w_no_material_bind(model_id);
 }
 
