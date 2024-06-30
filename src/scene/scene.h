@@ -40,15 +40,18 @@ struct scene_t {
 };
 
 int create_object(transform_t& transform, OBJECT_FLAGS obj_flag = OBJECT_FLAGS::ALL);
+transform_t get_obj_transform(int obj_id);
 void attach_name_to_obj(int obj_id, std::string& name);
 void attach_child_obj_to_obj(int obj_id, int child_obj_id);
 void remove_obj_as_child(int obj_id);
+void set_transform_on_obj(int obj_id, transform_t& t);
 
 struct vbo_t;
 vbo_t* get_obj_vbo(int obj_id, int mesh_idx);
 
 void populate_parent_field_of_nodes();
 mat4 get_obj_model_mat(int obj_id);
+std::string get_obj_name(int obj_id);
 void set_obj_as_parent(int obj_id);
 void unset_obj_as_parent(int obj_id);
 void update_obj_model_mats();

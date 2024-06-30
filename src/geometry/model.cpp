@@ -121,8 +121,13 @@ void set_material_on_model(int model_id, int mat_idx) {
 
 void attach_model_to_obj(int obj_id, int model_id) {
   printf("attached model id %i to obj: %i\n", model_id, obj_id);
-  // objs[obj_id].model_id = model_id;
   obj_to_model[obj_id] = model_id;
+}
+
+void model_toggle_hidden(int obj_id, bool hidden) {
+  if (obj_to_model.find(obj_id) == obj_to_model.end()) return;
+  models[obj_to_model[obj_id]].hidden = hidden;
+  printf("obj %i is now %s\n", obj_id, hidden ? "hidden" : "not hidden");
 }
 
 int get_obj_model_id(int obj_id) {

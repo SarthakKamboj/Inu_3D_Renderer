@@ -80,6 +80,10 @@ bool vec3::operator==(const vec3& v) {
   return (x == v.x && y == v.y && z == v.z);
 }
 
+bool operator!=(const vec3& v1, const vec3& v2) {
+  return (v1.x != v2.x || v1.y != v2.y || v1.z != v2.z);
+}
+
 vec3 vec3::operator/(float divider) {
   return {x / divider, y / divider, z / divider};
 }

@@ -33,8 +33,10 @@ struct model_t {
   int id;
   std::vector<mesh_t> meshes;
   bool is_non_opaque_mesh = false;
+  bool hidden = false;
 };
 
+void model_toggle_hidden(int obj_id, bool val);
 bool is_model_opaque(model_t& model);
 bool is_model_opaque(int model_id);
 int register_model(model_t& model);

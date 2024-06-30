@@ -32,7 +32,7 @@ void render_scene_obj(int obj_id) {
     shader_set_mat4(shader, "model", model_mat);
   } 
 
-  if (is_obj_selected(obj_id)) {
+  if (is_obj_selected_left_mouse_up(obj_id)) {
     set_render_mode(RENDER_MODE::WIREFRAME);
   }
 
@@ -51,7 +51,7 @@ void render_scene_obj(int obj_id) {
 #endif
 
 
-  if (is_obj_selected(obj_id)) {
+  if (is_obj_selected_left_mouse_up(obj_id)) {
     set_render_mode(RENDER_MODE::NORMAL);
   }
 
@@ -73,9 +73,9 @@ void pbr_render_pass() {
 
   set_up_shader_for_pbr_render_pass();
   
-  // scene_iterator_t scene_iterator = create_scene_iterator(OBJECT_FLAGS::GAMEOBJECT);
+  scene_iterator_t scene_iterator = create_scene_iterator(OBJECT_FLAGS::GAMEOBJECT);
   // scene_iterator_t scene_iterator = create_scene_iterator(OBJECT_FLAGS::EDITOR_OBJ);
-  scene_iterator_t scene_iterator = create_scene_iterator(OBJECT_FLAGS::NONE);
+  // scene_iterator_t scene_iterator = create_scene_iterator(OBJECT_FLAGS::NONE);
 
   std::vector<object_id> obj_ids_w_opaque_models;
   std::vector<obj_sort_info_t> non_opaque_objs;

@@ -136,7 +136,6 @@ void create_window(HINSTANCE h_instance, int width, int height) {
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glFrontFace(GL_CCW);
-  // glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 }
 
 LRESULT CALLBACK window_procedure(HWND h_window, UINT u_msg, WPARAM w_param, LPARAM l_param) {
@@ -157,6 +156,10 @@ LRESULT CALLBACK window_procedure(HWND h_window, UINT u_msg, WPARAM w_param, LPA
     }
     case WM_LBUTTONUP: {
       window.input.left_mouse_up = true;
+      break;
+    }
+    case WM_LBUTTONDOWN: {
+      window.input.left_mouse_down = true;
       break;
     }
     case WM_RBUTTONUP: {
@@ -228,6 +231,7 @@ void poll_events() {
   window.input.middle_mouse_down = false;
   window.input.mouse_pos_diff = {0,0};
   window.input.left_mouse_up = false;
+  window.input.left_mouse_down = false;
   window.input.right_mouse_up = false;
 
   window.input.a_up = false;

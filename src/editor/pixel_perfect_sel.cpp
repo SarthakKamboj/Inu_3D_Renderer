@@ -7,6 +7,7 @@
 #include "gfx_api/gfx.h"
 #include "animation/skin.h"
 #include "windowing/window.h"
+#include "move_tool.h"
 
 #include <vector>
 #include <unordered_map>
@@ -23,6 +24,8 @@ static selectable_id running_id = 1;
 static std::vector<selectable_element_t> selectable_elements;
 
 static std::unordered_map<object_id, selectable_id> obj_id_to_sel_id;
+
+static selection_state_t selection_state;
 
 static int sel_fb_width = 160;
 static int sel_fb_height = 90;
@@ -91,22 +94,59 @@ selectable_id get_sel_el_from_color(vec3 color) {
   return 0;
 }
 
+#if 0
 void set_selection(selectable_id id) {
   selection_id = id;
 }
+#endif
 
 void handle_selection_logic() {
-  if (window.input.left_mouse_up) {
+
+  selection_state.left_mouse_down_selected = -1;
+  selection_state.left_mouse_up_selected = -1;
+
+  bool sel_will_update = window.input.left_mouse_up || window.input.left_mouse_down;
+  selectable_id sel_id = -1;
+  if (sel_will_update) {
     vec3 pixel_color = get_sel_pixel_color();
-    selectable_id sel_id = get_sel_el_from_color(pixel_color);
-    set_selection(sel_id);
+    printf("pixel_color: ");
+    print_vec3(pixel_color);
+    printf("\n");
+    sel_id = get_sel_el_from_color(pixel_color);
+  }
+  if (window.input.left_mouse_up) {
+    selection_state.left_mouse_up_selected = sel_id;
+  } else if (window.input.left_mouse_down) {
+    selection_state.left_mouse_down_selected = sel_id;
   }
 }
 
-bool is_obj_selected(object_id obj_id) {
+bool is_obj_selected_left_mouse_up(object_id obj_id) {
   if (obj_id_to_sel_id.find(obj_id) == obj_id_to_sel_id.end()) return false;
-  // return obj_id_to_sel_id[obj.id] == selection_id;
-  return obj_id_to_sel_id[obj_id] == selection_id;
+  return obj_id_to_sel_id[obj_id] == selection_state.left_mouse_up_selected;
+}
+
+int get_obj_selected_left_mouse_up() {
+  for (selectable_element_t& set : selectable_elements) {
+    if (selection_state.left_mouse_up_selected == set.id) {
+      return set.obj_id;
+    }
+  }
+  return -1;
+}
+
+int get_obj_selected_left_mouse_down() {
+  for (selectable_element_t& set : selectable_elements) {
+    if (selection_state.left_mouse_down_selected == set.id) {
+      return set.obj_id;
+    }
+  }
+  return -1;
+}
+
+bool is_obj_selected_left_mouse_down(object_id obj_id) {
+  if (obj_id_to_sel_id.find(obj_id) == obj_id_to_sel_id.end()) return false;
+  return obj_id_to_sel_id[obj_id] == selection_state.left_mouse_down_selected;
 }
 
 selectable_element_t get_sel_el(selectable_id id) {
@@ -165,23 +205,11 @@ void selection_render_pass() {
 
 vec3 get_sel_pixel_color() {
   bind_framebuffer(selectable_element_t::SELECTION_FB);
-  get_gfx_error();
   glReadBuffer(GL_COLOR_ATTACHMENT0);
-  get_gfx_error();
+
   vec2 mouse_pct{}; 
   mouse_pct.x = static_cast<float>(window.input.mouse_pos.x) / static_cast<float>(window.window_dim.x);
   mouse_pct.y = static_cast<float>(window.input.mouse_pos.y) / static_cast<float>(window.window_dim.y);
-  // printf("%i %i\n", window.input.mouse_pos.x, window.input.mouse_pos.y);
-  // printf("%f %f\n", mouse_pct.x, mouse_pct.y);
-
-#if 0
-  unsigned char pixel[3]{};
-  glReadPixels(window.input.mouse_pos.x, window.input.mouse_pos.y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, &pixel);
-  get_gfx_error();
-  printf("%c %c %c\n", pixel[0], pixel[1], pixel[2], pixel[3]);
-#else
-  // glPixelStorei(GL_PACK_ALIGNMENT, 1);
-  // glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
   float gaps = window.window_dim.x - fb_width_on_screen_px;
   float gap_half = gaps / 2.0f;
@@ -204,33 +232,13 @@ vec3 get_sel_pixel_color() {
   sel_fb_row_col.x = mouse_rel_to_render_pct.x * selectable_element_t::SELECTION_FB.width;
   sel_fb_row_col.y = mouse_rel_to_render_pct.y * selectable_element_t::SELECTION_FB.height;
 
-  printf("row, col: (%i %i)\n", sel_fb_row_col.x, sel_fb_row_col.y);
+  // printf("row, col: (%i %i)\n", sel_fb_row_col.x, sel_fb_row_col.y);
 
-#if 1
   float pixel[4]{};
   glReadPixels(sel_fb_row_col.x, sel_fb_row_col.y, 1, 1, GL_RGBA, GL_FLOAT, pixel);
-  printf("color: (%f %f %f)\n", pixel[0], pixel[1], pixel[2], pixel[3]);
+  // printf("color: (%f %f %f)\n", pixel[0], pixel[1], pixel[2], pixel[3]);
 
   vec3 final_color = {pixel[0], pixel[1], pixel[2]};
-#else
-  // GLubyte* pixels = (GLubyte*) malloc(4 * sizeof(GLubyte));
-  // memset(pixels, 0, 128 * 128 * 4 * sizeof(GLubyte));
-  // GLubyte pixels[128][128][4]{};
-  float pixels[128][1][4]{};
-  // glReadPixels(0, 0, 128, 128, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-  glReadPixels(0, 0, 128, 128, GL_RGBA, GL_FLOAT, pixels);
-  // get_gfx_error();
-  for (int i = 0; i < 128; i++) {
-    for (int j = 0; j < 128; j++) {
-      // GLubyte* p = pixels[i][j];
-      float* p = pixels[i][j];
-      // std::cout << "pixel data: " << std::to_string(p[0]) << " " << std::to_string(p[1]) << " " << std::to_string(p[2]) << std::endl;
-    }
-  }
-  // printf("%c %c %c\n", pixel[0], pixel[1], pixel[2], pixel[3]);
-#endif
-
-#endif
  
   unbind_framebuffer();
   return final_color;

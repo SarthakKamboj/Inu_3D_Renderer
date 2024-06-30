@@ -54,67 +54,67 @@
         {
             "bufferView" : 0,
             "componentType" : 5126,
-            "count" : 56,
+            "count" : 48,
             "max" : [
-                0.6814755797386169,
-                3.897806167602539,
-                0.6814755797386169
+                0.19442282617092133,
+                3.7685985565185547,
+                0.19442282617092133
             ],
             "min" : [
-                -0.6814755797386169,
-                0,
-                -0.6814755797386169
+                -0.19442282617092133,
+                0.05131465196609497,
+                -0.19442282617092133
             ],
             "type" : "VEC3"
         },
         {
             "bufferView" : 1,
             "componentType" : 5126,
-            "count" : 56,
+            "count" : 48,
             "type" : "VEC2"
         },
         {
             "bufferView" : 2,
             "componentType" : 5126,
-            "count" : 56,
+            "count" : 48,
             "type" : "VEC3"
         },
         {
             "bufferView" : 3,
             "componentType" : 5123,
-            "count" : 84,
+            "count" : 66,
             "type" : "SCALAR"
         }
     ],
     "bufferViews" : [
         {
             "buffer" : 0,
-            "byteLength" : 672,
+            "byteLength" : 576,
             "byteOffset" : 0,
             "target" : 34962
         },
         {
             "buffer" : 0,
-            "byteLength" : 448,
-            "byteOffset" : 672,
+            "byteLength" : 384,
+            "byteOffset" : 576,
             "target" : 34962
         },
         {
             "buffer" : 0,
-            "byteLength" : 672,
-            "byteOffset" : 1120,
+            "byteLength" : 576,
+            "byteOffset" : 960,
             "target" : 34962
         },
         {
             "buffer" : 0,
-            "byteLength" : 168,
-            "byteOffset" : 1792,
+            "byteLength" : 132,
+            "byteOffset" : 1536,
             "target" : 34963
         }
     ],
     "buffers" : [
         {
-            "byteLength" : 1960,
+            "byteLength" : 1668,
             "uri" : "arrow.bin"
         }
     ]

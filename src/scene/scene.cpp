@@ -56,6 +56,18 @@ void remove_obj_as_child(int obj_id) {
   }
 }
 
+std::string get_obj_name(int obj_id) {
+  return objs[obj_id].name;
+}
+
+transform_t get_obj_transform(int obj_id) {
+  return objs[obj_id].transform;
+}
+
+void set_transform_on_obj(int obj_id, transform_t& t) {
+  objs[obj_id].transform = t;
+}
+
 void attach_child_obj_to_obj(int obj_id, int child_obj_id) {
   if (child_obj_id < objs.size() && obj_has_skin(child_obj_id)) {
     return;

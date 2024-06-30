@@ -33,31 +33,28 @@ void attach_editor_mat_to_obj(int obj_id, editor_mat_t& mat) {
 }
 
 void render_editor_obj(int obj_id, int model_id) {
+
+  model_t* m_p = get_model(model_id);
+  if (m_p == NULL || m_p->hidden) return;
+
   shader_t& shader = editor_system.editor_shader;
 
   setup_editor_obj_in_shader(obj_id);
 
   bind_shader(shader);
-
-  if (is_obj_selected(obj_id)) {
-    set_render_mode(RENDER_MODE::WIREFRAME);
-  }
-
   render_model_w_no_material_bind(model_id);
-
-  if (is_obj_selected(obj_id)) {
-    set_render_mode(RENDER_MODE::NORMAL);
-  }
 }
 
 void editor_pass() {
-  // PBR RENDER PASS
+  // EDITOR RENDER PASS
   bind_framebuffer(offline_fb);
 
   mat4 proj = get_cam_proj_mat();
   mat4 view = get_cam_view_mat();
   shader_set_mat4(editor_system.editor_shader, "projection", proj);
   shader_set_mat4(editor_system.editor_shader, "view", view);
+
+  clear_framebuffer_depth();
 
   scene_iterator_t scene_iterator = create_scene_iterator(OBJECT_FLAGS::EDITOR_OBJ);
 

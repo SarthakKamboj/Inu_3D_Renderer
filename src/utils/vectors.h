@@ -31,6 +31,9 @@ struct vec3 {
   float y = 0;
   float z = 0;
 
+  // vec3() = default;
+  // vec3(float _x, float _y, float _z);
+
   float& operator[](int idx);
   vec3 operator/(float divider);
   vec3 operator*(float multiplier);
@@ -40,6 +43,7 @@ struct vec3 {
 
   float length();
 };
+bool operator!=(const vec3& v1, const vec3& v2);
 void print_vec3(vec3& v);
 
 vec3 cross_product(vec3& v1, vec3& v2);
